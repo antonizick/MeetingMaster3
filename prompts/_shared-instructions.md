@@ -59,5 +59,5 @@ MeetingMaster3/
 - [ ] Later phase prompts corrected if your work changed their assumptions.
 - [ ] Obsidian note `02 Projects/Meeting Master 3 Implementation Plan.md` updated.
 - [ ] OSMods documentation updated if the host system was modified.
-- [ ] Work committed on the phase branch. Ask Nick whether to merge to `main`. Never push without his confirmation.
+- [ ] Work committed on the phase branch. Standing instruction from Nick (2026-10-11): once the phase is `✅ Complete` and every check passes, merge it into `main` locally without asking (fast-forward where possible), then delete the merged phase branch (`git branch -d`) and remove any temporary files or processes you created. Do not merge a `⛔ Blocked` phase or one with failing checks. Never push, create a GitHub repo or open a PR without his explicit confirmation.
 - [ ] Final message to Nick: what was built, how to try it, what's next, and any open questions.

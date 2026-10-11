@@ -11,7 +11,7 @@ Open Claude Code in `/home/nick/Work/MeetingMaster3` and type one of:
 - `/phase 03`: run a specific phase.
 - `/phase status`: show progress and what's next, without doing any work.
 
-The command lives in `.claude/commands/phase.md`. Under the hood it reads `CLAUDE.md`, this file and `prompts/_shared-instructions.md`, then executes `prompts/phase-NN-*.md`. You never need to paste a prompt. Review the agent's close-out summary, then merge the phase branch when satisfied.
+The command lives in `.claude/commands/phase.md`. Under the hood it reads `CLAUDE.md`, this file and `prompts/_shared-instructions.md`, then executes `prompts/phase-NN-*.md`. You never need to paste a prompt. Review the agent's close-out summary. Completed phases are merged into `main` automatically (the phase branch is then deleted); nothing is pushed without your confirmation.
 
 Phases run in order. Phases whose dependencies are all complete may run in parallel, for example 05 ∥ 08 and 12 ∥ 13.
 
