@@ -3,7 +3,7 @@
 **Spec:** [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) (v1.1). **Decisions:** [`docs/DECISIONS.md`](docs/DECISIONS.md). **Agent rules:** [`CLAUDE.md`](CLAUDE.md). **Shared phase instructions:** [`prompts/_shared-instructions.md`](prompts/_shared-instructions.md)
 **Last updated:** 2026-10-11 (Phase 05 complete)
 
-> ⚠️ **Mandatory:** every agent that works on this project keeps this file accurate. Set your phase to `In progress` when you start. At the end, set it to `Complete` or `Blocked` and add a Phase Log entry. See `CLAUDE.md`.
+> ⚠️ **Mandatory:** every agent that works on this project keeps this file accurate. **Before doing any other work, set your phase to `🔄 In progress` and commit that change to `main`** (claim protocol: `prompts/_shared-instructions.md` §1a). Other agents read this table from `main`. At the end, set it to `✅ Complete` or `⛔ Blocked` and add a Phase Log entry. See `CLAUDE.md`.
 
 ## How to run a phase
 Open Claude Code in `/home/nick/Work/MeetingMaster3` and type one of:
@@ -13,7 +13,7 @@ Open Claude Code in `/home/nick/Work/MeetingMaster3` and type one of:
 
 The command lives in `.claude/commands/phase.md`. Under the hood it reads `CLAUDE.md`, this file and `prompts/_shared-instructions.md`, then executes `prompts/phase-NN-*.md`. You never need to paste a prompt. Review the agent's close-out summary. Completed phases are merged into `main` automatically (the phase branch is then deleted); nothing is pushed without your confirmation.
 
-Phases run in order. Phases whose dependencies are all complete may run in parallel, for example 05 ∥ 08 and 12 ∥ 13.
+Phases run in order. Phases whose dependencies are all complete may run in parallel, for example 05 ∥ 08 and 12 ∥ 13. Each phase is claimed by a `chore(plan): start phase NN` commit on `main` and runs in its own worktree, `../MeetingMaster3-phase-NN`, so parallel sessions never share a checkout. `/phase status` flags any branch or worktree whose row is not `🔄 In progress`.
 
 **Status values:** ⬜ Not started · 🔄 In progress · ⛔ Blocked · ✅ Complete. Always write the icon **and** the word, so the column is easy to scan and still searchable.
 
@@ -24,12 +24,12 @@ Phases run in order. Phases whose dependencies are all complete may run in paral
 | 00 | Planning & spec refinement | Review the PrePlan, resolve decisions, write the spec v1.1, this plan and the phase prompts | Opus 5.5 | none | ✅ Complete | n/a (this session) |
 | 01 | Repository foundation & governance | Create a GitHub-ready repo: LICENSE, NOTICE, README, SECURITY, CONTRIBUTING, CoC, CHANGELOG, .gitignore, .github templates, docs skeleton | Sonnet 5.5 | 00 | ✅ Complete | [phase-01-repo-foundation.md](prompts/phase-01-repo-foundation.md) |
 | 02 | Python scaffold, config & CI | uv/Python 3.12 project, FastAPI app factory, `mm3` CLI, pydantic+YAML config, XDG paths, security middleware, lint/type/test CI | Sonnet 5.5 | 01 | ✅ Complete | [phase-02-python-scaffold.md](prompts/phase-02-python-scaffold.md) |
-| 03 | Data model & Markdown round-trip | Domain models, note and companion-transcript writer/parser, section markers, frontmatter, naming, archive, vault path safety, diffs | Opus 5.5 | 02 | ⬜ Not started | [phase-03-data-model-markdown.md](prompts/phase-03-data-model-markdown.md) |
+| 03 | Data model & Markdown round-trip | Domain models, note and companion-transcript writer/parser, section markers, frontmatter, naming, archive, vault path safety, diffs | Opus 5.5 | 02 | 🔄 In progress | [phase-03-data-model-markdown.md](prompts/phase-03-data-model-markdown.md) |
 | 04 | Job orchestration & audio ingest | SQLite storage, job queue (single GPU worker), stage pipeline, checkpoints and resume, cancel, SSE progress, upload and ffmpeg normalisation | Opus 5.5 | 03 | ⬜ Not started | [phase-04-jobs-orchestration.md](prompts/phase-04-jobs-orchestration.md) |
 | 05 | Hardware detection & recommendations | GPU/VRAM detection, hardware profiles, transcription and LLM model recommender, `mm3 doctor` | Sonnet 5.5 | 02 | ✅ Complete | [phase-05-hardware-awareness.md](prompts/phase-05-hardware-awareness.md) |
 | 06 | Transcription & diarization pipeline | WhisperX transcribe, align and diarize as job stages; HF token; OOM retry; language check; non-diarized fallback; VRAM release | Opus 5.5 | 04, 05 | ⬜ Not started | [phase-06-transcription-pipeline.md](prompts/phase-06-transcription-pipeline.md) |
 | 07 | Speaker mapping & voiceprint store | Speaker embeddings, local voiceprint store, match suggestions, confirm/rename API, mapping cascade, privacy controls | Opus 5.5 | 06 | ⬜ Not started | [phase-07-speakers-voiceprints.md](prompts/phase-07-speakers-voiceprints.md) |
-| 08 | LLM backend abstraction | Common backend interface; Ollama, Bedrock, OpenAI-compatible/OpenRouter; registry; connection tests; context budgeting; egress flag | Sonnet 5.5 | 02 | ⬜ Not started | [phase-08-llm-backends.md](prompts/phase-08-llm-backends.md) |
+| 08 | LLM backend abstraction | Common backend interface; Ollama, Bedrock, OpenAI-compatible/OpenRouter; registry; connection tests; context budgeting; egress flag | Sonnet 5.5 | 02 | 🔄 In progress | [phase-08-llm-backends.md](prompts/phase-08-llm-backends.md) |
 | 09 | Template engine & note generation | Template schema and loader, 5 starter templates, prompt assembler, map-reduce, section generation, end-to-end transcript → vault note | Opus 5.5 | 03, 07, 08 | ⬜ Not started | [phase-09-templates-generation.md](prompts/phase-09-templates-generation.md) |
 | 10 | Web UI: core flow | HTMX/Alpine shell, vault setup, upload, hardware confirm, live job progress, Name Speakers screen, Write to Vault | Sonnet 5.5 | 09 | ⬜ Not started | [phase-10-web-ui-core.md](prompts/phase-10-web-ui-core.md) |
 | 11 | Review workspace & regeneration | Side-by-side audio player and synced transcript with Markdown editor; per-section regeneration with diffs and archive; re-open existing notes | Opus 5.5 | 10 | ⬜ Not started | [phase-11-review-regeneration.md](prompts/phase-11-review-regeneration.md) |

@@ -16,7 +16,7 @@ A free, open-source (Apache-2.0), self-hostable, local-first meeting intelligenc
 
 ## Mandatory documentation upkeep
 Documentation is part of the deliverable. A phase is **not complete** until all of the following are done:
-1. `IMPLEMENTATION_PLAN.md`: set the phase's status, written as icon plus word (`🔄 In progress` when you start; `✅ Complete` or `⛔ Blocked` at the end; `⬜ Not started` before) and add a dated entry to the Phase Log (what was built, deviations, follow-ups).
+1. `IMPLEMENTATION_PLAN.md`: set the phase's status, written as icon plus word (`⬜ Not started` before; `🔄 In progress` when you start; `✅ Complete` or `⛔ Blocked` at the end) and add a dated entry to the Phase Log (what was built, deviations, follow-ups). **`🔄 In progress` must be committed to `main` before any other work** (the claim protocol in `prompts/_shared-instructions.md` §1a), because parallel agents read the status from `main`. A status that exists only on a phase branch or in a worktree does not count.
 2. `CHANGELOG.md`: add entries under `[Unreleased]`.
 3. Update every affected document: `README.md`, `SECURITY.md`, `docs/ARCHITECTURE.md`, user and developer guides, `THIRD_PARTY_NOTICES.md` (any new dependency or vendored asset), `.gitignore` / `.dockerignore`.
 4. `docs/DECISIONS.md`: add an ADR for any non-trivial technical choice or deviation from the spec. If the spec itself changes, add an amendment to SPECIFICATION §15.
@@ -30,5 +30,5 @@ Documentation is part of the deliverable. A phase is **not complete** until all 
 - Never commit secrets, audio, vault contents, `.env`, model weights or personal data. Test fixtures must be synthetic or CC-licensed, with attribution in `tests/fixtures/README.md`.
 - Follow the security baseline in SPECIFICATION §15.3 (localhost bind, Host/Origin/CSRF checks, sanitised rendering, vault path confinement, atomic writes, masked secrets, cloud egress consent, voiceprint privacy).
 - Pin and lock dependencies (`uv add`, which updates `uv.lock`). Check licences before adding a dependency.
-- Git: work on branch `phase-NN-<slug>`, use Conventional Commits, and commit at logical checkpoints. **Never push, create a GitHub repo, or open a PR without Nick's explicit confirmation in the session.**
+- Git: work on branch `phase-NN-<slug>` in its own worktree `../MeetingMaster3-phase-NN`; the main checkout stays on `main`. Use Conventional Commits, and commit at logical checkpoints. **Never push, create a GitHub repo, or open a PR without Nick's explicit confirmation in the session.**
 - The reference dev machine has an RTX 2070 Max-Q (8 GB VRAM), Arch-based Omarchy Linux, host Python 3.14 (use uv's 3.12), Docker and Ollama installed.
