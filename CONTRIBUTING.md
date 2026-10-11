@@ -4,9 +4,14 @@ Thanks for your interest. The project is pre-alpha and is being built in numbere
 [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) and [`CLAUDE.md`](CLAUDE.md) first.
 
 ## Development setup
-_Arrives in Phase 02._ The plan: Python 3.12 managed by [uv](https://docs.astral.sh/uv/),
-`uv sync`, `pre-commit install`, then `uv run pytest`, `uv run ruff check .`, `uv run mypy src`.
-ffmpeg is required on the host.
+Python 3.12 is managed by [uv](https://docs.astral.sh/uv/) (install it first):
+```bash
+uv sync                      # creates .venv, installs locked deps
+uv run pre-commit install    # ruff, mypy, gitleaks, audio-file guard on every commit
+uv run pytest                # unmarked tests only in CI; see "Tests"
+uv run ruff check . && uv run ruff format --check . && uv run mypy
+```
+ffmpeg is required on the host from Phase 04. Full guide: [`docs/dev-guide/setup.md`](docs/dev-guide/setup.md).
 
 ## Branches and commits
 - Branch per phase or change: `phase-NN-<slug>`, `feat/<slug>`, `fix/<slug>`.
@@ -26,8 +31,9 @@ SECURITY, ARCHITECTURE, guides, `THIRD_PARTY_NOTICES.md` for any new dependency 
 and an ADR in [`docs/DECISIONS.md`](docs/DECISIONS.md) for non-trivial choices.
 
 ## Secret scanning
-Phase 02 adds a `gitleaks` pre-commit hook. Until then, check your diff for tokens and private data
-before committing.
+A `gitleaks` pre-commit hook (and a CI job) scans for secrets, and another hook blocks audio files
+outside `tests/fixtures/audio/*.fixture.*`. Install the hooks with `uv run pre-commit install`.
+Deliberately fake tokens in unit tests are allowlisted in `.gitleaks.toml`.
 
 ## Adding a template
 _Stub - documented in Phase 09 (schema) and Phase 13 (library)._

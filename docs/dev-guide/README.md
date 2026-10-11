@@ -4,7 +4,7 @@ Pages are added as the code lands. Planned index:
 
 | Page | Owning phase |
 |---|---|
-| `setup.md` (uv, Python 3.12, pre-commit, tests) | 02 |
+| [`setup.md`](setup.md) (uv, Python 3.12, pre-commit, tests) | 02 (written) |
 | `markdown-format.md` (frontmatter, section markers, round-trip rules) | 03 |
 | `jobs-and-pipeline.md` (stages, checkpoints, resume) | 04 |
 | `transcription.md` (WhisperX, VRAM handling) | 06 |

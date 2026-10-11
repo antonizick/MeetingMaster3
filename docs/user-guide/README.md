@@ -4,8 +4,8 @@ Pages are added as the features land. Planned index:
 
 | Page | Owning phase |
 |---|---|
-| `installation.md` (native with uv) | 02 |
-| `configuration.md` (every setting and `MM3_*` variable) | 02, extended by later phases |
+| [`installation.md`](installation.md) (native with uv) | 02 (written) |
+| [`configuration.md`](configuration.md) (every setting and `MM3_*` variable) | 02 (written), extended by later phases |
 | `hardware.md` (profiles, model recommendations) | 05 |
 | `models-and-tokens.md` (Hugging Face token, pyannote terms, Ollama models) | 06 |
 | `speakers-and-voiceprints.md` | 07 |

@@ -1,0 +1,95 @@
+[project]
+name = "meetingmaster3"
+version = "0.0.0"
+description = "Local-first meeting intelligence: audio to speaker-attributed transcripts and Obsidian-native notes."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Nick Antonizick" }]
+requires-python = ">=3.12,<3.13"
+keywords = ["meetings", "transcription", "obsidian", "whisperx", "local-first"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Framework :: FastAPI",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "jinja2>=3.1",
+    "pydantic>=2.8",
+    "pydantic-settings>=2.4",
+    "pyyaml>=6.0",
+    "python-multipart>=0.0.9",
+    "httpx>=0.27",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+ml = []       # whisperx, torch, pyannote.audio: pinned in Phase 06
+bedrock = []  # boto3: added in Phase 08
+
+[project.urls]
+Homepage = "https://example.invalid/OWNER/REPO"
+Issues = "https://example.invalid/OWNER/REPO/issues"
+
+[project.scripts]
+mm3 = "meetingmaster3.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=5",
+    "hypothesis>=6.100",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "types-PyYAML",
+    "pip-audit>=2.7",
+    "pre-commit>=3.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/meetingmaster3"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+files = ["src"]
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra --strict-markers"
+markers = [
+    "gpu: needs a CUDA GPU",
+    "models: needs downloaded model weights",
+    "network: needs network access",
+    "slow: slow test",
+    "e2e: end-to-end test",
+]
+
+[tool.coverage.run]
+source = ["meetingmaster3"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true

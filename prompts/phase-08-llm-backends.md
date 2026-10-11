@@ -12,7 +12,10 @@ A thin, uniform interface over Ollama, AWS Bedrock and OpenAI-compatible endpoin
 1. **Interface (`llm/base.py`):**
    ```python
    class LLMBackend(Protocol):
-       id: str; kind: str; is_local: bool
+       id: str
+       kind: str
+       is_local: bool
+
        async def generate(self, req: GenerateRequest) -> GenerateResult: ...
        async def stream(self, req: GenerateRequest) -> AsyncIterator[str]: ...
        async def list_models(self) -> list[ModelInfo]: ...

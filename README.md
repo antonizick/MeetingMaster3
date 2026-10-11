@@ -5,13 +5,13 @@
 [![CI](https://img.shields.io/badge/CI-pending-lightgrey)](#status)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-> ⚠️ **Pre-alpha, under construction.** There is no runnable application yet. The repository currently
-> holds the specification, the implementation plan and project governance. Do not expect anything to
-> install or run until the phases listed in the [plan](IMPLEMENTATION_PLAN.md) land.
+> ⚠️ **Pre-alpha, under construction.** Only the application skeleton runs so far (a placeholder home
+> page and a health check). Transcription, notes and the real UI arrive in the phases listed in the
+> [plan](IMPLEMENTATION_PLAN.md).
 
 ## Status
-Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Currently: Phase 01, repository foundation.
-CI and licence badges above are placeholders until Phase 02 adds the CI workflow.
+Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Currently: Phase 02 done (Python scaffold, configuration, security middleware, CI).
+The CI badge above is a placeholder until the repository is published (Phase 16).
 
 ## Planned features (MVP)
 - Upload audio, get a diarized transcript (WhisperX: faster-whisper + wav2vec2 alignment + pyannote).
@@ -44,13 +44,28 @@ Voiceprints are treated as biometric data: opt-in, local only, deletable. See [`
 Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Quickstart
-_Coming in Phase 10 (first runnable flow) and Phase 14 (Docker)._
+Development server (the real flow arrives in Phase 10; Docker in Phase 14):
+```bash
+uv sync
+uv run mm3 serve          # http://127.0.0.1:8765/  (health check: /healthz)
+```
 
 ## Installation
-_Coming in Phase 02 (native, uv) and Phase 14 (Docker Compose)._
+Native install for development (needs [uv](https://docs.astral.sh/uv/); it fetches Python 3.12 for you):
+```bash
+git clone <repo-url> MeetingMaster3 && cd MeetingMaster3
+uv sync
+uv run pre-commit install   # optional, recommended for contributors
+uv run pytest
+```
+ffmpeg is required from Phase 04 onward. Docker Compose arrives in Phase 14. Details:
+[`docs/user-guide/installation.md`](docs/user-guide/installation.md) and
+[`docs/dev-guide/setup.md`](docs/dev-guide/setup.md).
 
 ## Configuration
-_Coming in Phase 02 and Phase 12 (see `docs/user-guide/`)._
+Settings come from `config.yaml`, overridden by `MM3_*` environment variables. Run `uv run mm3 config path`
+to see where files live. Every setting is documented in
+[`docs/user-guide/configuration.md`](docs/user-guide/configuration.md).
 
 ## Hardware guidance
 _Coming in Phase 05 (recommendations) and Phase 15 (measured performance)._

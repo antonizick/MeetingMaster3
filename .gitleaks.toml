@@ -1,0 +1,12 @@
+title = "MeetingMaster3 gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Obviously fake tokens used by the redaction and masking unit tests"
+paths = [
+  '''tests/unit/test_logging\.py''',
+  '''tests/unit/test_cli\.py''',
+  '''tests/unit/test_settings\.py''',
+]

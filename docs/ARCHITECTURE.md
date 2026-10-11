@@ -37,4 +37,18 @@ src/meetingmaster3/
 Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, inside
 `transcription/` and `speakers/` only.
 
-_To be expanded in Phases 02-15 (module responsibilities, data flow, job state machine, sequence diagrams)._
+## Implemented so far (Phase 02)
+| Module | Responsibility |
+|---|---|
+| `app.py` | `create_app(settings)` factory. Middleware order (outermost first): TrustedHost, security headers, CSRF. |
+| `cli.py` | Typer CLI `mm3`: `serve`, `version`, `config path`, `config show`. |
+| `config/paths.py` | XDG directories with `MM3_*_DIR` overrides; created `0700`. |
+| `config/settings.py` | Pydantic `Settings`. Precedence: defaults < `config.yaml` < `MM3_*` env. Atomic `0600` save. Secrets are `SecretStr`. |
+| `errors.py` | `MM3Error(code, message, hint)` and a JSON/HTML exception handler chosen by `Accept`. |
+| `logging.py` | Logging setup with a secret-redaction filter on the handler. |
+| `web/security.py` | Security-headers and CSRF middleware. |
+| `web/routes.py` | `GET /healthz`, `GET /` (Jinja2 base layout, placeholder page). |
+
+All other packages are empty placeholders with a docstring, filled in by later phases.
+
+_To be expanded in Phases 03-15 (data flow, job state machine, sequence diagrams)._

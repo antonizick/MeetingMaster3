@@ -4,15 +4,59 @@ MeetingMaster3 is licensed under Apache-2.0 (see `LICENSE`). This file inventori
 components the project plans to use. It is updated by every phase that adds a dependency or
 vendored asset; the final audit is part of Phase 15.
 
-> **Status:** pre-alpha. Nothing below is installed or redistributed yet. Versions are filled in when
-> each dependency is pinned in `uv.lock` (Phase 02 onward). Licences are the upstream licences as
-> understood at planning time and are **re-verified when each dependency is added**.
+> **Status:** pre-alpha. Nothing is redistributed yet; dependencies are installed from PyPI. The
+> "Runtime dependencies (locked)" table below is generated from `uv.lock` by
+> `uv run python scripts/gen_third_party.py`; re-run it whenever dependencies change. The "planned"
+> table lists components not yet added; their versions are filled in when they are pinned, and
+> licences are **re-verified when each dependency is added**.
 
-## Software components
+## Runtime dependencies (locked)
+
+Generated; do not edit by hand. Core runtime only (no dev tools, no optional `ml`/`bedrock` groups).
+
+<!-- GENERATED:runtime-deps:start -->
+| Package | Version | License |
+|---|---|---|
+| annotated-doc | 0.0.5 | MIT |
+| annotated-types | 0.8.0 | MIT |
+| anyio | 4.15.1 | MIT |
+| certifi | 2026.7.22 | Mozilla Public License 2.0 (MPL 2.0) |
+| click | 8.5.0 | BSD-3-Clause |
+| colorama | 0.4.6 | BSD-3-Clause (Windows only) |
+| fastapi | 0.143.0 | MIT |
+| h11 | 0.16.0 | MIT License |
+| httpcore | 1.0.9 | BSD-3-Clause |
+| httptools | 0.9.0 | MIT |
+| httpx | 0.28.1 | BSD License |
+| idna | 3.20 | BSD-3-Clause |
+| jinja2 | 3.1.6 | BSD License |
+| markdown-it-py | 4.2.0 | MIT License |
+| markupsafe | 3.0.4 | BSD-3-Clause |
+| mdurl | 0.1.2 | MIT License |
+| opentelemetry-api | 1.45.1 | Apache-2.0 |
+| pydantic | 2.14.0 | MIT |
+| pydantic-core | 2.50.0 | MIT |
+| pydantic-settings | 2.15.0 | MIT |
+| pygments | 2.21.0 | BSD-2-Clause |
+| python-dotenv | 1.2.4 | BSD-3-Clause |
+| python-multipart | 0.0.32 | Apache-2.0 |
+| pyyaml | 6.0.3 | MIT License |
+| rich | 15.0.0 | MIT License |
+| shellingham | 1.5.4 | ISC License (ISCL) |
+| starlette | 1.7.0 | BSD-3-Clause |
+| typer | 0.27.3 | MIT |
+| typing-extensions | 4.16.0 | PSF-2.0 |
+| typing-inspection | 0.4.4 | MIT |
+| uvicorn | 0.54.0 | BSD-3-Clause |
+| uvloop | 0.23.0 | Apache Software License; MIT License |
+| watchfiles | 1.3.0 | MIT License |
+| websockets | 17.2 | BSD-3-Clause |
+<!-- GENERATED:runtime-deps:end -->
+
+## Planned components (not yet added)
 
 | Component | Version | License | Use | Redistributed? (Y/N) | Status |
 |---|---|---|---|---|---|
-| FastAPI | tbd | MIT | Web framework / API | N (installed from PyPI) | planned |
 | WhisperX | tbd | BSD-2-Clause | Transcription, alignment, diarization orchestration | N | planned |
 | faster-whisper | tbd | MIT | Whisper inference | N | planned |
 | CTranslate2 | tbd | MIT | Inference engine for faster-whisper | N | planned |

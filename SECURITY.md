@@ -40,6 +40,21 @@ The full baseline is in [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) section
   deletable.
 - **Supply chain.** Locked dependencies, `pip-audit` in CI, Dependabot, licence inventory.
 
+### Implemented in Phase 02 (web middleware and config)
+| Control | Where | Behaviour |
+|---|---|---|
+| Loopback bind | `mm3 serve`, `server.host` | Default `127.0.0.1`. A non-loopback host prints a loud warning; you must also list the hostnames you browse to in `server.allowed_hosts`. |
+| Host allowlist | `TrustedHostMiddleware` (outermost) | Only `127.0.0.1`, `localhost` and `server.allowed_hosts`; anything else gets HTTP 400. |
+| Security headers | `web/security.py` | CSP `default-src 'self'; frame-ancestors 'none'; ...`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, `Cross-Origin-Resource-Policy: same-origin`. |
+| CSRF | `web/security.py` | Double-submit: `mm3_csrf` cookie (`SameSite=Strict`) must equal the `X-CSRF-Token` header on POST/PUT/PATCH/DELETE; a present `Origin` must be a trusted host. Failures return 403. HTMX pages send the token via `hx-headers` (Phase 10). |
+| Secrets in config | `config/settings.py` | `SecretStr`, masked in `mm3 config show` and API dumps; `config.yaml` written atomically with mode `0600` in a `0700` directory. |
+| Log redaction | `logging.py` | Registered secret values plus `hf_...`, `sk-...`, AWS key and bearer-token patterns are replaced with `[REDACTED]`. |
+| Repo hygiene | pre-commit, CI | gitleaks, audio-file guard, large-file guard, `pip-audit`. |
+
+Known limitations to revisit in Phase 15: the CSP will need adjusting for Alpine.js (Phase 10; its
+standard build needs `'unsafe-eval'`, so the CSP-safe build is preferred), and CSRF currently accepts the
+header only (no form-field fallback).
+
 ## Data the app stores and where
 _To be completed as phases land. Final version in Phase 15._
 
@@ -48,6 +63,6 @@ _To be completed as phases land. Final version in Phase 15._
 | Notes and companion transcripts | Your Obsidian vault | Phase 03/09 | Only if your vault syncs |
 | Job audio and stage artifacts | `$XDG_DATA_HOME/meetingmaster3/jobs/` | Phase 04 | No |
 | Job state, feedback, voiceprints | `$XDG_DATA_HOME/meetingmaster3/mm3.db` | Phase 04/07 | No |
-| Config and secrets | `$XDG_CONFIG_HOME/meetingmaster3/config.yaml` (mode `0600`) | Phase 02 | No |
+| Config and secrets | `$XDG_CONFIG_HOME/meetingmaster3/config.yaml` (mode `0600`, directory `0700`) | Phase 02 (done) | No |
 | Model weights | `$XDG_CACHE_HOME/meetingmaster3/models` | Phase 06 | Downloaded in, never out |
 | Transcript text sent to an LLM | Selected backend | Phase 08 | **Only for a cloud backend you confirmed** |
