@@ -15,6 +15,8 @@ config_app = typer.Typer(help="Inspect configuration.", no_args_is_help=True)
 app.add_typer(config_app, name="config")
 llm_app = typer.Typer(help="Inspect LLM backends.", no_args_is_help=True)
 app.add_typer(llm_app, name="llm")
+jobs_app = typer.Typer(help="Inspect jobs and manage retained audio.", no_args_is_help=True)
+app.add_typer(jobs_app, name="jobs")
 
 
 @app.command()
@@ -172,6 +174,61 @@ def llm_test(name: str | None = typer.Argument(None, help="Backend name (default
         )
     if any(c.status == "fail" for c in checks):
         raise typer.Exit(1)
+
+
+@jobs_app.command("list")
+def jobs_list(limit: int = typer.Option(50, help="How many jobs to show (newest first).")) -> None:
+    """List jobs with their status and audio retention."""
+    from meetingmaster3.storage.db import Database
+    from meetingmaster3.storage.repositories import JobRepository
+
+    paths = resolve_paths()
+    paths.ensure()
+    db = Database.open(paths.database)
+    try:
+        for job in JobRepository(db).list_jobs(limit=limit):
+            if job.audio_path is None:
+                audio = "expired" if job.audio_pruned_at else "none"
+            elif job.audio_pinned:
+                audio = "pinned"
+            elif job.audio_expires_at:
+                audio = f"until {job.audio_expires_at:%Y-%m-%d}"
+            else:
+                audio = "kept"
+            typer.echo(
+                f"{job.id}  {job.status.value:<17} {job.created_at:%Y-%m-%d %H:%M}  "
+                f"audio {audio:<16} {job.title or job.source_filename}"
+            )
+    finally:
+        db.close()
+
+
+@jobs_app.command("prune")
+def jobs_prune(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Only list what would be deleted."),
+) -> None:
+    """Delete retained audio that has expired (pinned meetings are kept)."""
+    from meetingmaster3.jobs.retention import prune
+    from meetingmaster3.storage.db import Database
+    from meetingmaster3.storage.repositories import JobRepository
+
+    settings = load_settings()
+    paths = resolve_paths()
+    paths.ensure()
+    db = Database.open(paths.database)
+    try:
+        items = prune(JobRepository(db), paths.jobs_dir, settings, dry_run=dry_run)
+    finally:
+        db.close()
+    verb = "Would delete" if dry_run else "Deleted"
+    for item in items:
+        typer.echo(
+            f"{verb} audio of {item.job_id} ({item.title or 'untitled'}): "
+            f"{', '.join(item.files) or 'no files'}, {item.bytes / 1_048_576:.1f} MB, "
+            f"expired {item.expired_at:%Y-%m-%d}"
+        )
+    total = sum(i.bytes for i in items) / 1_048_576
+    typer.echo(f"{verb} audio of {len(items)} job(s), {total:.1f} MB.")
 
 
 def main() -> None:

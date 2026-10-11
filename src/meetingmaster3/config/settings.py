@@ -68,6 +68,16 @@ class LLMSettings(BaseModel):
     backends: dict[str, BackendConfig] = Field(default_factory=dict)
 
 
+class AudioSettings(BaseModel):
+    max_upload_mb: int = Field(default=2048, ge=1)  # R7
+    opus_bitrate_kbps: int = Field(default=24, ge=6, le=128)  # retained audio (R8)
+
+
+class JobsSettings(BaseModel):
+    max_concurrent: int = Field(default=2, ge=1, le=8)  # jobs in flight; GPU stages are serial
+    prune_interval_hours: float = Field(default=24.0, gt=0)  # audio retention pruner (R8)
+
+
 class PrivacySettings(BaseModel):
     audio_retention: Literal["forever", "days", "delete_after_write"] = "days"
     audio_retention_days: int = Field(default=90, ge=1)
@@ -90,6 +100,8 @@ class Settings(BaseSettings):
     transcription: TranscriptionSettings = Field(default_factory=TranscriptionSettings)
     hardware: HardwareSettings = Field(default_factory=HardwareSettings)
     llm: LLMSettings = Field(default_factory=LLMSettings)
+    audio: AudioSettings = Field(default_factory=AudioSettings)
+    jobs: JobsSettings = Field(default_factory=JobsSettings)
     privacy: PrivacySettings = Field(default_factory=PrivacySettings)
     secrets: SecretsSettings = Field(default_factory=SecretsSettings)
 

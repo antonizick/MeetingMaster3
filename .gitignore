@@ -47,7 +47,7 @@ models/
 
 # Local app data
 data/
-jobs/
+/jobs/
 *.db
 *.sqlite
 *.sqlite3
