@@ -7,7 +7,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+- pyannote.audio 4 sends usage telemetry to `otel.pyannote.ai` by default; MeetingMaster3 now always
+  disables it (`PYANNOTE_METRICS_ENABLED=false`) together with Hugging Face Hub telemetry (spec S6).
+- Cached whisper and diarization models load without contacting Hugging Face, so a transcription job
+  makes no network calls (verified with a socket audit).
+
 ### Changed
+- `MM3Error` takes optional `details` (machine-readable extras such as suggested resume overrides), stored
+  in the failed stage's `detail.error.details`.
+- `StageContext.warn()` records user-visible stage warnings; `GET /api/jobs/{id}` lists them as `warnings`.
+- `UnavailableStage` accepts a custom message and hint.
+- `mm3 doctor`: "ML extras" became "Transcription engine", plus checks for the cached whisper, alignment
+  and diarization models.
+- `hardware/recommendations.yaml`: the `vram8` speed is now measured (14-16x real time, was estimated 15-30x).
 - `.gitignore`: the app-data `jobs/` rule is anchored to the repository root (`/jobs/`); it was also
   hiding the `meetingmaster3.jobs` package.
 - CI installs ffmpeg so the audio ingest tests run.
@@ -15,6 +28,18 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   without depending on the web stack.
 
 ### Added
+- Transcription and diarization (Phase 06): the `ml` extra (`whisperx==3.8.6`, torch 2.8.0 with CUDA 12.8
+  wheels, pyannote.audio 4.0.7); real `transcribe` (faster-whisper), `align` (wav2vec2) and `diarize`
+  (`pyannote/speaker-diarization-community-1`) job stages producing `transcript.json`, `aligned.json`,
+  `diarization.json` and `transcript.final.json`; non-English detection that pauses the job for
+  proceed/abort; one automatic retry on CUDA out-of-memory, then `E_OOM` with a smaller-model suggestion;
+  non-diarized fallback with a clear warning when there is no Hugging Face token or diarization fails;
+  segments split at speaker changes; models freed after each stage and a local Ollama asked to unload
+  before transcription (R5); `mm3 models status|download`; settings `transcription.compute_type`,
+  `batch_size`, `device`, `language`, `on_non_english`, `diarization_model`, `offline`, `unload_ollama`;
+  job options `transcription_model`, `compute_type`, `batch_size`, `language`, `on_non_english`; a 60 s
+  CC-BY-4.0 AMI Meeting Corpus test clip and GPU integration tests. Docs:
+  `docs/user-guide/transcription.md`. ADR-0014, spec R20.
 - Job orchestration and audio ingest (Phase 04): SQLite storage in WAL mode with forward-only migrations
   (`jobs`, `job_stages`, `recent_meetings`); streamed multipart upload into a per-job folder with a size
   limit, ffprobe validation and ffmpeg normalisation to 16 kHz mono WAV; a `Stage` protocol, the

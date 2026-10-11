@@ -16,3 +16,12 @@ licence and speaker consent recorded below.
 The names and people are invented. Regenerate the golden pair with
 `MM3_UPDATE_GOLDEN=1 uv run pytest tests/unit/test_golden.py` and review the diff; the format
 itself is defined in `docs/dev-guide/note-format.md`.
+
+## `audio/` (Phase 06)
+| File | Source | Licence | Speakers and consent | Purpose |
+|---|---|---|---|---|
+| `ami-es2002a-two-speakers.fixture.opus` | [AMI Meeting Corpus](https://groups.inf.ed.ac.uk/ami/corpus/) meeting ES2002a, `ES2002a.Mix-Headset.wav`, seconds 500-560 (`ffmpeg -ss 500 -t 60 ... -ac 1 -ar 16000 -c:a libopus -b:a 32k -map_metadata -1`); 60 s, 187 KB, SHA-256 `046f19ac30685b2fe9df9613aa4a66167d7d6fb52ae612920720929e7d5b44c2` | CC-BY-4.0 (attribution: AMI Meeting Corpus, University of Edinburgh and the AMI Consortium) | Two participants (AMI speakers B and D, about 32 s of speech each per the AMI manual segment annotations; no other speaker in the window). Recorded by the AMI project with participant consent for publication under the corpus licence. | GPU acceptance test (`tests/integration/test_transcription_gpu.py`): at least 2 speakers, words "price" and "retail" |
+
+Long and private recordings are never committed. The `slow` GPU test reads them from
+`MM3_PRIVATE_TEST_AUDIO` (a file or a folder) and prints only numbers (duration, speed, speaker
+count), never names or transcript text.

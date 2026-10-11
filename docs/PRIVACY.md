@@ -11,11 +11,18 @@ leave your machine. It is completed as phases land and finalised in Phase 15.
 | Job state, feedback ratings | Local SQLite database `mm3.db` |
 | Voiceprints (opt-in) | Local SQLite only; **biometric data**, never written to the vault |
 | Config, API keys, HF token | `config.yaml` (mode `0600`) or environment variables; never logged or put in the vault |
-| Model weights | `$XDG_CACHE_HOME/meetingmaster3/models` |
+| Model weights | `$XDG_CACHE_HOME/meetingmaster3/models` (`MM3_MODELS_DIR`) |
+| Transcription artifacts | Job folder: `transcript.json`, `aligned.json`, `diarization.json` (who spoke when, as time ranges; no voice embeddings), `transcript.final.json`. Deleted with the job. |
 
 ## What can leave your machine
-- **Model downloads** from Hugging Face and Ollama (inbound). After the first download, offline mode
-  (`HF_HUB_OFFLINE=1`) makes the app work with no network calls.
+- **Model downloads** from Hugging Face, download.pytorch.org and Ollama (inbound; your IP address
+  and the model names are visible to those services, and the gated diarization model is tied to your
+  Hugging Face account through your token). These are the only network calls transcription makes:
+  once a model is cached, it is loaded from disk without contacting Hugging Face (verified in Phase 06
+  by recording every socket connection of a full diarized job: the only one was to a local Ollama).
+  `transcription.offline: true` (or `HF_HUB_OFFLINE=1`) also forbids downloads.
+- **A local Ollama** is asked to unload its models before transcription (a request to
+  `127.0.0.1`; nothing leaves the machine).
 - **Transcript text sent to a cloud LLM**, only if you choose a cloud backend (AWS Bedrock, OpenRouter
   or another OpenAI-compatible endpoint). The UI badges the backend as "local" or "cloud: <provider>"
   and asks for confirmation on first use per job (which you can remember per backend). A remote Ollama on another machine counts as cloud. Only the transcript text and prompt are sent; audio never leaves the machine.
@@ -24,6 +31,10 @@ leave your machine. It is completed as phases land and finalised in Phase 15.
 
 ## What never leaves
 No telemetry, analytics or crash reports are sent. Audio and voiceprints are never uploaded by the app.
+Some libraries report usage by default, and MeetingMaster3 switches them off before they load:
+pyannote.audio 4 would send model names, audio durations and speaker counts to `otel.pyannote.ai`
+(`PYANNOTE_METRICS_ENABLED=false`), and Hugging Face Hub telemetry is disabled
+(`HF_HUB_DISABLE_TELEMETRY=1`, `DO_NOT_TRACK=1`).
 
 ## Your controls
 Delete any meeting's audio, pin audio to keep it, list and delete voiceprints or wipe the store, and

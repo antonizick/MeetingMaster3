@@ -60,6 +60,21 @@ Generated; do not edit by hand. Core runtime only (no dev tools, no optional `ml
 | boto3 | 1.43.x | Apache-2.0 | AWS Bedrock Converse client | N | `bedrock` |
 | botocore | 1.43.x | Apache-2.0 | boto3 core (pulled in by boto3) | N | `bedrock` |
 | s3transfer, jmespath, python-dateutil, urllib3, six | see `uv.lock` | Apache-2.0 / MIT / BSD | boto3 dependencies | N | `bedrock` |
+| WhisperX | 3.8.6 | BSD-2-Clause | Transcription, alignment and diarization orchestration | N | `ml` |
+| faster-whisper | 1.2.1 | MIT | Whisper inference | N | `ml` |
+| CTranslate2 | 4.8.2 | MIT | Inference engine for faster-whisper | N | `ml` |
+| pyannote.audio (+ pyannote.core, .database, .metrics, .pipeline, pyannoteai-sdk) | 4.0.7 | MIT | Speaker diarization, voice activity detection | N | `ml` |
+| PyTorch (torch), torchaudio, torchvision | 2.8.0 / 2.8.0 / 0.23.0 | BSD-3-Clause / BSD-2-Clause / BSD-3-Clause | ML runtime, wav2vec2 alignment | N | `ml` |
+| torchcodec | 0.7.0 | BSD-3-Clause | Audio decoding for pyannote (unused: MeetingMaster3 passes in-memory audio) | N | `ml` |
+| Triton | 3.4.0 | MIT | PyTorch GPU kernels | N | `ml` |
+| NVIDIA CUDA runtime, cuBLAS, cuDNN 9.10 and other `nvidia-*-cu12` wheels | 12.8 | NVIDIA proprietary (CUDA EULA / cuDNN licence) | GPU libraries pulled in by PyTorch; installed by the user from PyPI | N | `ml` |
+| transformers, tokenizers, safetensors, huggingface-hub | 4.57.6 / 0.22.2 / 0.8.0 / 0.36.2 | Apache-2.0 | Alignment models for non-torchaudio languages; model downloads | N | `ml` |
+| Lightning, pytorch-lightning, torchmetrics | 2.6.6 / 2.6.6 / 1.9.0 | Apache-2.0 | pyannote model loading | N | `ml` |
+| numpy, pandas | 2.5.4 / 3.0.6 | BSD-3-Clause (numpy also bundles 0BSD/MIT/Zlib/CC0 parts) | Arrays, diarization tables | N | `ml` |
+| onnxruntime | 1.31.0 | MIT | WhisperX dependency | N | `ml` |
+| nltk | 3.10.3 | Apache-2.0 | Sentence splitting during alignment | N | `ml` |
+| opentelemetry-* | see `uv.lock` | Apache-2.0 | pyannote's telemetry client, **always disabled** by MeetingMaster3 (`PYANNOTE_METRICS_ENABLED=false`) | N | `ml` |
+| Other transitive packages of the `ml` extra | see `uv.lock` | permissive (MIT / BSD / Apache-2.0) | | N | `ml` |
 
 Development only (not distributed): `respx` (BSD-3-Clause), used to mock httpx in tests; `boto3` is also in the dev group so the Bedrock adapter is tested in CI.
 
@@ -67,11 +82,6 @@ Development only (not distributed): `respx` (BSD-3-Clause), used to mock httpx i
 
 | Component | Version | License | Use | Redistributed? (Y/N) | Status |
 |---|---|---|---|---|---|
-| WhisperX | tbd | BSD-2-Clause | Transcription, alignment, diarization orchestration | N | planned |
-| faster-whisper | tbd | MIT | Whisper inference | N | planned |
-| CTranslate2 | tbd | MIT | Inference engine for faster-whisper | N | planned |
-| pyannote.audio | tbd | MIT | Speaker diarization and embeddings | N | planned |
-| PyTorch | tbd | BSD-3-Clause | ML runtime | N | planned |
 | HTMX | tbd | BSD-2-Clause | Browser-side server interaction | Y (vendored in `static/vendor/`) | planned |
 | Alpine.js | tbd | MIT | Browser-side local state | Y (vendored in `static/vendor/`) | planned |
 
@@ -90,10 +100,18 @@ by this project. Users download them to their own machine, under the weights' ow
 
 | Model family | License / terms | Notes |
 |---|---|---|
-| OpenAI Whisper (via faster-whisper / CTranslate2 conversions) | MIT | Downloaded on first use into the model cache. |
-| pyannote gated models (speaker diarization / segmentation) | Gated on Hugging Face; terms set by the model authors | Each user must accept the terms on Hugging Face and supply their own token. Exact model IDs and acceptance URLs are recorded in Phase 06. |
-| wav2vec2 alignment models | Varies per language model | Chosen and recorded in Phase 06. |
+| OpenAI Whisper, CTranslate2 conversions (`Systran/faster-whisper-*`, `mobiuslabsgmbh/faster-whisper-large-v3-turbo`) | MIT | Downloaded on first use (or `mm3 models download`) into the model cache. |
+| [`pyannote/speaker-diarization-community-1`](https://huggingface.co/pyannote/speaker-diarization-community-1) (segmentation, WeSpeaker embedding, PLDA) | CC-BY-4.0, gated | Each user accepts the terms at that URL and supplies their own read token, once. Attribution: pyannote.audio team / pyannoteAI. |
+| pyannote segmentation weights used for voice activity detection, shipped inside the WhisperX wheel (`whisperx/assets/pytorch_model.bin`) | MIT (pyannote), in the BSD-2-Clause WhisperX wheel | Not downloaded separately. |
+| wav2vec2 alignment, English: torchaudio `WAV2VEC2_ASR_BASE_960H` (fairseq, trained on LibriSpeech) | MIT (fairseq weights) | Downloaded from download.pytorch.org into the model cache. |
+| wav2vec2 alignment, fr/de/es/it: torchaudio VoxPopuli models; other languages: Hugging Face models chosen by WhisperX (for example `jonatasgrosman/wav2vec2-large-xlsr-53-*`) | Per model: VoxPopuli weights are CC-BY-NC-4.0 (non-commercial); check each Hugging Face model card | Only downloaded when a recording in that language is transcribed. |
 | LLMs (Ollama, Bedrock, OpenAI-compatible endpoints) | Chosen by the user; each has its own licence | The project ships no LLM. |
+
+## Test fixtures (in the repository)
+
+| File | Source | License |
+|---|---|---|
+| `tests/fixtures/audio/ami-es2002a-two-speakers.fixture.opus` | 60 s excerpt (500-560 s) of meeting ES2002a, Mix-Headset, from the [AMI Meeting Corpus](https://groups.inf.ed.ac.uk/ami/corpus/), re-encoded to 16 kHz mono Opus | CC-BY-4.0. Attribution: AMI Meeting Corpus, University of Edinburgh and the AMI Consortium. See `tests/fixtures/README.md`. |
 
 ## Vendored front-end assets
 

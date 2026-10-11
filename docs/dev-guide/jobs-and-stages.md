@@ -74,6 +74,7 @@ Subclass `jobs.stage.BaseStage` for the defaults (no retry, CPU, display name fr
 | `artifact(name)`, `write_json(name, data)` | A path in the job folder; atomic JSON write. |
 | `input()` | The answer to this stage's `InputRequired`, once submitted. |
 | `db` | The app `Database` (for repositories such as `RecentMeetingsRepository`). |
+| `warn(message)` | A user-visible warning that does not fail the stage (Phase 06). It is published as progress, kept in the stage's `detail.warnings` on completion or failure, and listed in `GET /api/jobs/{id}` as `warnings: [{stage, message}]`. |
 
 Rules:
 - **The artifact must be a file inside the job folder** (`E_STAGE_ARTIFACT` otherwise). A stage that
@@ -85,7 +86,10 @@ Rules:
   (between chunks or batches where the library allows).
 - **Retries:** after `run` raises, the runner calls `should_retry(ctx, exc)` with `ctx.attempt`. Return
   True to run again (for example after CUDA OOM: lower `ctx.options["batch_size"]`, retry once). Return
-  False to fail the job with the exception's `MM3Error` code (or `E_STAGE_FAILED`).
+  False to fail the job with the exception's `MM3Error` code (or `E_STAGE_FAILED`). An `MM3Error`'s
+  optional `details` dict is stored with the stage's error (`detail.error.details`), e.g. the
+  transcription stages' `{"suggested_overrides": {"transcription_model": "medium"}}` after a second
+  out-of-memory error.
 - **Human input:** raise `InputRequired(kind, payload)`. The stage becomes `waiting`, the job
   `waiting_for_input`, and the GPU slot is released. `POST /api/jobs/{id}/input` validates the answer
   with the stage's optional `validate_input(data)`, saves it as `input.<stage>.json` and queues the job;
@@ -94,9 +98,11 @@ Rules:
 
 ## Adding a stage
 1. Implement the stage (see above) in its own package, e.g. `transcription/stages.py`.
-2. Register it, typically from that package's setup code: `jobs.pipeline.register_stage("transcribe",
-   lambda settings: TranscribeStage(settings))`. Until a stage is registered, `UnavailableStage`
-   stands in and fails with `E_STAGE_UNAVAILABLE` and an install hint.
+2. Register it, typically from that package's setup code: `jobs.pipeline.register_stage("generate",
+   lambda settings: GenerateStage(settings))`. Until a stage is registered, `UnavailableStage`
+   stands in and fails with `E_STAGE_UNAVAILABLE` and an install hint. (`transcribe`, `align` and
+   `diarize` are built in: `transcription.stages.build_stage` returns the WhisperX stage when the `ml`
+   extra is installed, otherwise an `UnavailableStage` saying "Transcription engine not installed".)
 3. Use the canonical name from `jobs.pipeline.MEETING_STAGES`. Adding a **new** stage name to that list
    changes the stage list of new jobs only; older jobs whose stored stages differ fail resume with
    `E_PIPELINE_CHANGED`.
@@ -116,6 +122,45 @@ Rules:
 | 8 | `write` | no | a JSON record of the vault files written | Phase 09 |
 
 \* Phase 09 should mark `generate` as a GPU stage when the backend is a local Ollama on the same GPU.
+
+### Transcription stages (Phase 06)
+Implemented in `transcription/stages.py` (user guide: [`../user-guide/transcription.md`](../user-guide/transcription.md);
+ADR-0014). Each stage loads its own model through `transcription.engine.Engine` and frees it before
+returning (`del`, `gc.collect()`, `torch.cuda.empty_cache()`), so after `diarize` nothing is left on
+the GPU.
+
+| Artifact | Content |
+|---|---|
+| `transcript.json` | `language`, `language_detected`, `language_probability`, `model`, `compute_type`, `batch_size`, `device`, `duration`, `segments` (`start`, `end`, `text`, `avg_logprob`) |
+| `aligned.json` | the same, plus `aligned` (bool) and per-segment `words` (`word`, `start`, `end`, `score`; NaN becomes `null`) |
+| `diarization.json` | `status` (`ok`, `disabled`, `skipped`, `failed`, `empty`, `no_speech`), `model`, `turns` (`start`, `end`, `speaker`), `speakers` (seconds per label), and `error` (`code`, `message`, `hint`) on a fallback. No voice embeddings. |
+| `transcript.final.json` | `domain.Transcript`. Segments are split where the word-level speaker changes (WhisperX segments are VAD chunks of up to 30 s); `diarized=false` and no labels when diarization did not run. |
+
+Behaviour:
+- **Options** (job option > setting > hardware recommendation): `transcription_model`, `compute_type`,
+  `batch_size`, `language`, `on_non_english`, `diarize`, `min_speakers`, `max_speakers`. The job
+  option `model` is the LLM model, not the transcription model.
+- **Language gate:** after loading the model, `transcribe` detects the language from the first 30 s.
+  For non-English audio with `on_non_english: ask` it raises `InputRequired("language", {detected,
+  language_name, probability, choices: ["proceed", "abort"], message})`. Answer with
+  `POST /api/jobs/{id}/input` `{"action": "proceed"}` (optionally `"language": "en"`) or
+  `{"action": "abort"}` (the job becomes `cancelled` and the answer is forgotten, so resuming asks again).
+  Policy `abort` fails with `E_NOT_ENGLISH`; `proceed` continues with a warning.
+- **Out of memory:** any stage catches CUDA OOM (torch `OutOfMemoryError`, CTranslate2 messages) and raises
+  `MM3Error("E_OOM")`; `should_retry` frees memory and retries once (`transcribe`: half the batch size,
+  `int8_float16`). A second OOM fails `transcribe` with `E_OOM` and `details.suggested_overrides`;
+  for "Retry with a smaller model" call `POST /api/jobs/{id}/resume` with
+  `{"overrides": {"transcription_model": "medium"}}`. A second OOM in `align` or `diarize` falls back
+  (no word timings / no speakers) with a warning instead.
+- **Fallbacks** never fail the job: alignment unavailable keeps segment timestamps; no token (and no
+  cached model), refused access, an error or `diarize: false` gives a non-diarized transcript with a
+  warning.
+- **VRAM handoff:** on CUDA, `transcribe` first calls `transcription.handoff.release_local_llm`, which
+  asks the job's LLM backend to unload (`OllamaBackend.unload_all()`) only if it is an Ollama on this
+  machine (`transcription.unload_ollama`).
+- **Cancellation:** WhisperX and pyannote progress callbacks call `ctx.check_cancelled()`, so a cancel
+  stops at the next chunk.
+- **Network:** cached models load without contacting Hugging Face; library telemetry is forced off.
 
 Other files in a job folder: `original.<ext>` (the upload; the extension comes from an allowlist,
 otherwise `.bin`), `audio.opus` (after `written`), `input.<stage>.json` (answers).
@@ -179,12 +224,12 @@ retention period. The pruner (`jobs.retention.prune`) runs at startup, every
 ## API summary
 | Method and path | Purpose |
 |---|---|
-| `POST /api/jobs` | multipart `file` + optional JSON `options` (`JobOptions`: `title`, `meeting_date`, `diarize`, `min_speakers`, `max_speakers`, `template`, `backend`, `model`, `cloud_consent`, plus any extra keys). Title and date are pre-filled from the filename. 201 + the job. |
+| `POST /api/jobs` | multipart `file` + optional JSON `options` (`JobOptions`: `title`, `meeting_date`, `diarize`, `min_speakers`, `max_speakers`, `template`, `backend`, `model` (LLM), `cloud_consent`, `transcription_model`, `compute_type`, `batch_size`, `language`, `on_non_english`, plus any extra keys). Title and date are pre-filled from the filename. 201 + the job. |
 | `GET /api/jobs?status=…&limit=&offset=` | List jobs, newest first. |
-| `GET /api/jobs/{id}` | Job, stages (with live fraction, message, ETA) and `waiting_for`. |
+| `GET /api/jobs/{id}` | Job, stages (with live fraction, message, ETA, `detail.warnings`, `detail.error.details`), `waiting_for` and `warnings` (all stages' warnings). |
 | `POST /api/jobs/{id}/cancel` | Cancel a queued, running, waiting or interrupted job. |
 | `POST /api/jobs/{id}/resume` | Resume a failed, cancelled or interrupted job; body `{"overrides": {...}}` optional. |
-| `POST /api/jobs/{id}/input` | Answer a waiting job, e.g. `{"speakers": {"SPEAKER_00": "Alice"}}`. |
+| `POST /api/jobs/{id}/input` | Answer a waiting job, e.g. `{"speakers": {"SPEAKER_00": "Alice"}}` or, for the language question, `{"action": "proceed"}`. |
 | `DELETE /api/jobs/{id}?force=` | Delete the job folder and rows (409 while active; pinned needs `force=true`). Vault notes are not touched. |
 | `POST /api/jobs/{id}/pin`, `/unpin` | Keep the audio regardless of retention. |
 | `GET /api/jobs/{id}/audio` | The best audio file, with HTTP Range (`audio/ogg` for Opus). |

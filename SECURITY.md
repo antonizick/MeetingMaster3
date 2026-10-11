@@ -40,7 +40,8 @@ The full baseline is in [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) section
   argument list with `--` before the path, `-nostdin` and a timeout. ffmpeg's parsers remain attack
   surface (Phase 15 threat model).
 - **Secrets.** API keys and the Hugging Face token come from environment variables or a `0600`
-  config file; they are never logged, never returned unmasked, never written to the vault.
+  config file; they are never logged, never returned unmasked, never written to the vault. The HF
+  token is only used to download the gated diarization model.
 - **Cloud egress consent.** Cloud LLM backends are clearly badged and need explicit confirmation on
   first use per job (`llm.consent.enforce_consent` raises `E_CONSENT_REQUIRED` for any non-local backend unless the job has `cloud_consent` or the backend has `consent_remembered`). A backend counts as local only when its host is loopback or `host.docker.internal`; a LAN or remote Ollama is treated as cloud. LLM request and response bodies are never logged above DEBUG and are redacted even there. API keys in `config.yaml` are `0600`, masked in every API response, and registered with the log redaction filter. No telemetry, ever.
 - **Voiceprints are biometric data.** Opt-in, local only, never written to the vault, listable and
@@ -74,6 +75,15 @@ header only (no form-field fallback).
 | Oversized or malformed media | `web/api/jobs.py`, `audio/ingest.py` | Streaming size limit (413), ffprobe validation (422), subprocess timeouts, partial files removed. |
 | Hostile transcript text | `markdown/transcript_format.py` | The hidden data block is ASCII JSON with `<` and `>` escaped, so spoken text cannot close the HTML comment; section content containing marker-like lines is refused. |
 
+### Implemented in Phase 06 (transcription)
+| Control | Where | Behaviour |
+|---|---|---|
+| Hugging Face token (S5) | `transcription/models.py` `hf_token` | Read from `secrets.hf_token` / `MM3_SECRETS__HF_TOKEN` / `HF_TOKEN`, registered with the log redaction filter, passed explicitly to pyannote and Hugging Face, never logged or returned. Only needed to download the gated model; a cached model loads without it. |
+| No telemetry (S6) | `transcription/models.py` `disable_telemetry` | pyannote.audio 4 sends OpenTelemetry traces to `otel.pyannote.ai` by default. `PYANNOTE_METRICS_ENABLED=false`, `HF_HUB_DISABLE_TELEMETRY=1` and `DO_NOT_TRACK=1` are forced before any ML library loads. |
+| Minimal network use | `transcription/stages.py` | Cached whisper models load with `local_files_only`, and a cached diarization pipeline is loaded from its folder, so a job makes no network calls (verified with a socket audit hook). `transcription.offline` forbids downloads entirely. |
+| ML library logs | `transcription/engine.py` | WhisperX's own stdout handler is suppressed so its records go through the app's redaction filter; library INFO chatter is silenced (transcript text is not logged at INFO). |
+| Job options | `jobs/models.py` | `transcription_model` and `language` are pattern-checked; `compute_type`, `batch_size` and `on_non_english` are enumerated or bounded. A model name may be a local folder path (single-user app; Phase 15 threat model). |
+
 ## Data the app stores and where
 _To be completed as phases land. Final version in Phase 15._
 
@@ -83,5 +93,5 @@ _To be completed as phases land. Final version in Phase 15._
 | Job audio and stage artifacts | `$XDG_DATA_HOME/meetingmaster3/jobs/<job-id>/` (folders `0700`): upload and 16 kHz WAV while processing, then Opus only, pruned after `privacy.audio_retention_days` (90) unless pinned | Phase 04 (done) | No |
 | Job state, feedback, voiceprints | `$XDG_DATA_HOME/meetingmaster3/mm3.db` (mode `0600`) | Phase 04 (done)/07 | No |
 | Config and secrets | `$XDG_CONFIG_HOME/meetingmaster3/config.yaml` (mode `0600`, directory `0700`) | Phase 02 (done) | No |
-| Model weights | `$XDG_CACHE_HOME/meetingmaster3/models` | Phase 06 | Downloaded in, never out |
+| Model weights | `$XDG_CACHE_HOME/meetingmaster3/models` (`MM3_MODELS_DIR`, folder `0700`) | Phase 06 (done) | Downloaded in, never out |
 | Transcript text sent to an LLM | Selected backend | Phase 08 | **Only for a cloud backend you confirmed** |

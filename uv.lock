@@ -1047,7 +1047,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "typer", specifier = ">=0.12" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
-    { name = "whisperx", marker = "extra == 'ml'", specifier = ">=3.8.6" },
+    { name = "whisperx", marker = "extra == 'ml'", specifier = "==3.8.6" },
 ]
 provides-extras = ["ml", "bedrock"]
 

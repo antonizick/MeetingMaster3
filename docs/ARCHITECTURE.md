@@ -37,14 +37,14 @@ src/meetingmaster3/
 Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, inside
 `transcription/` and `speakers/` only.
 
-## Implemented so far (Phases 02, 03, 04, 05 and 08)
+## Implemented so far (Phases 02, 03, 04, 05, 06 and 08)
 | Module | Responsibility |
 |---|---|
 | `app.py` | `create_app(settings, paths)` factory. Middleware order (outermost first): TrustedHost, security headers, CSRF. The lifespan opens `mm3.db` and starts/stops the `JobRunner`. |
-| `cli.py` | Typer CLI `mm3`: `serve`, `version`, `doctor`, `config path`, `config show`, `llm list`, `llm test`, `jobs list`, `jobs prune [--dry-run]`. |
+| `cli.py` | Typer CLI `mm3`: `serve`, `version`, `doctor`, `config path`, `config show`, `llm list`, `llm test`, `jobs list`, `jobs prune [--dry-run]`, `models status`, `models download`. |
 | `config/paths.py` | XDG directories with `MM3_*_DIR` overrides; created `0700`. |
 | `config/settings.py` | Pydantic `Settings`. Precedence: defaults < `config.yaml` < `MM3_*` env. Atomic `0600` save. Secrets are `SecretStr`. |
-| `errors.py` | `MM3Error(code, message, hint)` and a JSON/HTML exception handler chosen by `Accept` (FastAPI imported lazily). |
+| `errors.py` | `MM3Error(code, message, hint, details=)` and a JSON/HTML exception handler chosen by `Accept` (FastAPI imported lazily). |
 | `domain/transcript.py` | `Word`, `Segment`, `Transcript`, `SpeakerMap` (stable `Speaker N` placeholders, `apply`), `Turn`/`group_turns`, `CompanionTranscript`. Immutable pydantic models. |
 | `domain/meeting.py`, `domain/note.py` | `MeetingMeta` (frontmatter fields, normalised); `Note` = metadata + ordered `TextBlock`/`Section` blocks; marker grammar constants. |
 | `domain/filenames.py` | `parse_filename`: date, time and title from recorder file names. |
@@ -64,7 +64,11 @@ Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, ins
 | `hardware/detect.py` | `HardwareInfo`: nvidia-smi, then torch.cuda (only if importable), then CPU/RAM from `/proc`. Cached; `get_hardware(refresh=True)` re-detects. |
 | `hardware/profiles.py` | `cpu`, `vram8`, `vram16`, `vram24plus`, chosen from total VRAM or `hardware.profile`. |
 | `hardware/recommend.py` + `recommendations.yaml` | Per-profile transcription and local-LLM recommendations, ETA estimates and risk warnings. All numbers are data, tagged estimated or measured. |
-| `hardware/doctor.py` | Environment checks for `mm3 doctor` (ffmpeg, Python, ML extras, HF token, Ollama, vault, data dirs). |
+| `hardware/doctor.py` | Environment checks for `mm3 doctor` (ffmpeg, Python, transcription engine, cached models, HF token, Ollama, vault, data dirs). |
+| `transcription/stages.py` | The `transcribe`, `align` and `diarize` stages (Phase 06): plan resolution, language gate, one-shot OOM retry, fallbacks, per-stage model release. |
+| `transcription/engine.py` | `Engine` protocol and `WhisperXEngine` (lazy whisperx/torch/pyannote imports; library logging and warnings quieted before import). |
+| `transcription/models.py` | Model cache (`MM3_MODELS_DIR` = `HF_HOME`), model ids, cache checks, downloads, HF token, telemetry off, OOM detection, `free_gpu_memory`. |
+| `transcription/convert.py`, `handoff.py` | WhisperX results to `domain.Transcript` (with speaker-change splitting); the R5 Ollama unload before transcription. |
 | `web/hardware.py` | `GET /api/hardware`, `POST /api/hardware/refresh`. |
 | `web/routes.py` | `GET /healthz`, `GET /` (Jinja2 base layout, placeholder page). |
 | `llm/base.py` | `LLMBackend` protocol, request/result types, error codes (`E_LLM_*`), `is_local_url`. |
@@ -100,4 +104,16 @@ JobRunner (asyncio, in the app lifespan)
 The job state machine, the Stage protocol, checkpoint artifacts and the SSE format are specified in
 [`dev-guide/jobs-and-stages.md`](dev-guide/jobs-and-stages.md); ADR-0013 records the design choices.
 
-_To be expanded in Phases 06-15 (transcription, generation and UI data flow, sequence diagrams)._
+### Transcription (Phase 06)
+```
+audio.wav ─▶ transcribe: [Ollama unload] → faster-whisper (VAD chunks, language check) ─▶ transcript.json
+          ─▶ align:      wav2vec2 word timings (fallback: segment timings)      ─▶ aligned.json
+          ─▶ diarize:    pyannote community-1 → speakers per word → split turns  ─▶ transcript.final.json
+                         (fallback: no speakers + warning)                         + diarization.json
+each stage: load model ─▶ work (progress callbacks check cancel) ─▶ del + empty_cache
+CUDA OOM ─▶ E_OOM ─▶ should_retry (once: batch/2, int8_float16) ─▶ then fail with a smaller-model hint
+```
+The GPU semaphore is held from `transcribe` through `speaker_suggest`; models are not shared between
+stages (ADR-0014). Details: [`dev-guide/jobs-and-stages.md`](dev-guide/jobs-and-stages.md).
+
+_To be expanded in Phases 07-15 (speakers, generation and UI data flow, sequence diagrams)._

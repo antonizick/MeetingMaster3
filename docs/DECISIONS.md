@@ -127,3 +127,71 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 7. **Job ids** are UUIDv4 strings, validated before any path is built; `jobs.audio_path` and artifact paths are file names relative to the job folder, so the data folder can move (Docker volumes).
 
 **Consequences.** No new runtime dependencies. A native call that ignores cancellation keeps its thread until it returns (Phase 06 must check for cancellation between chunks). Phase 07 builds its `/speakers` routes on `JobRunner.submit_input`, and Phase 06 uses `should_retry` for OOM and `InputRequired` for the language gate. Unfinished jobs lose their audio after the retention period; the spec records this as R19.
+
+## ADR-0014: Transcription stack pins, diarization model and stage design
+**Context.** Phase 06 turns the placeholder `transcribe`, `align` and `diarize` stages into real WhisperX
+stages that must run on the 8 GB reference GPU (RTX 2070 Max-Q, driver 610, CUDA 13.3 capable), degrade
+gracefully, and keep the app local-first (S5, S6, R5, R14).
+**Options considered.**
+
+| Topic | Option | Pros | Cons |
+|---|---|---|---|
+| Pins | Pin only `whisperx==3.8.6`; the lockfile pins the rest | One known-good combination (verified on the GPU); the lock is the source of truth | Upgrading needs a deliberate re-test |
+| | Loose `whisperx>=3.8` | Easy upgrades | Silent pyannote/torch API changes (pyannote 3 → 4 changed `use_auth_token` to `token`) |
+| Model residency | Keep models loaded from `transcribe` to `diarize` | Saves about 5-10 s of loading per job | Whisper (about 3 GB) sits idle during diarization on an 8 GB card; complicates OOM recovery and resume |
+| | Each stage loads and frees its own model | At most one model resident; a retry or resume starts clean | Reloads models per job |
+| Transcription model option | Reuse `JobOptions.model` | Matches the Phase 04 prompt's example | `model` already means the LLM model next to `backend` (Phase 09 `--model`, Phase 10 "backend and model") |
+| | New `transcription_model` option | Unambiguous | Phase 10 prompt and the jobs guide change |
+| "Proceed" on non-English audio | Force English decoding (spec §3 wording) | Literal spec | Whisper forced to English on foreign speech translates or hallucinates; useless transcript |
+| | Transcribe in the detected language, optional language override | Useful transcript; alignment models exist for many languages | Notes templates are English, so note quality varies (warned) |
+| Non-diarized fallback labels | Everyone `SPEAKER_00` | Single-speaker shape | Attributes everything to one named person after naming |
+| | No speaker labels (`diarized=false`) | Honest; renders as "Speaker" | Phase 07 has nothing to confirm (correct) |
+
+**Decision.**
+1. **Pins (verified by installing on the reference machine):** `ml` extra = `whisperx==3.8.6`, which locks
+   torch 2.8.0+cu128 / torchaudio 2.8.0 / torchvision 0.23.0, faster-whisper 1.2.1, ctranslate2 4.8.2,
+   pyannote.audio 4.0.7, transformers 4.57.6, huggingface-hub 0.36.2, nvidia-cudnn-cu12 9.10.2.21 and the
+   CUDA 12.8 wheels. CUDA and cuDNN come from PyPI wheels, so no system CUDA toolkit is needed; the NVIDIA
+   driver must support CUDA 12.8 (570+). CTranslate2 4.8 uses the same cuDNN 9 as torch 2.8, so the
+   classic CTranslate2/cuDNN 8 mismatch does not occur. CTranslate2 reports `float16`, `int8_float16`,
+   `int8`, `int8_float32` and `float32` on the Turing GPU.
+2. **Diarization model (R14):** WhisperX 3.8.6 defaults to `pyannote/speaker-diarization-community-1`
+   (pyannote.audio 4, CC-BY-4.0, gated; accept at https://huggingface.co/pyannote/speaker-diarization-community-1).
+   It is self-contained (segmentation, WeSpeaker embedding and PLDA in one repository), so no second gated
+   model is needed. Voice activity detection uses the pyannote weights bundled in the WhisperX wheel (no
+   download, no token). English alignment uses torchaudio `WAV2VEC2_ASR_BASE_960H`.
+3. **Each stage loads and frees its own model**; the GPU semaphore still spans the GPU stages so no other
+   job interleaves. A cached whisper model is loaded with `local_files_only`, and a cached diarization
+   pipeline from its snapshot folder, because both libraries otherwise contact Hugging Face on every job.
+4. **`transcription_model`** (plus `compute_type`, `batch_size`, `language`, `on_non_english`) are new job
+   options; `model` stays the LLM model. "Retry with a smaller model" = resume with
+   `{"overrides": {"transcription_model": "<smaller>"}}`, offered in `detail.error.details.suggested_overrides`
+   (new optional `MM3Error.details`).
+5. **Language gate:** detection on the first 30 s after the model loads; non-English pauses with
+   `InputRequired("language")` (policy `transcription.on_non_english`: `ask`/`proceed`/`abort`). Proceed
+   transcribes in the detected language unless the answer names another; abort cancels and forgets the
+   answer so a resume asks again.
+6. **OOM:** one automatic retry per stage (`transcribe`: half batch, `int8_float16`); a second OOM fails
+   `transcribe` with `E_OOM`, while `align`/`diarize` fall back with a warning.
+7. **Non-diarized transcripts have no speaker labels.** Segments are split where the word-level speaker
+   changes, because WhisperX segments are VAD chunks of up to 30 s that often hold two speakers.
+8. **Stage warnings:** `StageContext.warn()` records user-visible warnings (fallbacks, language, OOM retry)
+   in the stage detail and the job description.
+9. **No telemetry:** pyannote.audio 4 sends OpenTelemetry traces to `otel.pyannote.ai` by default (model
+   names, audio duration, speaker counts, a session id). MeetingMaster3 forces
+   `PYANNOTE_METRICS_ENABLED=false`, `HF_HUB_DISABLE_TELEMETRY=1` and `DO_NOT_TRACK=1` before any ML import.
+
+**Gotchas recorded.** torchcodec 0.7 (a pyannote dependency) only loads FFmpeg 4-7 shared libraries; on a
+host with FFmpeg 8 (Arch, October 2026) it warns at import. Harmless because MeetingMaster3 always passes
+in-memory waveforms; the warning is filtered. WhisperX's `get_logger` installs its own stdout handler and
+disables propagation, bypassing the redaction filter, unless the `whisperx` logger already has a handler;
+the engine adds a `NullHandler` and re-enables propagation before importing it.
+
+**Measured (reference machine, large-v3-turbo, int8_float16, batch 8, diarization on).** 60 s fixture:
+18 s including model loading. 31 min: transcribe 38 s, align 27 s, diarize 66 s (131 s, 14.3x). 72 min:
+74 s / 55 s / 154 s (283 s, 15.3x). Peak whole-card VRAM 3.6 GB with Ollama unloaded. Recorded as
+`measured` in `hardware/recommendations.yaml` (vram8: 14-16x).
+**Status.** Accepted (2026-10-11, Phase 06).
+**Consequences.** Upgrading WhisperX or pyannote needs the GPU acceptance test re-run. Phase 07 can ask
+`DiarizationPipeline` for speaker embeddings (`return_embeddings=True`) or compute its own. Phase 10's
+"retry with smaller model" and the language prompt use the interfaces above. Spec amendment R20.

@@ -28,7 +28,7 @@ dependencies = [
 
 [project.optional-dependencies]
 ml = [
-    "whisperx>=3.8.6",
+    "whisperx==3.8.6",  # pinned: see ADR-0014 before upgrading (re-run the GPU tests)
 ]
 bedrock = [
     "boto3>=1.43.111",
