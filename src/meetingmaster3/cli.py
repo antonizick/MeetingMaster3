@@ -13,6 +13,8 @@ from meetingmaster3.logging import configure_logging
 app = typer.Typer(help="MeetingMaster3: local-first meeting intelligence.", no_args_is_help=True)
 config_app = typer.Typer(help="Inspect configuration.", no_args_is_help=True)
 app.add_typer(config_app, name="config")
+llm_app = typer.Typer(help="Inspect LLM backends.", no_args_is_help=True)
+app.add_typer(llm_app, name="llm")
 
 
 @app.command()
@@ -140,6 +142,36 @@ def config_show() -> None:
     import yaml
 
     typer.echo(yaml.safe_dump(load_settings().dump_masked(), sort_keys=False))
+
+
+@llm_app.command("list")
+def llm_list() -> None:
+    """List configured LLM backends (secrets masked)."""
+    from meetingmaster3.llm.registry import BackendRegistry
+
+    registry = BackendRegistry(load_settings())
+    for name in registry.names():
+        d = registry.describe(name)
+        star = "*" if d["is_default"] else " "
+        typer.echo(f"{star} {name}: {d['kind']}, {d['badge']}, model={d['default_model'] or '-'}")
+
+
+@llm_app.command("test")
+def llm_test(name: str | None = typer.Argument(None, help="Backend name (default: all).")) -> None:
+    """Test connectivity to one or all configured backends."""
+    from meetingmaster3.llm.doctor import check_backends
+
+    settings = load_settings()
+    checks = [c for c in check_backends(settings) if name is None or c.name.split()[1] == name]
+    if not checks:
+        typer.secho(f"No backend named {name!r}.", fg=typer.colors.RED, err=True)
+        raise typer.Exit(1)
+    for c in checks:
+        typer.echo(
+            f"[{c.status}] {c.name}: {c.detail}" + (f"\n       hint: {c.hint}" if c.hint else "")
+        )
+    if any(c.status == "fail" for c in checks):
+        raise typer.Exit(1)
 
 
 def main() -> None:

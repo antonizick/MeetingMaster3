@@ -35,7 +35,7 @@ The full baseline is in [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) section
 - **Secrets.** API keys and the Hugging Face token come from environment variables or a `0600`
   config file; they are never logged, never returned unmasked, never written to the vault.
 - **Cloud egress consent.** Cloud LLM backends are clearly badged and need explicit confirmation on
-  first use per job. No telemetry, ever.
+  first use per job (`llm.consent.enforce_consent` raises `E_CONSENT_REQUIRED` for any non-local backend unless the job has `cloud_consent` or the backend has `consent_remembered`). A backend counts as local only when its host is loopback or `host.docker.internal`; a LAN or remote Ollama is treated as cloud. LLM request and response bodies are never logged above DEBUG and are redacted even there. API keys in `config.yaml` are `0600`, masked in every API response, and registered with the log redaction filter. No telemetry, ever.
 - **Voiceprints are biometric data.** Opt-in, local only, never written to the vault, listable and
   deletable.
 - **Supply chain.** Locked dependencies, `pip-audit` in CI, Dependabot, licence inventory.

@@ -24,3 +24,9 @@ def test_config_show_masks_secrets(monkeypatch) -> None:  # type: ignore[no-unty
     r = runner.invoke(app, ["config", "show"])
     assert r.exit_code == 0
     assert "hf_abcdefghij" not in r.stdout and "********" in r.stdout
+
+
+def test_llm_list_shows_default_ollama() -> None:
+    result = runner.invoke(app, ["llm", "list"])
+    assert result.exit_code == 0
+    assert "ollama: ollama, local" in result.stdout

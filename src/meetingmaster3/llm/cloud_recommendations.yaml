@@ -1,0 +1,52 @@
+# Cloud model suggestions shown next to the local (hardware-based) recommendations.
+# Deliberately contains NO prices: they change too often. `pricing_url` points at the
+# provider's own page. Model ids are not pinned here; pick from "List models" so a
+# retired id never breaks setup. Edit freely; this file is data, not code.
+version: 1
+cloud:
+  - backend_kind: openrouter
+    label: OpenRouter, a frontier-class model for the best summaries
+    capability: Highest quality for long, messy, multi-speaker transcripts
+    cost_tier: high
+    context: Large (100k+ tokens) on most frontier models, so little or no splitting
+    privacy_note: >-
+      Transcript text is sent to OpenRouter and on to the model provider. Review both
+      providers' data-retention policies before using it for confidential meetings.
+    pricing_url: https://openrouter.ai/models
+  - backend_kind: openrouter
+    label: OpenRouter, a small fast model for routine notes
+    capability: Good enough for short stand-ups and action lists
+    cost_tier: low
+    context: Varies by model; check the model page
+    privacy_note: Same cloud routing as above.
+    pricing_url: https://openrouter.ai/models
+  - backend_kind: bedrock
+    label: AWS Bedrock, a Claude-family model
+    capability: High quality; runs inside your own AWS account and region
+    cost_tier: high
+    context: Large; set llm.backends.<name>.context_window so splitting is accurate
+    privacy_note: >-
+      Data stays within your AWS account and chosen region under AWS's Bedrock terms. Model
+      access must be enabled in the Bedrock console first.
+    pricing_url: https://aws.amazon.com/bedrock/pricing/
+  - backend_kind: bedrock
+    label: AWS Bedrock, a compact model
+    capability: Cheaper, lower latency; fine for structured extraction
+    cost_tier: low
+    context: Check the model card
+    privacy_note: Same as above.
+    pricing_url: https://aws.amazon.com/bedrock/pricing/
+  - backend_kind: openai
+    label: OpenAI API
+    capability: Strong general-purpose summaries
+    cost_tier: medium
+    context: Large on current models
+    privacy_note: Transcript text is sent to OpenAI under its API data-usage terms.
+    pricing_url: https://openai.com/api/pricing/
+  - backend_kind: openai_compat
+    label: Your own server (LM Studio, vLLM, llama.cpp)
+    capability: Whatever model you host; can stay entirely on your network
+    cost_tier: free
+    context: Set context_window if the server does not report it
+    privacy_note: Local only if the base URL is this machine; otherwise treated as cloud.
+    pricing_url: ""

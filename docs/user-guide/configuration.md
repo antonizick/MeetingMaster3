@@ -34,8 +34,17 @@ variables in your shell or process manager (see `.env.example`).
 | `transcription.model` | `MM3_TRANSCRIPTION__MODEL` | `auto` | `auto` uses the hardware recommendation (Phase 05); wired into the pipeline in Phase 06. |
 | `transcription.diarize` | `MM3_TRANSCRIPTION__DIARIZE` | `true` | Placeholder until Phase 06. |
 | `hardware.profile` | `MM3_HARDWARE__PROFILE` | `auto` | `auto`, `cpu`, `vram8`, `vram16` or `vram24plus`. Declares the hardware profile instead of detecting it; see [`hardware.md`](hardware.md). |
-| `llm.default_backend` | `MM3_LLM__DEFAULT_BACKEND` | `ollama` | Placeholder until Phase 08. |
-| `llm.backends` | `MM3_LLM__BACKENDS` | `{}` | Per-backend options; filled in by Phase 08. |
+| `llm.default_backend` | `MM3_LLM__DEFAULT_BACKEND` | `ollama` | Name of the backend used for notes. If no backend is configured under that name and it is `ollama`, a local Ollama at `http://127.0.0.1:11434` is used. |
+| `llm.backends.<name>` | `MM3_LLM__BACKENDS__<NAME>__<FIELD>` | none | One entry per backend; fields below. See [`llm-backends.md`](llm-backends.md). |
+| `llm.backends.<name>.kind` | | required | `ollama`, `openai_compat`, `openrouter`, `openai` or `bedrock`. |
+| `llm.backends.<name>.base_url` | | per kind | Ollama: `http://127.0.0.1:11434`. OpenRouter and OpenAI have presets. Required for `openai_compat`, include the `/v1`. |
+| `llm.backends.<name>.api_key` | | unset | Secret. For `openrouter` and `openai` it falls back to `secrets.openrouter_api_key` / `secrets.openai_api_key`. |
+| `llm.backends.<name>.region` / `.profile` | | `us-east-1` / unset | Bedrock only. Credentials come from the AWS chain (profile, `AWS_*` env) or `secrets.aws_*`. |
+| `llm.backends.<name>.default_model` | | unset | Model id used when a job does not pick one. |
+| `llm.backends.<name>.params` | | `{}` | Extra options: Ollama `options` (e.g. `top_p`, `num_ctx`), OpenAI-style body fields, or Bedrock `additionalModelRequestFields`. |
+| `llm.backends.<name>.headers` | | `{}` | Extra HTTP headers, e.g. OpenRouter `HTTP-Referer` and `X-Title` (off by default; nothing identifying is sent unless you add it). |
+| `llm.backends.<name>.context_window` | | auto | Override when the server cannot report the model's context size (Bedrock never does). Unknown windows are treated as 8192 tokens. |
+| `llm.backends.<name>.consent_remembered` | | `false` | Remember cloud-egress consent for this backend (skips the per-job prompt). |
 | `privacy.audio_retention` | `MM3_PRIVACY__AUDIO_RETENTION` | `days` | `forever`, `days` or `delete_after_write` (ADR-0006). Enforced from Phase 04. |
 | `privacy.audio_retention_days` | `MM3_PRIVACY__AUDIO_RETENTION_DAYS` | `90` | Used when retention is `days`. |
 | `privacy.voiceprints_enabled` | `MM3_PRIVACY__VOICEPRINTS_ENABLED` | `false` | Opt-in biometric store (Phase 07). |
@@ -48,6 +57,16 @@ Secrets are never printed or returned by the API unmasked, and are redacted from
 
 ## Example `config.yaml`
 ```yaml
+llm:
+  default_backend: ollama
+  backends:
+    ollama:
+      kind: ollama
+      default_model: qwen3:8b
+    openrouter:
+      kind: openrouter
+      api_key: sk-or-...   # or set MM3_SECRETS__OPENROUTER_API_KEY
+      default_model: vendor/model
 server:
   port: 8765
 vault:

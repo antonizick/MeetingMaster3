@@ -18,7 +18,7 @@ leave your machine. It is completed as phases land and finalised in Phase 15.
   (`HF_HUB_OFFLINE=1`) makes the app work with no network calls.
 - **Transcript text sent to a cloud LLM**, only if you choose a cloud backend (AWS Bedrock, OpenRouter
   or another OpenAI-compatible endpoint). The UI badges the backend as "local" or "cloud: <provider>"
-  and asks for confirmation on first use per job.
+  and asks for confirmation on first use per job (which you can remember per backend). A remote Ollama on another machine counts as cloud. Only the transcript text and prompt are sent; audio never leaves the machine.
 - **Your vault**, if you sync it (Obsidian Sync, cloud drives). That is outside this app's control.
   If you enable the optional "copy audio to vault" setting, the audio syncs too.
 

@@ -28,7 +28,9 @@ dependencies = [
 
 [project.optional-dependencies]
 ml = []       # whisperx, torch, pyannote.audio: pinned in Phase 06
-bedrock = []  # boto3: added in Phase 08
+bedrock = [
+    "boto3>=1.43.111",
+]  # boto3: added in Phase 08
 
 [project.urls]
 Homepage = "https://example.invalid/OWNER/REPO"
@@ -48,6 +50,8 @@ dev = [
     "types-PyYAML",
     "pip-audit>=2.7",
     "pre-commit>=3.8",
+    "respx>=0.23.1",
+    "boto3>=1.43.111",
 ]
 
 [build-system]
@@ -75,7 +79,7 @@ files = ["src"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["torch", "torch.*"]
+module = ["torch", "torch.*", "boto3", "boto3.*", "botocore", "botocore.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

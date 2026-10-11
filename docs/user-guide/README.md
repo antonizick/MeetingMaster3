@@ -9,7 +9,7 @@ Pages are added as the features land. Planned index:
 | [`hardware.md`](hardware.md) (profiles, model recommendations, `mm3 doctor`) | 05 (written) |
 | `models-and-tokens.md` (Hugging Face token, pyannote terms, Ollama models) | 06 |
 | `speakers-and-voiceprints.md` | 07 |
-| `llm-backends.md` (Ollama, Bedrock, OpenRouter) | 08 |
+| [`llm-backends.md`](llm-backends.md) (Ollama, Bedrock, OpenRouter) | 08 (written) |
 | `templates.md` | 09, 13 |
 | `getting-started.md` (upload to vault note) | 10 |
 | `review-and-regeneration.md` | 11 |

@@ -37,11 +37,11 @@ src/meetingmaster3/
 Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, inside
 `transcription/` and `speakers/` only.
 
-## Implemented so far (Phases 02 and 05)
+## Implemented so far (Phases 02, 05 and 08)
 | Module | Responsibility |
 |---|---|
 | `app.py` | `create_app(settings)` factory. Middleware order (outermost first): TrustedHost, security headers, CSRF. |
-| `cli.py` | Typer CLI `mm3`: `serve`, `version`, `doctor`, `config path`, `config show`. |
+| `cli.py` | Typer CLI `mm3`: `serve`, `version`, `doctor`, `config path`, `config show`, `llm list`, `llm test`. |
 | `config/paths.py` | XDG directories with `MM3_*_DIR` overrides; created `0700`. |
 | `config/settings.py` | Pydantic `Settings`. Precedence: defaults < `config.yaml` < `MM3_*` env. Atomic `0600` save. Secrets are `SecretStr`. |
 | `errors.py` | `MM3Error(code, message, hint)` and a JSON/HTML exception handler chosen by `Accept`. |
@@ -53,6 +53,13 @@ Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, ins
 | `hardware/doctor.py` | Environment checks for `mm3 doctor` (ffmpeg, Python, ML extras, HF token, Ollama, vault, data dirs). |
 | `web/hardware.py` | `GET /api/hardware`, `POST /api/hardware/refresh`. |
 | `web/routes.py` | `GET /healthz`, `GET /` (Jinja2 base layout, placeholder page). |
+| `llm/base.py` | `LLMBackend` protocol, request/result types, error codes (`E_LLM_*`), `is_local_url`. |
+| `llm/ollama.py`, `openai_compat.py`, `bedrock.py` | The three adapters (Phase 08). Bedrock is lazy-imported; sync boto3 calls run in threads. |
+| `llm/_http.py` | Shared httpx send with bounded jittered retries (429/5xx) and error normalisation. |
+| `llm/registry.py` | Kind to factory map and `BackendRegistry` (config to cached backend instances). |
+| `llm/budget.py`, `llm/consent.py` | 70% context budgeting and speaker-turn chunking; cloud-egress consent check. |
+| `llm/recommendations.py` + `cloud_recommendations.yaml` | Local (Phase 05) plus cloud model suggestions, no prices. |
+| `web/llm.py` | `/api/llm/*` routes (masked config, test, models, recommendations). |
 
 All other packages are empty placeholders with a docstring, filled in by later phases.
 

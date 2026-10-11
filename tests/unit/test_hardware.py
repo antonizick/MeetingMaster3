@@ -4,6 +4,7 @@ from pathlib import Path
 
 import httpx
 import pytest
+import respx
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from typer.testing import CliRunner
@@ -259,30 +260,19 @@ def test_check_hf_token() -> None:
     assert doctor.check_hf_token(s).status == "ok"
 
 
-def _ollama_client(handler: httpx.MockTransport) -> httpx.Client:
-    return httpx.Client(transport=handler)
+def test_check_llm_backends_unreachable_is_nonblocking() -> None:
+    with respx.mock:
+        respx.get("http://127.0.0.1:11434/api/tags").mock(side_effect=httpx.ConnectError("no"))
+        checks = doctor.check_llm_backends(Settings())
+    assert [c.status for c in checks] == ["warn"] and not checks[0].blocking
+    assert checks[0].name == "LLM ollama (local)"
 
 
-def test_check_ollama_reachable() -> None:
-    transport = httpx.MockTransport(lambda r: httpx.Response(200, json={"models": [{}, {}]}))
-    c = doctor.check_ollama(Settings(), client_factory=lambda: _ollama_client(transport))
-    assert c.status == "ok" and "2 model" in c.detail
-
-
-def test_check_ollama_unreachable() -> None:
-    def boom(_r: httpx.Request) -> httpx.Response:
-        raise httpx.ConnectError("refused")
-
-    c = doctor.check_ollama(
-        Settings(), client_factory=lambda: _ollama_client(httpx.MockTransport(boom))
-    )
-    assert c.status == "warn" and not c.blocking
-
-
-def test_ollama_url_from_settings() -> None:
-    s = Settings()
-    s.llm.backends = {"ollama": {"base_url": "http://gpu-box:11434/"}}
-    assert doctor.ollama_url(s) == "http://gpu-box:11434"
+def test_check_llm_backends_reachable() -> None:
+    with respx.mock:
+        respx.get("http://127.0.0.1:11434/api/tags").respond(json={"models": [{"name": "a"}]})
+        checks = doctor.check_llm_backends(Settings())
+    assert checks[0].status == "ok" and "1 model" in checks[0].detail
 
 
 def test_check_vault(tmp_path: Path) -> None:

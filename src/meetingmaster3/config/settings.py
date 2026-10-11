@@ -48,11 +48,24 @@ class HardwareSettings(BaseModel):
     profile: Literal["auto", "cpu", "vram8", "vram16", "vram24plus"] = "auto"
 
 
-class LLMSettings(BaseModel):
-    """Placeholder; populated in Phase 08."""
+class BackendConfig(BaseModel):
+    """One configured LLM backend (``llm.backends.<name>``)."""
 
+    kind: str
+    base_url: str | None = None
+    api_key: SecretStr | None = None
+    region: str | None = None  # Bedrock
+    profile: str | None = None  # Bedrock (AWS named profile)
+    default_model: str | None = None
+    params: dict[str, Any] = Field(default_factory=dict)  # extra sampling/model options
+    headers: dict[str, str] = Field(default_factory=dict)  # e.g. OpenRouter HTTP-Referer
+    context_window: int | None = Field(default=None, ge=512)  # override when unknown
+    consent_remembered: bool = False  # cloud egress consent remembered for this backend (S6)
+
+
+class LLMSettings(BaseModel):
     default_backend: str = "ollama"
-    backends: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    backends: dict[str, BackendConfig] = Field(default_factory=dict)
 
 
 class PrivacySettings(BaseModel):
@@ -107,11 +120,16 @@ class Settings(BaseSettings):
         for value in vars(self.secrets).values():
             if isinstance(value, SecretStr):
                 register_secret(value.get_secret_value())
+        for backend in self.llm.backends.values():
+            if backend.api_key:
+                register_secret(backend.api_key.get_secret_value())
 
     def dump_masked(self) -> dict[str, Any]:
         """Settings as plain data with every secret replaced by a mask (safe for the API)."""
         data = self.model_dump(mode="json")
         data["secrets"] = {k: (MASK if v else None) for k, v in vars(self.secrets).items()}
+        for name, backend in self.llm.backends.items():
+            data["llm"]["backends"][name]["api_key"] = MASK if backend.api_key else None
         return data
 
     def _dump_for_save(self) -> dict[str, Any]:
@@ -123,6 +141,9 @@ class Settings(BaseSettings):
         }
         if secrets:
             data["secrets"] = secrets
+        for name, backend in self.llm.backends.items():
+            key = backend.api_key.get_secret_value() if backend.api_key else None
+            data["llm"]["backends"][name]["api_key"] = key
         return data
 
     def save(self, path: Path | None = None) -> Path:

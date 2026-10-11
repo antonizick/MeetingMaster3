@@ -53,6 +53,16 @@ Generated; do not edit by hand. Core runtime only (no dev tools, no optional `ml
 | websockets | 17.2 | BSD-3-Clause |
 <!-- GENERATED:runtime-deps:end -->
 
+## Optional extras
+
+| Component | Version | License | Use | Redistributed? (Y/N) | Extra |
+|---|---|---|---|---|---|
+| boto3 | 1.43.x | Apache-2.0 | AWS Bedrock Converse client | N | `bedrock` |
+| botocore | 1.43.x | Apache-2.0 | boto3 core (pulled in by boto3) | N | `bedrock` |
+| s3transfer, jmespath, python-dateutil, urllib3, six | see `uv.lock` | Apache-2.0 / MIT / BSD | boto3 dependencies | N | `bedrock` |
+
+Development only (not distributed): `respx` (BSD-3-Clause), used to mock httpx in tests; `boto3` is also in the dev group so the Bedrock adapter is tested in CI.
+
 ## Planned components (not yet added)
 
 | Component | Version | License | Use | Redistributed? (Y/N) | Status |

@@ -11,14 +11,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-import httpx
-
 from meetingmaster3.config.paths import AppPaths
 from meetingmaster3.config.settings import Settings
 
 CheckStatus = Literal["ok", "warn", "fail"]
-DEFAULT_OLLAMA_URL = "http://localhost:11434"
-OLLAMA_TIMEOUT_S = 2.0
 
 
 @dataclass(frozen=True)
@@ -31,11 +27,6 @@ class Check:
     @property
     def blocking(self) -> bool:
         return self.status == "fail"
-
-
-def ollama_url(settings: Settings) -> str:
-    cfg = settings.llm.backends.get("ollama", {})
-    return str(cfg.get("base_url") or cfg.get("url") or DEFAULT_OLLAMA_URL).rstrip("/")
 
 
 def check_python(version: tuple[int, int] | None = None) -> Check:
@@ -94,24 +85,11 @@ def check_hf_token(settings: Settings) -> Check:
     )
 
 
-def check_ollama(
-    settings: Settings, client_factory: Callable[[], httpx.Client] | None = None
-) -> Check:
-    url = ollama_url(settings)
-    try:
-        client = client_factory() if client_factory else httpx.Client(timeout=OLLAMA_TIMEOUT_S)
-        with client:
-            resp = client.get(f"{url}/api/tags")
-        resp.raise_for_status()
-        count = len(resp.json().get("models", []))
-    except (httpx.HTTPError, ValueError) as exc:
-        return Check(
-            "Ollama",
-            "warn",
-            f"not reachable at {url} ({type(exc).__name__})",
-            "Start Ollama (`ollama serve`) or pick a cloud backend in Settings.",
-        )
-    return Check("Ollama", "ok", f"reachable at {url}, {count} model(s) installed")
+def check_llm_backends(settings: Settings) -> list[Check]:
+    """Reachability and default-model presence for every configured LLM backend (Phase 08)."""
+    from meetingmaster3.llm.doctor import check_backends
+
+    return [Check(c.name, c.status, c.detail, c.hint) for c in check_backends(settings)]
 
 
 def _writable_dir(path: Path) -> bool:
@@ -162,7 +140,7 @@ def run_checks(settings: Settings, paths: AppPaths) -> list[Check]:
         check_binary("ffprobe"),
         check_ml_extras(),
         check_hf_token(settings),
-        check_ollama(settings),
+        *check_llm_backends(settings),
         check_vault(settings),
         *check_data_dirs(paths),
     ]
