@@ -59,7 +59,10 @@ variables in your shell or process manager (see `.env.example`).
 | `jobs.prune_interval_hours` | `MM3_JOBS__PRUNE_INTERVAL_HOURS` | `24` | How often the audio retention pruner runs (it also runs at startup). |
 | `privacy.audio_retention` | `MM3_PRIVACY__AUDIO_RETENTION` | `days` | `forever`, `days` or `delete_after_write` (ADR-0006, ADR-0013). Applied by the pruner to every job using the **current** value. `delete_after_write` deletes the audio as soon as the note is written. |
 | `privacy.audio_retention_days` | `MM3_PRIVACY__AUDIO_RETENTION_DAYS` | `90` | With `days`: audio is deleted this many days after the note was written. With `days` or `delete_after_write`: audio of unfinished jobs (failed, cancelled, interrupted, waiting) is deleted this many days after the job last changed. Pinned meetings are never pruned. |
-| `privacy.voiceprints_enabled` | `MM3_PRIVACY__VOICEPRINTS_ENABLED` | `false` | Opt-in biometric store (Phase 07). |
+| `privacy.voiceprints_enabled` | `MM3_PRIVACY__VOICEPRINTS_ENABLED` | `false` | Opt-in voice recognition (biometric data, S7): compute voice signatures, suggest speaker names and allow remembering voices. Off: no signatures are computed and nothing is stored; stored voiceprints can still be listed and deleted. See [speakers.md](speakers.md). |
+| `speakers.match_threshold` | `MM3_SPEAKERS__MATCH_THRESHOLD` | `0.6` | Minimum cosine similarity (0-1) for a name suggestion (ADR-0015). |
+| `speakers.match_margin` | `MM3_SPEAKERS__MATCH_MARGIN` | `0.1` | How much the best person must beat the second best for a suggestion. |
+| `speakers.max_embeddings_per_person` | `MM3_SPEAKERS__MAX_EMBEDDINGS_PER_PERSON` | `20` | Voice samples kept per person and speaker model (newest first, 1-200). |
 | `secrets.hf_token` | `MM3_SECRETS__HF_TOKEN` (or `HF_TOKEN`) | unset | Hugging Face read token, needed once to download the gated diarization model (`pyannote/speaker-diarization-community-1`). |
 | `secrets.openrouter_api_key` | `MM3_SECRETS__OPENROUTER_API_KEY` | unset | |
 | `secrets.openai_api_key` | `MM3_SECRETS__OPENAI_API_KEY` | unset | |
@@ -100,6 +103,9 @@ vault:
 privacy:
   audio_retention: days
   audio_retention_days: 90
+  voiceprints_enabled: false   # opt-in voice recognition (speakers.md)
+speakers:
+  match_threshold: 0.6
 audio:
   max_upload_mb: 2048
 transcription:

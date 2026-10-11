@@ -341,7 +341,8 @@ class SpeakerConfirmationStage(AwaitInputStage):
         for labels in groups.values():
             usable = [lbl for lbl in labels if vectors.get(lbl, {}).get("embedding")]
             if not usable:
-                ctx.warn(f"Not enough clear speech to remember {entries[labels[0]]['name']}.")
+                # Labels, not names: warnings are also logged, and names are personal data.
+                ctx.warn(f"Not enough clear speech to remember the voice of {', '.join(labels)}.")
                 continue
             entry = entries[labels[0]]
             person = store.find(entry["person_id"]) if entry["person_id"] else None

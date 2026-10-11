@@ -9,7 +9,8 @@ leave your machine. It is completed as phases land and finalised in Phase 15.
 | Your audio recordings | `$XDG_DATA_HOME/meetingmaster3/jobs/<job-id>/`. While a job runs: your upload (`original.<ext>`) and a 16 kHz mono WAV. When the note is written, both are replaced by a compressed Opus copy (`audio.opus`, about 11 MB per hour), which is deleted 90 days later by default (configurable, pinnable). Audio of jobs that never finish is deleted after the same period. |
 | Transcripts and notes | Your Obsidian vault (Markdown), plus working copies in job folders |
 | Job state, feedback ratings | Local SQLite database `mm3.db` |
-| Voiceprints (opt-in) | Local SQLite only; **biometric data**, never written to the vault |
+| Voiceprints (opt-in, off by default) | Local SQLite only (`mm3.db`, tables `voiceprints` and `voiceprint_embeddings`): each remembered person's name, dates, sample count, seconds of speech and up to 20 voice signatures (256 numbers each). **Biometric data**: stored only for speakers you chose to remember, never written to the vault, logs or API responses. See [Naming speakers and voice recognition](user-guide/speakers.md). |
+| Speaker naming artifacts | Job folder: `speakers.json` (labels, talk time, clip times, candidate names and scores), `speaker_map.json`, `speakers.confirmed.json`, `transcript.named.json`. With voice recognition on, `speaker_embeddings.json` holds this meeting's voice signatures until you confirm the names, then it is deleted. |
 | Config, API keys, HF token | `config.yaml` (mode `0600`) or environment variables; never logged or put in the vault |
 | Model weights | `$XDG_CACHE_HOME/meetingmaster3/models` (`MM3_MODELS_DIR`) |
 | Transcription artifacts | Job folder: `transcript.json`, `aligned.json`, `diarization.json` (who spoke when, as time ranges; no voice embeddings), `transcript.final.json`. Deleted with the job. |
@@ -39,6 +40,15 @@ pyannote.audio 4 would send model names, audio durations and speaker counts to `
 ## Your controls
 Delete any meeting's audio, pin audio to keep it, list and delete voiceprints or wipe the store, and
 set the audio retention period (forever / N days / delete after write).
+
+**Voiceprints.** Voice recognition is off unless you set `privacy.voiceprints_enabled: true`. While it
+is off, no voice signatures are computed at all. When it is on, a voice is remembered only when you
+tick "remember this voice" for that speaker. `uv run mm3 voiceprints list` shows who is stored (never
+the signatures), `mm3 voiceprints delete <id>` forgets one person and `mm3 voiceprints wipe` forgets
+everyone; the API equivalents are `GET /api/voiceprints`, `DELETE /api/voiceprints/<id>` and a two-step
+`DELETE /api/voiceprints` (confirmation token). Deletion is physical: SQLite's `secure_delete`
+overwrites the records and the write-ahead log is flushed and truncated. Turning the feature off keeps
+stored voiceprints (unused) until you delete them.
 
 Today (before the Settings UI in Phase 12): set `privacy.audio_retention` and
 `privacy.audio_retention_days` in `config.yaml`; `uv run mm3 jobs list` shows each job's audio status;

@@ -94,7 +94,8 @@ Rules:
   `waiting_for_input`, and the GPU slot is released. `POST /api/jobs/{id}/input` validates the answer
   with the stage's optional `validate_input(data)`, saves it as `input.<stage>.json` and queues the job;
   the stage runs again and finds the answer with `ctx.input()`. `AwaitInputStage` packages this
-  pattern; `SpeakerConfirmationStage` is the `await_speaker_confirmation` stage.
+  pattern; `speakers.stages.SpeakerConfirmationStage` is the `await_speaker_confirmation` stage
+  (Phase 07).
 
 ## Adding a stage
 1. Implement the stage (see above) in its own package, e.g. `transcription/stages.py`.
@@ -116,8 +117,8 @@ Rules:
 | 2 | `transcribe` | yes | `transcript.json` | Phase 06 |
 | 3 | `align` | yes | `aligned.json` | Phase 06 |
 | 4 | `diarize` | yes | `transcript.final.json` (a serialised `domain.Transcript`; `diarization.json` alongside) | Phase 06 |
-| 5 | `speaker_suggest` | yes | `speakers.json` | Phase 07 |
-| 6 | `await_speaker_confirmation` | no | `input.await_speaker_confirmation.json` (the user's mapping) | Phase 04, extended in 07 |
+| 5 | `speaker_suggest` | yes | `speakers.json` (`speaker_embeddings.json` alongside while waiting, voiceprints on only) | Phase 07 |
+| 6 | `await_speaker_confirmation` | no | `speakers.confirmed.json` (`speaker_map.json`, `transcript.named.json` alongside; the raw answer is `input.await_speaker_confirmation.json`) | Phase 04, replaced in 07 |
 | 7 | `generate` | no* | `notes.draft.md` | Phase 09 |
 | 8 | `write` | no | a JSON record of the vault files written | Phase 09 |
 
@@ -168,6 +169,51 @@ otherwise `.bin`), `audio.opus` (after `written`), `input.<stage>.json` (answers
 **Resume (R4):** the runner restarts at the first stage that is not `completed` **or whose artifact
 file is missing**, and resets that stage and every later one to `pending`. Completed stages before it
 are never run again.
+
+### Speaker stages (Phase 07)
+Implemented in `speakers/stages.py` (user guide: [`../user-guide/speakers.md`](../user-guide/speakers.md);
+ADR-0015, spec R21). Both are built into `jobs.pipeline` (no registration needed).
+
+**`speaker_suggest`** (`SpeakerSuggestStage`, `uses_gpu=True`) reads `transcript.final.json` and
+`diarization.json`. A transcript without speakers gives `{"diarized": false, "speakers": []}`. Otherwise,
+per label: talk time, overlap-free speech, the chosen embedding windows and up to 3 sample snippets
+(`speakers.embeddings.profile_speakers`). Only with `privacy.voiceprints_enabled` it embeds the windows
+(WeSpeaker ResNet34 from the cached diarization snapshot, `PyannoteEmbedder`; GPU if available), ranks
+known people (`speakers.match.match_speakers`) and writes `speaker_embeddings.json`. An embedding failure
+(engine or model missing, any error) is a warning: the job still waits for names, without suggestions.
+
+`speakers.json`:
+```json
+{"diarized": true, "voiceprints_enabled": true, "model_id": "pyannote/…/embedding@6f10ff60898a1d18",
+ "threshold": 0.6,
+ "speakers": [{"label": "SPEAKER_00", "placeholder": "Speaker 1", "talk_seconds": 24.8,
+               "clean_seconds": 19.1, "embedded_seconds": 13.4, "embedded_segments": 3,
+               "low_confidence": false, "snippets": [{"start": 3.2, "end": 9.2}],
+               "candidates": [{"person_id": "…", "name": "Alice", "score": 0.93, "suggested": true}],
+               "suggestion": {"person_id": "…", "name": "Alice", "score": 0.93, "suggested": true}}]}
+```
+It is also the `waiting_for` payload (`kind: "speaker_confirmation"`). It never contains vectors.
+
+**`await_speaker_confirmation`** (`SpeakerConfirmationStage`) completes at once for a transcript without
+speakers. Otherwise it waits for `{"speakers": {label: name | {"name", "person_id"?, "enroll"?}}}`
+(`POST /api/jobs/{id}/speakers` with the bare mapping, or `/input`), normalised by
+`speakers.stages.normalise_answer` to `{label: {"name", "person_id", "enroll"}}`. Labels left out keep
+their placeholder; labels not in the transcript are ignored with a warning. After the answer it:
+1. enrolls the `enroll: true` speakers when voiceprints are enabled (labels with the same `person_id`,
+   or the same name, are merged into one duration-weighted embedding; a name matching exactly one stored
+   person reuses it; the stored name follows the confirmed one);
+2. stores the job's one speaker map via `speakers.cascade.save_job_speakers` (`speaker_map.json` and
+   `transcript.named.json`, the transcript with `speaker_name` on every segment);
+3. deletes `speaker_embeddings.json`;
+4. writes `speakers.confirmed.json`: `speakers` (normalised entries with the final `person_id`),
+   `speaker_map` (label → name), `participants` (confirmed names in label order, merged names once) and
+   `enrolled` (`person_id`, `name`, `labels`).
+
+**Cascade (for Phases 09 and 11).** `speakers.cascade.apply_speaker_map(map, transcript, meta=,
+companion=, old_map=)` returns the named transcript (generation context), `MeetingMeta` with `speakers`
+(→ `mm3-speakers`) and `participants` updated (names from `old_map` replaced, hand-added participants
+kept, placeholders never added), and the companion with the new map. `rename_companion_text(text, map)`
+renames an existing companion file in place. `load_job_speaker_map(job_dir)` reads the stored map.
 
 ## GPU exclusivity (R5)
 One `asyncio.Semaphore(1)` is shared by all jobs. A job acquires it before its first GPU stage and
@@ -230,6 +276,11 @@ retention period. The pruner (`jobs.retention.prune`) runs at startup, every
 | `POST /api/jobs/{id}/cancel` | Cancel a queued, running, waiting or interrupted job. |
 | `POST /api/jobs/{id}/resume` | Resume a failed, cancelled or interrupted job; body `{"overrides": {...}}` optional. |
 | `POST /api/jobs/{id}/input` | Answer a waiting job, e.g. `{"speakers": {"SPEAKER_00": "Alice"}}` or, for the language question, `{"action": "proceed"}`. |
+| `GET /api/jobs/{id}/speakers` | `speakers.json` plus `job_id`, `status`, `waiting` and `confirmed` (`speakers.confirmed.json` or null); 409 `E_SPEAKERS_NOT_READY` before `speaker_suggest` completed. |
+| `POST /api/jobs/{id}/speakers` | Confirm names: `{"SPEAKER_00": {"name": "Alice", "person_id": "…" \| null, "enroll": true}, "SPEAKER_01": "Bob"}` (or wrapped in `{"speakers": …}`). 422 for unknown labels, invalid entries or a deleted person; 409 `E_JOB_STATE` when not waiting. Resumes the job. |
+| `GET /api/voiceprints` | `{"enabled", "people": [{person_id, name, created_at, last_seen, samples, total_seconds, models}]}`; never vectors. |
+| `DELETE /api/voiceprints/{person_id}` | Forget one person (404 if unknown). |
+| `DELETE /api/voiceprints?confirm=` | Forget everyone. Without a valid token: 428 `E_CONFIRM_REQUIRED` with `details.confirm_token` (single use, 5 minutes), nothing deleted. |
 | `DELETE /api/jobs/{id}?force=` | Delete the job folder and rows (409 while active; pinned needs `force=true`). Vault notes are not touched. |
 | `POST /api/jobs/{id}/pin`, `/unpin` | Keep the audio regardless of retention. |
 | `GET /api/jobs/{id}/audio` | The best audio file, with HTTP Range (`audio/ogg` for Opus). |
@@ -242,7 +293,9 @@ All POST and DELETE routes need the CSRF header (S2). Errors use the standard
 `MM3_FAKE_PIPELINE=1 uv run mm3 serve` replaces every ML and LLM stage with a fake from
 `jobs/fakes.py` (the real ffmpeg `ingest` still runs). Each fake takes `MM3_FAKE_STAGE_SECONDS`
 (default 2) and writes plausible artifacts, including a two-speaker transcript; `FakeWrite` never
-touches the vault. Try it:
+touches the vault. `FakeSpeakerSuggest` is the real suggestion stage with a deterministic
+`FakeEmbedder`, so with `MM3_PRIVACY__VOICEPRINTS_ENABLED=true` a second upload suggests the names you
+enrolled from the first. Try it:
 ```bash
 MM3_FAKE_PIPELINE=1 uv run mm3 serve &
 curl -s -c /tmp/cj http://127.0.0.1:8765/ -o /dev/null

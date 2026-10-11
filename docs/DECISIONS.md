@@ -204,3 +204,61 @@ Revisit when WhisperX allows torch 2.10+ (Phase 15).
 **Consequences.** Upgrading WhisperX or pyannote needs the GPU acceptance test re-run. Phase 07 can ask
 `DiarizationPipeline` for speaker embeddings (`return_embeddings=True`) or compute its own. Phase 10's
 "retry with smaller model" and the language prompt use the interfaces above. Spec amendment R20.
+
+## ADR-0015: Speaker embeddings, voiceprint matching and threshold
+**Context.** Phase 07 suggests a name for each diarized speaker from an opt-in, local voiceprint store
+(S7). It needs an embedding model, a way to score a speaker against a person, a default threshold, and
+a privacy design for biometric data on an 8 GB laptop GPU.
+**Options considered.**
+
+| Topic | Option | Pros | Cons |
+|---|---|---|---|
+| Embedding model | **WeSpeaker ResNet34 from the cached `speaker-diarization-community-1` snapshot (`embedding/`)** | Already downloaded and licence-accepted for diarization; 256-d; loads offline from the snapshot folder; seconds per meeting | Tied to the diarization pipeline's weights |
+| | WhisperX `DiarizationPipeline(return_embeddings=True)` centroids | No second model load | Centroids come from pyannote's clustering internals (overlap-filtered chunks, PLDA space for VBx), not from our own clean-speech selection; changes with the pipeline version |
+| | A separate model (e.g. SpeechBrain ECAPA) | Well documented | Another download, licence and dependency |
+| Score | **Max cosine over the person's stored embeddings** | Keeps recordings from different conditions (headset vs laptop) separately useful | One bad enrollment can attract false matches (mitigated by the margin and the cap) |
+| | Cosine to the mean of the person's embeddings | Smooths noise | Blurs different conditions together |
+| Assignment | **Hungarian over `score − threshold`, plus a margin over the speaker's second-best person** | Two speakers never get the same person; ambiguous speakers (often one person split in two by the diarizer) get no suggestion | Conservative: sometimes no suggestion where a greedy match would have been right |
+| Storage | **Two SQLite tables, float32 BLOBs, `model_id` per embedding, capped at 20 per person and model** | Simple, local, model-safe | Linear scan (fine for a personal store) |
+
+**Experiment (2026-10-11, reference machine).** Diarized three recordings (the 60 s AMI fixture and two
+private recordings of 31 and 72 minutes, used locally only; numbers only were recorded). For each label
+with at least 20 s of speech, the timeline was cut into thirds: centroids from thirds 1 and 2 were
+"enrolled" and the centroid from third 3 (45 s target, and a 10 s short probe) was scored. Genuine = same
+diarization label, impostor = different labels in the same recording (4 genuine and 9 impostor pairs;
+the fixture's speakers had too little speech per third for genuine pairs).
+
+| Score | Genuine (min / median / max) | Impostor (min / median / max) |
+|---|---|---|
+| Max over two enrollments | 0.930 / 0.948 / 0.958 | 0.002 / 0.160 / 0.430 |
+| Mean of two enrollments | 0.925 / 0.942 / 0.968 | −0.023 / 0.158 / 0.418 |
+| One enrollment | 0.848 / 0.869 / 0.942 | −0.043 / 0.160 / 0.430 |
+| Max, 10 s probe | 0.874 / 0.908 / 0.923 | 0.002 / 0.207 / 0.418 |
+
+Every threshold from 0.45 to 0.75 accepted all genuine pairs and no impostor pair. Across the two private
+recordings (different sessions), the dominant speakers scored 0.929 against each other while every other
+cross-recording pair stayed at or below 0.365: almost certainly the same person, a real cross-session
+genuine pair. Max and mean were within ±0.02 of each other. Embedding all speakers of the 72-minute
+recording took 0.3 s on the GPU and 1.6 s on the CPU.
+**Decision.**
+1. WeSpeaker ResNet34 loaded with `pyannote.audio.Model.from_pretrained(<snapshot>/embedding)`, on CUDA
+   when available, otherwise CPU. `model_id` = `<pipeline>/embedding@<first 16 hex of the weights'
+   SHA-256>`; embeddings with different ids are never compared.
+2. Per speaker: overlap-free parts of its diarization turns, pieces of at least 2 s, cut into windows
+   of at most 10 s, longest first up to 45 s (12 windows); centroid = duration-weighted mean, L2
+   normalised. Under 10 s of embedded speech the speaker is `low_confidence`.
+3. Score = **max** cosine (equal accuracy here, and better suited to mixed recording conditions).
+   Default `speakers.match_threshold` **0.6** (a wide gap on both sides of the measured distributions,
+   inside the 0.6-0.75 range planned in the phase prompt) and `speakers.match_margin` **0.1**.
+4. Enrollment is explicit per speaker (`enroll: true`) and only when `privacy.voiceprints_enabled`. Labels
+   confirmed as the same person are merged into one embedding. Re-enrolling from the same job replaces
+   that job's embedding. When disabled, no embeddings are computed at all.
+5. Biometric hygiene: per-meeting embeddings live only in the job folder (`speaker_embeddings.json`)
+   until confirmation and are then deleted; vectors never appear in the API, logs or vault; SQLite runs
+   with `secure_delete=ON` and deletes are followed by a WAL checkpoint, so deleted voiceprints are
+   physically erased; deleting everything is a two-step call with a single-use token.
+**Status.** Accepted (2026-10-11, Phase 07).
+**Consequences.** The small experiment does not cover noisy or very short recordings; the threshold is
+configurable and Phase 15 can re-measure with more data. A diarization-pipeline upgrade with new
+embedding weights starts a new embedding space: old voiceprints are kept but not used until people are
+enrolled again. Spec amendment R21.

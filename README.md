@@ -11,7 +11,7 @@
 > [plan](IMPLEMENTATION_PLAN.md).
 
 ## Status
-Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-05 and 08 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, LLM backends).
+Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-08 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, transcription and diarization, speaker naming and voiceprints, LLM backends).
 The CI badge above is a placeholder until the repository is published (Phase 16).
 
 ## Planned features (MVP)
@@ -28,7 +28,8 @@ The CI badge above is a placeholder until the repository is published (Phase 16)
 ## Privacy stance
 Your audio, transcripts and notes stay on your machine. Nothing leaves it unless you explicitly pick a
 cloud LLM backend, and the app asks for consent before the first cloud use. There is no telemetry.
-Voiceprints are treated as biometric data: opt-in, local only, deletable. See [`docs/PRIVACY.md`](docs/PRIVACY.md).
+Voiceprints are treated as biometric data: opt-in, local only, stored only for the people you choose,
+physically erased when deleted. See [`docs/PRIVACY.md`](docs/PRIVACY.md).
 
 ## Architecture at a glance
 ```
@@ -73,6 +74,11 @@ for the default models. Speaker diarization uses a gated model: accept its terms
 <https://huggingface.co/pyannote/speaker-diarization-community-1>, set a Hugging Face read token
 (`secrets.hf_token`), then run `uv run mm3 models download`. After that everything runs offline.
 Guide: [`docs/user-guide/transcription.md`](docs/user-guide/transcription.md).
+
+**Speaker names.** Each job pauses so you can name its speakers (with sample clips to listen to).
+Optional voice recognition (`privacy.voiceprints_enabled: true`, off by default) remembers the voices
+you choose and suggests their names in later meetings; `uv run mm3 voiceprints list|delete|wipe`
+manages what is stored. Guide: [`docs/user-guide/speakers.md`](docs/user-guide/speakers.md).
 
 ## Configuration
 Settings come from `config.yaml`, overridden by `MM3_*` environment variables. Run `uv run mm3 config path`

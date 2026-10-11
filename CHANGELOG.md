@@ -8,12 +8,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Security
+- Voiceprints (biometric data, S7) are opt-in, stored only for speakers the user marks "remember", never
+  returned by the API or CLI, and physically erased on delete: SQLite `secure_delete` is now on for
+  `mm3.db` and voiceprint deletes truncate the WAL. Deleting all voiceprints over the API needs a
+  single-use confirmation token.
 - pyannote.audio 4 sends usage telemetry to `otel.pyannote.ai` by default; MeetingMaster3 now always
   disables it (`PYANNOTE_METRICS_ENABLED=false`) together with Hugging Face Hub telemetry (spec S6).
 - Cached whisper and diarization models load without contacting Hugging Face, so a transcription job
   makes no network calls (verified with a socket audit).
 
 ### Changed
+- The `await_speaker_confirmation` stage moved to `speakers.stages.SpeakerConfirmationStage` (Phase 07).
+  It normalises answers to `{label: {"name", "person_id", "enroll"}}`, refuses unknown fields, completes
+  without asking when the transcript has no speakers, and its artifact is now `speakers.confirmed.json`.
+- `speaker_suggest` is built in (no longer a placeholder); the fake pipeline's version uses a
+  deterministic fake embedder.
 - `MM3Error` takes optional `details` (machine-readable extras such as suggested resume overrides), stored
   in the failed stage's `detail.error.details`.
 - `StageContext.warn()` records user-visible stage warnings; `GET /api/jobs/{id}` lists them as `warnings`.
@@ -28,6 +37,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   without depending on the web stack.
 
 ### Added
+- Speaker naming and opt-in voiceprints (Phase 07): per-speaker talk time, overlap-free speech and sample
+  clips; WeSpeaker embeddings from the cached diarization model; matching by max cosine similarity with a
+  one-to-one (Hungarian) assignment, threshold and margin (ADR-0015); `GET/POST /api/jobs/{id}/speakers`
+  (merging labels, enrolling voices); `GET /api/voiceprints`, `DELETE /api/voiceprints/{id}` and a
+  two-step `DELETE /api/voiceprints`; `mm3 voiceprints list|delete|wipe`; database migration 2
+  (`voiceprints`, `voiceprint_embeddings`); `speakers.cascade` applies one speaker map to the transcript,
+  note frontmatter and companion transcript; settings `speakers.match_threshold`, `match_margin`,
+  `max_embeddings_per_person`; user guide `docs/user-guide/speakers.md`; spec amendment R21.
 - Transcription and diarization (Phase 06): the `ml` extra (`whisperx==3.8.6`, torch 2.8.0 with CUDA 12.8
   wheels, pyannote.audio 4.0.7); real `transcribe` (faster-whisper), `align` (wav2vec2) and `diarize`
   (`pyannote/speaker-diarization-community-1`) job stages producing `transcript.json`, `aligned.json`,

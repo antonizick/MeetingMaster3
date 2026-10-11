@@ -66,7 +66,7 @@ def test_get_speakers_before_and_while_waiting(api: TestClient, tone: Path) -> N
     assert {"label", "placeholder", "talk_seconds", "snippets", "candidates", "suggestion",
             "low_confidence"} <= set(speaker)  # fmt: skip
     assert speaker["snippets"] and {"start", "end"} == set(speaker["snippets"][0])
-    assert "\"embedding\"" not in json.dumps(data)  # vectors never reach the API
+    assert '"embedding"' not in json.dumps(data)  # vectors never reach the API
     assert api.get("/api/jobs/not-a-job/speakers").status_code in (400, 404)
 
 
@@ -87,7 +87,7 @@ def test_confirm_enroll_and_second_meeting_suggests(api: TestClient, tone: Path)
     people = api.get("/api/voiceprints").json()
     assert people["enabled"] is True
     assert [p["name"] for p in people["people"]] == ["Alice", "Bob"]
-    assert "\"embedding\"" not in json.dumps(people)
+    assert '"embedding"' not in json.dumps(people)
 
     second = waiting_job(api, tone)
     data = api.get(f"/api/jobs/{second}/speakers").json()

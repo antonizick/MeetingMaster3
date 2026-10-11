@@ -44,8 +44,8 @@ The full baseline is in [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) section
   token is only used to download the gated diarization model.
 - **Cloud egress consent.** Cloud LLM backends are clearly badged and need explicit confirmation on
   first use per job (`llm.consent.enforce_consent` raises `E_CONSENT_REQUIRED` for any non-local backend unless the job has `cloud_consent` or the backend has `consent_remembered`). A backend counts as local only when its host is loopback or `host.docker.internal`; a LAN or remote Ollama is treated as cloud. LLM request and response bodies are never logged above DEBUG and are redacted even there. API keys in `config.yaml` are `0600`, masked in every API response, and registered with the log redaction filter. No telemetry, ever.
-- **Voiceprints are biometric data.** Opt-in, local only, never written to the vault, listable and
-  deletable.
+- **Voiceprints are biometric data.** Opt-in (off by default), local only, never written to the
+  vault, logs or API responses, listable and deletable, physically erased on delete.
 - **Supply chain.** Locked dependencies, `pip-audit` in CI, Dependabot, licence inventory.
 
 ### Implemented in Phase 02 (web middleware and config)
@@ -85,6 +85,18 @@ header only (no form-field fallback).
 | Known dependency advisories | `ml` extra | torch 2.8.0, transformers 4.57.6 and nltk 3.10.3 have published advisories, mostly about loading malicious model or checkpoint files. They cannot be upgraded while WhisperX 3.8.6 pins torch 2.8 and huggingface-hub below 1.0 (ADR-0014). The app loads model files only from fixed, well-known sources. Do not point `transcription.model` at untrusted repositories or folders. Tracked for Phase 15. |
 | Job options | `jobs/models.py` | `transcription_model` and `language` are pattern-checked; `compute_type`, `batch_size` and `on_non_english` are enumerated or bounded. A model name may be a local folder path (single-user app; Phase 15 threat model). |
 
+### Implemented in Phase 07 (speakers and voiceprints, S7)
+| Control | Where | Behaviour |
+|---|---|---|
+| Opt-in | `privacy.voiceprints_enabled` (default `false`) | Off: no embeddings are computed, `VoiceprintStore` refuses every write (`E_VOICEPRINTS_DISABLED`) and stored voiceprints are not used for matching. A test asserts that no voiceprint rows are written. |
+| Explicit enrollment | `speakers/stages.py` | Only speakers confirmed with `enroll: true` are stored; the per-meeting `speaker_embeddings.json` (job folder, `0700`) is deleted after confirmation. |
+| No vectors outside the store | `speakers/store.py`, `web/api/speakers.py`, `cli.py` | The API and CLI return names, ids, counts and dates only; vectors are never logged or written to the vault. Logs never contain names of stored people. |
+| Physical deletion | `storage/db.py` | `PRAGMA secure_delete = ON` for the whole database, and a `wal_checkpoint(TRUNCATE)` after voiceprint deletes. A test scans the database and WAL files after a wipe for the deleted vectors and names. |
+| Wipe confirmation | `DELETE /api/voiceprints` | Two steps: `428 E_CONFIRM_REQUIRED` with a single-use token (5 minutes), then `?confirm=<token>`. Normal CSRF and Origin checks apply. `mm3 voiceprints wipe` asks interactively unless `--yes`. |
+| Input validation | `speakers/stages.py` `normalise_answer` | Labels match `[A-Za-z0-9_-]{1,64}`, names are 1-200 characters (whitespace collapsed), person ids are UUIDs, unknown fields are refused (422); the API also refuses labels not in the meeting and deleted people. |
+| Model isolation | `voiceprint_embeddings.model_id` | Embeddings are tagged with the model and a hash of its weights; different models are never compared. |
+| Offline model load | `speakers/embeddings.py` | The WeSpeaker model loads from the cached diarization snapshot folder (no network); telemetry is disabled before pyannote is imported (verified with `HF_HUB_OFFLINE=1` in the GPU test). |
+
 ## Data the app stores and where
 _To be completed as phases land. Final version in Phase 15._
 
@@ -92,7 +104,7 @@ _To be completed as phases land. Final version in Phase 15._
 |---|---|---|---|
 | Notes and companion transcripts | Your Obsidian vault | Phase 03/09 | Only if your vault syncs |
 | Job audio and stage artifacts | `$XDG_DATA_HOME/meetingmaster3/jobs/<job-id>/` (folders `0700`): upload and 16 kHz WAV while processing, then Opus only, pruned after `privacy.audio_retention_days` (90) unless pinned | Phase 04 (done) | No |
-| Job state, feedback, voiceprints | `$XDG_DATA_HOME/meetingmaster3/mm3.db` (mode `0600`) | Phase 04 (done)/07 | No |
+| Job state, feedback, voiceprints | `$XDG_DATA_HOME/meetingmaster3/mm3.db` (mode `0600`, `secure_delete` on) | Phase 04 (done)/07 (done) | No |
 | Config and secrets | `$XDG_CONFIG_HOME/meetingmaster3/config.yaml` (mode `0600`, directory `0700`) | Phase 02 (done) | No |
 | Model weights | `$XDG_CACHE_HOME/meetingmaster3/models` (`MM3_MODELS_DIR`, folder `0700`) | Phase 06 (done) | Downloaded in, never out |
 | Transcript text sent to an LLM | Selected backend | Phase 08 | **Only for a cloud backend you confirmed** |

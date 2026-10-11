@@ -37,11 +37,11 @@ src/meetingmaster3/
 Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, inside
 `transcription/` and `speakers/` only.
 
-## Implemented so far (Phases 02, 03, 04, 05, 06 and 08)
+## Implemented so far (Phases 02 to 08)
 | Module | Responsibility |
 |---|---|
 | `app.py` | `create_app(settings, paths)` factory. Middleware order (outermost first): TrustedHost, security headers, CSRF. The lifespan opens `mm3.db` and starts/stops the `JobRunner`. |
-| `cli.py` | Typer CLI `mm3`: `serve`, `version`, `doctor`, `config path`, `config show`, `llm list`, `llm test`, `jobs list`, `jobs prune [--dry-run]`, `models status`, `models download`. |
+| `cli.py` | Typer CLI `mm3`: `serve`, `version`, `doctor`, `config path`, `config show`, `llm list`, `llm test`, `jobs list`, `jobs prune [--dry-run]`, `models status`, `models download`, `voiceprints list|delete|wipe`. |
 | `config/paths.py` | XDG directories with `MM3_*_DIR` overrides; created `0700`. |
 | `config/settings.py` | Pydantic `Settings`. Precedence: defaults < `config.yaml` < `MM3_*` env. Atomic `0600` save. Secrets are `SecretStr`. |
 | `errors.py` | `MM3Error(code, message, hint, details=)` and a JSON/HTML exception handler chosen by `Accept` (FastAPI imported lazily). |
@@ -59,6 +59,11 @@ Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, ins
 | `jobs/models.py`, `stage.py`, `pipeline.py` | Job/stage states and transitions, `JobOptions`, `ProgressEvent`; the `Stage` protocol, `StageContext`, `InputRequired`; the canonical meeting pipeline and `register_stage`. |
 | `jobs/runner.py`, `progress.py`, `retention.py`, `files.py`, `fakes.py` | `JobRunner` (dispatcher, GPU semaphore, resume, cancel, input pauses, retry hooks); `ProgressBus` with ETA; R8 retention and pruning; job folders and path confinement; fake stages (`MM3_FAKE_PIPELINE=1`). |
 | `web/api/jobs.py` | `/api/jobs` routes: streamed multipart upload, list, get, cancel, resume, input, delete, pin/unpin, audio (HTTP Range), SSE events. |
+| `web/api/speakers.py` | `GET/POST /api/jobs/{id}/speakers` (confirmation), `/api/voiceprints` (list, delete one, two-step wipe). |
+| `speakers/embeddings.py` | Overlap-free segment selection, snippets, `SpeakerProfile`, `PyannoteEmbedder` (WeSpeaker from the cached diarization snapshot; lazy imports). |
+| `speakers/match.py`, `vectors.py` | Max-cosine scoring, Hungarian one-to-one assignment, threshold and margin; pure-Python vector helpers and float32 BLOBs. |
+| `speakers/store.py` | `VoiceprintStore` over migration 2 (opt-in writes, model-id isolation, cap, physical delete, wipe tokens). |
+| `speakers/stages.py`, `cascade.py` | `speaker_suggest` and `await_speaker_confirmation` stages (enrollment, merges); one `SpeakerMap` per job applied to transcript, note metadata and companion transcript. |
 | `logging.py` | Logging setup with a secret-redaction filter on the handler. |
 | `web/security.py` | Security-headers and CSRF middleware. |
 | `hardware/detect.py` | `HardwareInfo`: nvidia-smi, then torch.cuda (only if importable), then CPU/RAM from `/proc`. Cached; `get_hardware(refresh=True)` re-detects. |
@@ -116,4 +121,21 @@ CUDA OOM ─▶ E_OOM ─▶ should_retry (once: batch/2, int8_float16) ─▶ t
 The GPU semaphore is held from `transcribe` through `speaker_suggest`; models are not shared between
 stages (ADR-0014). Details: [`dev-guide/jobs-and-stages.md`](dev-guide/jobs-and-stages.md).
 
-_To be expanded in Phases 07-15 (speakers, generation and UI data flow, sequence diagrams)._
+### Speakers (Phase 07)
+```
+transcript.final.json + diarization.json
+  ─▶ speaker_suggest: per label: talk time, overlap-free speech, ≤3 snippets
+        [privacy.voiceprints_enabled] windows (2-10 s, ≤45 s) ─▶ WeSpeaker ─▶ centroid
+                                       ─▶ VoiceprintStore.known_people(model_id) ─▶ max cosine
+                                       ─▶ Hungarian + threshold + margin ─▶ candidates
+  ─▶ speakers.json (+ speaker_embeddings.json, voiceprints on)   ─▶ waiting_for_input
+GET/POST /api/jobs/{id}/speakers ─▶ await_speaker_confirmation:
+        enroll (merge labels per person) ─▶ voiceprints, voiceprint_embeddings (mm3.db)
+        SpeakerMap ─▶ speaker_map.json, transcript.named.json ─▶ speakers.confirmed.json
+        delete speaker_embeddings.json
+speakers.cascade.apply_speaker_map ─▶ named transcript (Phase 09 context), note meta
+        (participants, mm3-speakers), companion transcript; Phase 11 renames through it
+```
+Voiceprint vectors stay inside `VoiceprintStore` and the job folder until confirmation; ADR-0015.
+
+_To be expanded in Phases 09-15 (generation and UI data flow, sequence diagrams)._
