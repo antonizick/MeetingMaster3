@@ -46,6 +46,9 @@ from meetingmaster3.templates.schema import Template, TemplateSection
 log = logging.getLogger(__name__)
 
 EXTRACTION_MAX_TOKENS = 1500
+CUE_TOKENS = 600
+"""Most room kept in each map prompt for the chunk's task candidates (and at most 10% of the
+usable window)."""
 EXTRACTION_TEMPERATURE = 0.1
 MIN_CHUNK_TOKENS = 512
 MIN_NUM_CTX = 4096
@@ -209,7 +212,8 @@ class NoteGenerator:
 
         # Map: chunk on speaker turns so each extraction call fits the budget.
         overhead = estimate_tokens(EXTRACTION_SYSTEM + extraction_prompt(99, 99, ""))
-        budget = usable_tokens(window) - overhead - EXTRACTION_MAX_TOKENS
+        cue_room = min(CUE_TOKENS, usable_tokens(window) // 10)
+        budget = usable_tokens(window) - overhead - EXTRACTION_MAX_TOKENS - cue_room
         if budget < MIN_CHUNK_TOKENS:
             raise MM3Error(
                 "E_LLM_CONTEXT",
@@ -228,7 +232,7 @@ class NoteGenerator:
                 start + (end - start) * chunk.index / len(chunks),
                 f"Reading part {chunk.index + 1} of {len(chunks)}",
             )
-            extractions.append(await self._extract(chunk, len(chunks), hours, num_ctx))
+            extractions.append(await self._extract(chunk, len(chunks), hours, num_ctx, cue_room))
             ranges.append(_range(chunk, hours))
         merged = merge(extractions, ranges)
         for i in merged.skipped_chunks:
@@ -263,10 +267,15 @@ class NoteGenerator:
         )
 
     async def _extract(
-        self, chunk: Chunk, parts: int, hours: bool, num_ctx: int
+        self, chunk: Chunk, parts: int, hours: bool, num_ctx: int, cue_room: int = CUE_TOKENS
     ) -> ChunkExtraction | None:
+        cues: list[str] = []
+        for cue in assembler.task_cues(list(chunk.new_turns), hours=hours):
+            if estimate_tokens("\n".join([*cues, cue.render()])) > cue_room:
+                break
+            cues.append(cue.render())
         prompt = extraction_prompt(
-            chunk.index + 1, parts, assembler.format_turns(chunk.turns, hours=hours)
+            chunk.index + 1, parts, assembler.format_turns(chunk.turns, hours=hours), cues
         )
         messages = [Message("user", prompt)]
         text, finish = await self._call(

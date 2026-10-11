@@ -31,6 +31,8 @@ _DECISION_RE = re.compile(r"\b(agree|agreed|decide|decided|let's|we'll go with)\
 
 
 def _lines(prompt: str) -> list[tuple[str, str, str]]:
+    if "<transcript>" in prompt:  # ignore candidate lists and other quoted material
+        prompt = prompt.split("<transcript>", 1)[1].split("</transcript>", 1)[0]
     return [(m["time"], m["speaker"].strip(), m["text"].strip()) for m in _LINE_RE.finditer(prompt)]
 
 

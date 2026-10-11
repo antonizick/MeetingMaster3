@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Sequence
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
@@ -42,12 +43,20 @@ EXTRACTION_SCHEMA = """\
 MAX_POINTS = 10
 
 
-def extraction_prompt(part: int, parts: int, transcript_text: str) -> str:
+def extraction_prompt(part: int, parts: int, transcript_text: str, cues: Sequence[str] = ()) -> str:
+    candidates = (
+        "These sentences in this part sound like commitments, requests or suggestions; each "
+        "commitment is an action item (owner: the speaker), a suggestion nobody took on is an "
+        "action with owner Unassigned:\n<candidates>\n" + "\n".join(cues) + "\n</candidates>\n\n"
+        if cues
+        else ""
+    )
     return (
         f"This is part {part} of {parts} of a meeting transcript"
         + (" (the first line repeats the end of the previous part for context)" if part > 1 else "")
         + f".\n\n<transcript>\n{transcript_text}\n</transcript>\n\n"
-        "Extract the notes as JSON with exactly this shape (use empty lists when there is "
+        + candidates
+        + "Extract the notes as JSON with exactly this shape (use empty lists when there is "
         f"nothing; times come from the transcript):\n{EXTRACTION_SCHEMA}\n\n"
         "Include every decision, action item and open question. For points, keep only the "
         f"{MAX_POINTS} most important ones, each at most 20 words in your own words (do not copy "
