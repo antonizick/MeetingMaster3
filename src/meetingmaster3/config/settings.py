@@ -96,6 +96,9 @@ class GenerationSettings(BaseModel):
     max_context: int = Field(default=16384, ge=2048, le=1_048_576)
     """Largest context window (tokens) planned for a *local* model. Models advertise windows
     (e.g. 40k) that an 8 GB GPU cannot hold next to the weights; longer meetings use map-reduce."""
+    think: bool = False
+    """Let reasoning models (qwen3, deepseek-r1...) think before answering. Off by default: it
+    multiplies generation time and can use up a section's token budget."""
     install_templates: bool = True
     """Copy the built-in templates into the vault's templates folder on first use."""
 

@@ -30,7 +30,8 @@ Structure:
 - <Name>: <fact or position, as stated> [mm:ss]
 
 <!-- mm3:prompt:decisions -->
-List the decisions, one per bullet, exactly as agreed, with who agreed them. Nothing else.
+List the decisions, one per bullet, exactly as agreed, with who agreed them. Task assignments
+are not decisions (they go under Action Items). Nothing else.
 
 Structure:
 - <Decision> (<Name or "the group">) [mm:ss]
@@ -41,10 +42,14 @@ If no decision was made, write exactly: No decisions were made.
 List the tasks people committed to, one per line.
 
 Structure:
-- [ ] **<Owner>:** <task, starting with a verb> (due: <deadline as stated, or "not stated">) [mm:ss]
+- [ ] **<Owner>:** <task, starting with a verb> (due: <deadline as said, or "not stated">) [mm:ss]
+- [ ] **Unassigned:** <task the group said should be done but nobody took on> (due: <...>) [mm:ss]
 
-Use **Unassigned:** when the transcript does not make the owner clear. If there are no tasks,
-write exactly: No action items were agreed.
+The owner is the person who said they will do the task ("I'll...", "I can...") or who was asked
+and agreed. Raising an issue or saying "we should..." does not make someone the owner, and
+neither does reporting on work that someone else (another team, a vendor) is doing: list such
+tasks as **Unassigned:**. Give deadlines exactly as said ("Friday", "end of Q3"), not as dates.
+If there are no tasks, write exactly: No action items were agreed.
 
 <!-- mm3:prompt:ai-recommendations -->
 Give at most 2 short recommendations, only if the record shows a clear gap (for example a

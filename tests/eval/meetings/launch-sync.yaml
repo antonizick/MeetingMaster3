@@ -1,0 +1,81 @@
+# Synthetic meeting written for MeetingMaster3's generation eval (Phase 09). Fictional people
+# and company; no real recording. License: CC0 (same as the other files in tests/eval/).
+title: Atlas Launch Sync
+date: 2026-10-06T10:00:00
+speakers:
+  SPEAKER_00: Priya Natarajan
+  SPEAKER_01: Marcus Webb
+  SPEAKER_02: Elena Sokolova
+  SPEAKER_03: Tom Fischer
+turns:
+  - [0, SPEAKER_00, "Okay, let's get started. Thanks everyone. The goal today is to decide whether Atlas ships on the twenty-first, and to sort out who owns what for the last two weeks."]
+  - [14, SPEAKER_01, "Sure. From engineering, the beta has been out for nine days. We have about three hundred and forty active beta accounts and the crash rate is down to zero point two percent, which is under our target of half a percent."]
+  - [31, SPEAKER_00, "That's good. Anything still open on your side?"]
+  - [35, SPEAKER_01, "Two things. The billing migration is not finished. We moved about seventy percent of the accounts, the rest needs a script fix. And the export to CSV times out for really large workspaces, anything over fifty thousand rows."]
+  - [55, SPEAKER_02, "How big a deal is the export thing? Do we know how many customers have workspaces that large?"]
+  - [61, SPEAKER_01, "From the beta, maybe a dozen. But a couple of the enterprise pilots are in that group."]
+  - [68, SPEAKER_03, "Yeah, Northwind is one of them. They export every Monday for their finance team, so they would notice immediately."]
+  - [76, SPEAKER_00, "Okay. Marcus, can the billing migration be done before launch?"]
+  - [80, SPEAKER_01, "Yes. I'll finish the billing migration script and run the remaining accounts by Friday. That's realistic."]
+  - [88, SPEAKER_00, "Great, Friday. And the export?"]
+  - [91, SPEAKER_01, "The proper fix is streaming the export, that's a week of work at least. The quick fix is to raise the timeout and send big exports by email as a background job."]
+  - [104, SPEAKER_02, "I'd rather not ship the email workaround as the permanent answer, but for launch it's fine as long as the in-app message explains it."]
+  - [113, SPEAKER_00, "Alright. Let's go with the background email export for launch and schedule the streaming rewrite after. Does anyone object?"]
+  - [121, SPEAKER_03, "No, that works for Northwind as long as we tell them in advance."]
+  - [126, SPEAKER_00, "Then that's decided. Tom, can you let Northwind know about the export change?"]
+  - [131, SPEAKER_03, "Yes, I'll email Northwind about the export change this week, and I'll offer them a call if they want one."]
+  - [140, SPEAKER_00, "Perfect. Elena, where are we on the launch messaging?"]
+  - [144, SPEAKER_02, "The blog post is drafted, the pricing page is the open item. We still haven't agreed whether the team plan is nineteen or twenty-four dollars per seat."]
+  - [156, SPEAKER_01, "From the beta interviews people compared us to the twenty dollar tools a lot."]
+  - [162, SPEAKER_03, "Sales would prefer twenty-four. The enterprise pilots didn't push back on price at all."]
+  - [170, SPEAKER_02, "I can see both. I don't think we should decide it in this room without the finance model, honestly."]
+  - [177, SPEAKER_00, "Agreed. Let's not decide pricing today. Elena, can you bring the finance model and a recommendation to Thursday's leadership meeting?"]
+  - [186, SPEAKER_02, "Yes, I'll prepare the pricing recommendation with the finance model for Thursday."]
+  - [192, SPEAKER_00, "Thanks. Now the launch date. Given the billing migration lands Friday, are we comfortable with the twenty-first?"]
+  - [200, SPEAKER_01, "Yes, with one condition: we need a code freeze on the seventeenth so QA has time for a full regression pass."]
+  - [208, SPEAKER_03, "Fine by me."]
+  - [210, SPEAKER_02, "Same."]
+  - [212, SPEAKER_00, "Okay. Decision: Atlas launches on October twenty-first, with a code freeze on the seventeenth. I'll tell the exec team today."]
+  - [222, SPEAKER_00, "And I'll book the go or no-go meeting for the twentieth."]
+  - [227, SPEAKER_03, "One question. Support isn't staffed for launch week yet. Do we have extra people for the weekend after launch?"]
+  - [235, SPEAKER_00, "Good point, I don't know. That needs to go to the support lead, it's not ours to decide. Somebody should raise it with support, but let's take it offline."]
+  - [246, SPEAKER_01, "Also, we should update the status page template before launch. It still has the old product name."]
+  - [253, SPEAKER_00, "True. Let's make sure that gets done, we can find an owner later."]
+  - [258, SPEAKER_02, "Last thing from me, the launch video. The agency delivers the final cut next Wednesday."]
+  - [265, SPEAKER_00, "Great. Okay, I think that's everything. Thanks all."]
+expected:
+  decisions:
+    - id: launch-date
+      any: [["21", "twenty-first", "october 21"], ["launch"]]
+    - id: code-freeze
+      any: [["freeze"], ["17", "seventeenth"]]
+    - id: export-workaround
+      any: [["export"], ["email", "background"]]
+  actions:
+    - id: billing-migration
+      owner: Marcus Webb
+      any: [["billing"], ["migration", "script"]]
+    - id: northwind-email
+      owner: Tom Fischer
+      any: [["northwind"]]
+    - id: pricing-recommendation
+      owner: Elena Sokolova
+      any: [["pricing"], ["recommendation", "finance model", "finance"]]
+    - id: tell-exec
+      owner: Priya Natarajan
+      any: [["exec"]]
+    - id: go-no-go
+      owner: Priya Natarajan
+      any: [["go"], ["no-go", "no go", "nogo", "book", "meeting"]]
+    - id: status-page
+      owner: null
+      any: [["status page"]]
+    - id: launch-video
+      owner: null
+      optional: true
+      any: [["video"]]
+  open_questions:
+    - id: pricing
+      any: [["pricing", "price"]]
+    - id: support-staffing
+      any: [["support"]]

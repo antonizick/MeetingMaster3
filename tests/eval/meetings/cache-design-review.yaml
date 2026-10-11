@@ -1,0 +1,69 @@
+# Synthetic meeting written for MeetingMaster3's generation eval (Phase 09). Fictional people
+# and system; no real recording. License: CC0.
+title: Search Cache Design Review
+date: 2026-10-07T15:00:00
+speakers:
+  SPEAKER_00: Wei Zhang
+  SPEAKER_01: Amara Okonkwo
+  SPEAKER_02: Lukas Brandt
+turns:
+  - [0, SPEAKER_00, "Let's start. The problem: p95 latency on the search API went from one hundred and eighty milliseconds to six hundred and forty since the catalog doubled in August. Today we pick a caching approach."]
+  - [16, SPEAKER_01, "I've got numbers. About sixty percent of queries are repeats within ten minutes. So a result cache would take a big chunk off the load."]
+  - [27, SPEAKER_02, "The two options on the table are Redis in front of the search service, or an in-process LRU cache in each API pod."]
+  - [35, SPEAKER_00, "Lukas, walk us through the trade-offs."]
+  - [38, SPEAKER_02, "In-process is simplest and fastest, sub-millisecond, but we run twelve pods, so the hit rate per pod is lower and invalidation is per pod. Redis is shared, so one hit rate, and we can invalidate centrally when the catalog updates. Cost is one more moving part and about two milliseconds per lookup."]
+  - [60, SPEAKER_01, "With twelve pods and random load balancing, I estimated the in-process hit rate at maybe twenty-five percent versus fifty-five percent for a shared cache."]
+  - [70, SPEAKER_00, "That's a big difference. And we already run Redis for sessions, right?"]
+  - [75, SPEAKER_02, "Yes, the sessions cluster has plenty of headroom, it's at about thirty percent memory."]
+  - [81, SPEAKER_01, "I'd be careful putting cache traffic on the sessions cluster. If the cache evicts aggressively we don't want sessions to be affected."]
+  - [89, SPEAKER_02, "Fair. We can use a separate logical database with its own maxmemory policy, but it's still the same instance. A separate small cluster would be cleaner."]
+  - [99, SPEAKER_00, "What does a separate cluster cost?"]
+  - [102, SPEAKER_02, "Roughly four hundred dollars a month for the size we need."]
+  - [107, SPEAKER_00, "That's fine. Okay, decision: we go with Redis, on a separate cluster, not the sessions one."]
+  - [114, SPEAKER_01, "Agreed."]
+  - [116, SPEAKER_02, "Agreed."]
+  - [118, SPEAKER_00, "Now TTL and invalidation."]
+  - [121, SPEAKER_01, "Catalog updates come in batches every fifteen minutes. If we set a TTL of ten minutes, we're never more than about twenty-five minutes stale in the worst case."]
+  - [133, SPEAKER_02, "Or we invalidate on the catalog-updated event. Then the TTL can be longer, like an hour."]
+  - [140, SPEAKER_00, "Event-based invalidation is better, but do we trust the event? Last quarter we lost catalog events twice."]
+  - [147, SPEAKER_01, "Then do both: invalidate on the event, and keep a ten minute TTL as a safety net."]
+  - [154, SPEAKER_00, "I like that. Decision: event-based invalidation plus a ten minute TTL."]
+  - [160, SPEAKER_02, "What about the cache key? Queries include the user's locale and their permission group, so the key has to include both, otherwise we leak results across groups."]
+  - [171, SPEAKER_00, "That's important. Make sure the key includes the permission group, that's a security requirement, not an optimisation."]
+  - [179, SPEAKER_01, "I'll write the cache key spec, including locale and permission group, and get it reviewed by security."]
+  - [187, SPEAKER_00, "When can you have that?"]
+  - [189, SPEAKER_01, "By Wednesday next week."]
+  - [192, SPEAKER_02, "I'll provision the new Redis cluster with Terraform and set up the dashboards. I can do that by Monday."]
+  - [200, SPEAKER_00, "And I'll write the ADR for the decision today."]
+  - [205, SPEAKER_01, "One open thing: we don't know the memory footprint. The average result payload is about eight kilobytes but some are over two hundred."]
+  - [214, SPEAKER_02, "We should measure the payload size distribution before sizing the cluster. Nobody has done that yet."]
+  - [220, SPEAKER_00, "Right. Also, do we need a cache warm-up after deploys? I'm not sure. Let's think about it."]
+  - [227, SPEAKER_00, "Okay, good session. Thanks both."]
+expected:
+  decisions:
+    - id: redis-separate-cluster
+      any: [["redis"], ["separate", "dedicated", "new cluster", "own cluster"]]
+    - id: invalidation
+      any: [["event"], ["ttl", "ten minute", "10 minute", "10-minute", "ten-minute"]]
+  actions:
+    - id: cache-key-spec
+      owner: Amara Okonkwo
+      any: [["key"], ["spec", "specification"]]
+    - id: provision-redis
+      owner: Lukas Brandt
+      any: [["provision", "terraform"]]
+    - id: adr
+      owner: Wei Zhang
+      any: [["adr", "decision record"]]
+    - id: payload-measurement
+      owner: null
+      any: [["payload", "memory"]]
+    - id: warm-up
+      owner: null
+      optional: true
+      any: [["warm"]]
+  open_questions:
+    - id: warm-up
+      any: [["warm"]]
+    - id: payload
+      any: [["payload", "memory footprint", "memory"]]

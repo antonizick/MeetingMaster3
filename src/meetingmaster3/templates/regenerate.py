@@ -158,6 +158,7 @@ async def preview_regeneration(
         cloud_consent=cloud_consent,
         consent_remembered=bool(cfg and cfg.consent_remembered),
         max_context=settings.generation.max_context,
+        think=settings.generation.think,
     )
     rows = side_by_side(section.body_markdown, new_body)
     stats = diff_stats(rows)

@@ -61,7 +61,8 @@ If no alternatives were compared, write exactly: No alternatives were compared.
 
 <!-- mm3:prompt:decisions -->
 List every technical decision that was made, one bullet each, with its rationale and who made or
-approved it. Proposals that were not agreed belong under Options Considered, not here.
+approved it. Proposals that were not agreed belong under Options Considered, and individual task
+assignments belong under Action Items, not here.
 
 Structure:
 - **<Decision>.** <Rationale.> (<Name>) [mm:ss]
@@ -83,10 +84,14 @@ List every concrete task that someone agreed to do or was asked to do (investiga
 prototypes, fixes, reviews, tickets), one per line.
 
 Structure:
-- [ ] **<Owner>:** <task, starting with a verb> (due: <deadline as stated, or "not stated">) [mm:ss]
+- [ ] **<Owner>:** <task, starting with a verb> (due: <deadline as said, or "not stated">) [mm:ss]
+- [ ] **Unassigned:** <task the group said should be done but nobody took on> (due: <...>) [mm:ss]
 
-Use **Unassigned:** when the transcript does not make the owner clear. If there are no tasks,
-write exactly: No action items were agreed.
+The owner is the person who said they will do the task ("I'll...", "I can...") or who was asked
+and agreed. Raising an issue or saying "we should..." does not make someone the owner, and
+neither does reporting on work that someone else (another team, a vendor) is doing: list such
+tasks as **Unassigned:**. Give deadlines exactly as said ("Friday", "end of Q3"), not as dates.
+If there are no tasks, write exactly: No action items were agreed.
 
 <!-- mm3:prompt:open-questions -->
 List the technical questions that remain unanswered and the information that is still needed,

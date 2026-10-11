@@ -78,6 +78,8 @@ class PreparedContext:
     window: int
     num_ctx: int
     chunks: int = 0
+    meeting_day: dt.date | None = None
+    cues: tuple[str, ...] = ()
 
 
 @dataclass
@@ -99,6 +101,8 @@ class NoteGenerator:
     max_context: int | None = None
     """Cap on the context window to plan for (local GPUs cannot hold a model's full window)."""
     instructions: str | None = None
+    think: bool = False
+    """Reasoning mode for models that support it (see ``generation.think``)."""
     today: dt.date | None = None
     progress: ProgressFn = _noop_progress
     check_cancelled: CancelFn = _noop
@@ -140,15 +144,20 @@ class NoteGenerator:
                 json_mode=json_mode,
                 num_ctx=num_ctx,
                 timeout=REQUEST_TIMEOUT_S,
+                think=self.think,
             )
         )
         return result.text, result.finish_reason
 
-    def _sections_overhead(self, sections: list[TemplateSection]) -> tuple[int, int]:
+    def _sections_overhead(
+        self, sections: list[TemplateSection], cues: tuple[str, ...] = ()
+    ) -> tuple[int, int]:
         """(tokens of the longest section tail, largest output reserve)."""
         tail = max(
             estimate_tokens(
-                assembler.section_prompt(self.template, s, "", instructions=self.instructions)
+                assembler.section_prompt(
+                    self.template, s, "", instructions=self.instructions, cues=cues
+                )
             )
             for s in sections
         )
@@ -176,17 +185,25 @@ class NoteGenerator:
             self.backend, cloud_consent=self.cloud_consent, remembered=self.consent_remembered
         )
         today = self.today or dt.date.today()
+        day = meta.date.date() if meta.date else None
         facts = assembler.MeetingFacts.from_meta(meta, transcript)
         system = assembler.system_prompt(self.template, facts, today)
         turns = assembler.transcript_turns(transcript)
         hours = any((t.start or 0.0) >= 3600 for t in turns)
+        cues = tuple(assembler.task_cues(turns, hours=hours))
         context = assembler.context_block(assembler.format_turns(turns, hours=hours))
         window = await self._window()
-        tail, reserve = self._sections_overhead(sections)
+        tail, reserve = self._sections_overhead(sections, cues)
         prompt_tokens = estimate_tokens(system + "\n" + context) + tail
         if fits_window(window, system + "\n" + context, reserve + tail):
             return PreparedContext(
-                system, context, "full", window, self._num_ctx(window, prompt_tokens + reserve)
+                system,
+                context,
+                "full",
+                window,
+                self._num_ctx(window, prompt_tokens + reserve),
+                meeting_day=day,
+                cues=cues,
             )
 
         # Map: chunk on speaker turns so each extraction call fits the budget.
@@ -240,6 +257,7 @@ class NoteGenerator:
             window,
             num_ctx,
             len(chunks),
+            meeting_day=day,
         )
 
     async def _extract(
@@ -296,6 +314,7 @@ class NoteGenerator:
             instructions=self.instructions,
             previous=previous,
             feedback=feedback,
+            cues=prepared.cues,
         )
         temperature = self.template.temperature(section)
         max_tokens = self.template.max_tokens(section)
@@ -308,7 +327,9 @@ class NoteGenerator:
                 max_tokens=max_tokens,
                 num_ctx=prepared.num_ctx,
             )
-            body = clean_section(text, title=section.title, fmt=section.format)
+            body = clean_section(
+                text, title=section.title, fmt=section.format, meeting_day=prepared.meeting_day
+            )
             if body != EMPTY_BODY:
                 if finish == "length":
                     self._warn(
@@ -402,6 +423,7 @@ async def regenerate_section(
     cloud_consent: bool = False,
     consent_remembered: bool = False,
     max_context: int | None = None,
+    think: bool = False,
 ) -> str:
     """Regenerate ``section_id`` of ``note`` and return the new body only. ``transcript`` is
     the named transcript (from the companion file). Compare old and new bodies with
@@ -414,6 +436,7 @@ async def regenerate_section(
         cloud_consent=cloud_consent,
         consent_remembered=consent_remembered,
         max_context=max_context,
+        think=think,
     )
     return await generator.regenerate_section(
         note.meta,

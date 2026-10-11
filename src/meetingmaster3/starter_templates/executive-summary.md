@@ -31,7 +31,8 @@ single most important decision or result first. No bullet points. Do not list th
 <!-- mm3:prompt:decisions -->
 List every decision that was actually made in the meeting, one bullet each, most important
 first. A decision is something the group agreed to do, approve, stop or choose. Proposals,
-opinions and things that were only discussed are not decisions.
+opinions and things that were only discussed are not decisions, and neither are individual
+task assignments ("Tom will email Northwind"): those belong in Action Items.
 
 Structure:
 - **<Decision, stated as an outcome>.** <Why, in a few words, if a reason was given.> (<who decided or proposed it>) [mm:ss]
@@ -42,12 +43,14 @@ If no decision was made, write exactly: No decisions were made.
 List every concrete task that someone agreed to do or was asked to do, one per line.
 
 Structure:
-- [ ] **<Owner>:** <task, starting with a verb> (due: <deadline as stated, or "not stated">) [mm:ss]
+- [ ] **<Owner>:** <task, starting with a verb> (due: <deadline as said, or "not stated">) [mm:ss]
+- [ ] **Unassigned:** <task the group said should be done but nobody took on> (due: <...>) [mm:ss]
 
-The owner is the person who will do the task, by name, only if the transcript makes that clear;
-otherwise write **Unassigned:**. Write the deadline the way it was said (for example "Friday" or
-"end of Q3"), adding the calendar date in brackets only if it is unambiguous from the meeting
-date. If there are no tasks, write exactly: No action items were agreed.
+The owner is the person who said they will do the task ("I'll...", "I can...") or who was asked
+and agreed. Raising an issue or saying "we should..." does not make someone the owner, and
+neither does reporting on work that someone else (another team, a vendor) is doing: list such
+tasks as **Unassigned:**. Give deadlines exactly as said ("Friday", "end of Q3"), not as dates.
+If there are no tasks, write exactly: No action items were agreed.
 
 <!-- mm3:prompt:open-questions -->
 List the questions and issues that were raised but not resolved, one bullet each, with who

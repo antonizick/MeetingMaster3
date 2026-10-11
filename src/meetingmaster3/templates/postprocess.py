@@ -7,6 +7,7 @@ removes wrapping and normalises structure, and never rewrites the content of a l
 
 from __future__ import annotations
 
+import datetime as dt
 import re
 
 from meetingmaster3.domain.note import LOOSE_MARKER_RE, normalise_body
@@ -98,13 +99,62 @@ def _bullet_line(line: str) -> str:
     return f"{m.group('indent')}- {m.group('rest')}" if m else line
 
 
+_DUE_RE = re.compile(r"\(due:[ \t]*(?P<text>[^);]*)(?P<rest>[^)]*)\)", re.I)
+_WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+_WEEKDAY_RE = re.compile(r"\b(" + "|".join(_WEEKDAYS) + r")\b", re.I)
+
+
+def resolve_deadline(text: str, meeting_day: dt.date) -> dt.date | None:
+    """The calendar date of a deadline said as "today", "tomorrow", "Friday", "next Wednesday"
+    or "Wednesday next week", relative to the meeting day; ``None`` for anything else (dates are
+    computed here because small models get weekday arithmetic wrong)."""
+    low = text.casefold()
+    if re.search(r"\d", low):
+        return None  # already has a date or a number we should not second-guess
+    if re.search(r"\btomorrow\b", low):
+        return meeting_day + dt.timedelta(days=1)
+    if re.search(r"\b(today|end of (the )?day|eod)\b", low):
+        return meeting_day
+    days = _WEEKDAY_RE.findall(low)
+    if len(days) != 1:
+        return None
+    target = _WEEKDAYS.index(days[0].casefold())
+    if re.search(
+        r"\bnext\s+" + days[0].casefold() + r"\b|\b" + days[0].casefold() + r"\s+next\s+week\b", low
+    ):
+        next_monday = meeting_day + dt.timedelta(days=7 - meeting_day.weekday())
+        return next_monday + dt.timedelta(days=target)
+    ahead = (target - meeting_day.weekday()) % 7 or 7
+    return meeting_day + dt.timedelta(days=ahead)
+
+
+def annotate_due_dates(line: str, meeting_day: dt.date) -> str:
+    """``(due: Friday)`` → ``(due: Friday, 2026-10-09)`` when the date is unambiguous."""
+
+    def add(m: re.Match[str]) -> str:
+        text = m.group("text").rstrip()
+        when = resolve_deadline(text, meeting_day)
+        if when is None:
+            return m.group(0)
+        return f"(due: {text}, {when.isoformat()}{m.group('rest')})"
+
+    return _DUE_RE.sub(add, line)
+
+
 def _is_sentinel(lines: list[str]) -> bool:
     """A single "nothing here" sentence (e.g. "No action items were agreed.")."""
     return len(lines) == 1 and not _BULLET_RE.match(lines[0]) and len(lines[0]) < 120
 
 
-def clean_section(text: str, *, title: str | None = None, fmt: SectionFormat = "markdown") -> str:
-    """The section body to store: never empty, never containing an mm3 marker."""
+def clean_section(
+    text: str,
+    *,
+    title: str | None = None,
+    fmt: SectionFormat = "markdown",
+    meeting_day: dt.date | None = None,
+) -> str:
+    """The section body to store: never empty, never containing an mm3 marker. For task
+    sections, weekday deadlines get their date relative to ``meeting_day``."""
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = _strip_reasoning(text)
     text = _strip_fence(text.strip("\n"))
@@ -115,6 +165,8 @@ def clean_section(text: str, *, title: str | None = None, fmt: SectionFormat = "
     lines = [_demote(ln) for ln in lines]
     if fmt == "tasks" and not _is_sentinel([ln for ln in lines if ln.strip()]):
         lines = [_task_line(ln) for ln in lines]
+        if meeting_day is not None:
+            lines = [annotate_due_dates(ln, meeting_day) for ln in lines]
     elif fmt == "bullets":
         lines = [_bullet_line(ln) for ln in lines]
     body = normalise_body("\n".join(lines))

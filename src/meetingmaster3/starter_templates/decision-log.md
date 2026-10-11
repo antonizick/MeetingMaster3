@@ -27,8 +27,9 @@ In 1-3 sentences, say how many decisions were made, what they were about, and wh
 important was deferred. No bullet points.
 
 <!-- mm3:prompt:decisions -->
-Record every decision that was made, in the order it was made, as a numbered list. For each one
-give the decision, the reasoning given, the alternatives that were explicitly considered, who
+Record every decision that was made, in the order it was made, as a numbered list. Individual
+task assignments ("Tom will email the client") are not decisions; they go under Action Items.
+For each decision give the decision, the reasoning given, the alternatives that were explicitly considered, who
 made or approved it, and any condition or review date attached to it. Omit a field only by
 writing "not stated".
 
@@ -55,10 +56,14 @@ List the tasks that follow from the decisions (implementing, communicating or pr
 deferred decision), one per line.
 
 Structure:
-- [ ] **<Owner>:** <task, starting with a verb> (due: <deadline as stated, or "not stated">) [mm:ss]
+- [ ] **<Owner>:** <task, starting with a verb> (due: <deadline as said, or "not stated">) [mm:ss]
+- [ ] **Unassigned:** <task the group said should be done but nobody took on> (due: <...>) [mm:ss]
 
-Use **Unassigned:** when the transcript does not make the owner clear. If there are no tasks,
-write exactly: No action items were agreed.
+The owner is the person who said they will do the task ("I'll...", "I can...") or who was asked
+and agreed. Raising an issue or saying "we should..." does not make someone the owner, and
+neither does reporting on work that someone else (another team, a vendor) is doing: list such
+tasks as **Unassigned:**. Give deadlines exactly as said ("Friday", "end of Q3"), not as dates.
+If there are no tasks, write exactly: No action items were agreed.
 
 <!-- mm3:prompt:ai-recommendations -->
 Give 2-3 recommendations about the quality of the decisions, grounded only in what was said: a

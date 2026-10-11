@@ -1,0 +1,46 @@
+# Synthetic meeting written for MeetingMaster3's generation eval (Phase 09). Fictional people;
+# no real recording. License: CC0. Tests unnamed speakers ("Speaker 3" stays unnamed) and
+# requests nobody accepted (they must stay unassigned).
+title: Q4 Budget Check-in
+date: 2026-10-08T09:30:00
+speakers:
+  SPEAKER_00: Grace Mensah
+  SPEAKER_01: Daniel Ortiz
+turns:
+  - [0, SPEAKER_00, "Morning. Quick one today, I just want to go through the Q4 budget and where we stand."]
+  - [9, SPEAKER_01, "Sure. We've spent sixty-two percent of the annual budget so far, which is a bit ahead of plan. The main overrun is cloud costs, about eighteen thousand over."]
+  - [21, SPEAKER_00, "Do we know why cloud went over?"]
+  - [24, SPEAKER_01, "Mostly the staging environments. They run all weekend and nobody turns them off."]
+  - [31, SPEAKER_02, "We could schedule them to shut down on weekends. That should save a few thousand a month."]
+  - [38, SPEAKER_00, "That sounds sensible. Let's do that. We're agreed staging gets shut down on weekends."]
+  - [45, SPEAKER_01, "Okay. Someone from platform needs to set up the schedule though, it's not something I can do."]
+  - [52, SPEAKER_00, "Right. I'll ask the platform team who can pick it up."]
+  - [57, SPEAKER_01, "The other thing is the conference budget. We have two people wanting to go to the data summit in November, that's about six thousand with travel."]
+  - [67, SPEAKER_00, "Hmm. I'm not sure we can afford both. Let me think about it and check with finance before deciding."]
+  - [74, SPEAKER_02, "If it helps, one of them is presenting, so their ticket would be free."]
+  - [79, SPEAKER_00, "That does help. Still, I want to check with finance first."]
+  - [84, SPEAKER_01, "And we should probably renegotiate the monitoring contract before it renews in January. It went up twenty percent last year."]
+  - [92, SPEAKER_00, "Yes, someone should look at that before December. Not sure who yet."]
+  - [97, SPEAKER_01, "I'll send you the updated spending report by end of day tomorrow so you have the numbers for finance."]
+  - [104, SPEAKER_00, "Great, thanks Daniel. That's it for today."]
+expected:
+  decisions:
+    - id: staging-weekend-shutdown
+      any: [["staging"], ["weekend"]]
+  actions:
+    - id: ask-platform
+      owner: Grace Mensah
+      any: [["platform"]]
+    - id: spending-report
+      owner: Daniel Ortiz
+      any: [["report", "spending"]]
+    - id: monitoring-contract
+      owner: null
+      any: [["monitoring", "contract"]]
+    - id: schedule-shutdown
+      owner: null
+      any: [["schedule", "shut", "shutdown"]]
+      optional: true
+  open_questions:
+    - id: conference
+      any: [["conference", "summit"]]

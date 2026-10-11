@@ -30,16 +30,18 @@ most urgent one. No bullet points.
 
 <!-- mm3:prompt:action-items -->
 List every task, grouped by owner (people in the order they first appear, **Unassigned** last).
-One checkbox per task. Include the deadline exactly as said; add the calendar date in brackets
-only if it is unambiguous from the meeting date. Add a short note if the task depends on another
-task or person.
+One checkbox per task. Add a short note if the task depends on another task or person.
 
 Structure:
-- [ ] **<Owner>:** <task, starting with a verb> (due: <deadline as stated, or "not stated">) [mm:ss]
+- [ ] **<Owner>:** <task, starting with a verb> (due: <deadline as said, or "not stated">) [mm:ss]
 - [ ] **<Owner>:** <task> (due: <...>; depends on <...>) [mm:ss]
+- [ ] **Unassigned:** <task the group said should be done but nobody took on> (due: <...>) [mm:ss]
 
-Use **Unassigned:** when the transcript does not make the owner clear. If there are no tasks,
-write exactly: No action items were agreed.
+The owner is the person who said they will do the task ("I'll...", "I can...") or who was asked
+and agreed. Raising an issue or saying "we should..." does not make someone the owner, and
+neither does reporting on work that someone else (another team, a vendor) is doing: list such
+tasks as **Unassigned:**. Give deadlines exactly as said ("Friday", "end of Q3"), not as dates.
+If there are no tasks, write exactly: No action items were agreed.
 
 <!-- mm3:prompt:blockers -->
 List what is blocking or could delay the tasks: missing information, waiting on another person or
@@ -53,6 +55,7 @@ If none were mentioned, write exactly: No blockers were mentioned.
 
 <!-- mm3:prompt:decisions -->
 List the decisions that the tasks are based on, one short bullet each, with who made them.
+Do not repeat the tasks themselves.
 
 Structure:
 - <Decision> (<Name>) [mm:ss]

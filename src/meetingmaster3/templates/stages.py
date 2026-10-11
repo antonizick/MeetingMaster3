@@ -287,6 +287,7 @@ class GenerateStage(BaseStage):
             consent_remembered=bool(cfg and cfg.consent_remembered),
             max_context=settings.generation.max_context,
             instructions=options.instructions,
+            think=settings.generation.think,
             today=self.today,
             progress=lambda f, m: ctx.progress(f, m),
             check_cancelled=ctx.check_cancelled,

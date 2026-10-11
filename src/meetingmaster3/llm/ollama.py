@@ -96,6 +96,8 @@ class OllamaBackend:
         }
         if req.json_mode:
             body["format"] = "json"
+        if req.think is not None:
+            body["think"] = req.think
         return body
 
     def _num_ctx(self, req: GenerateRequest, configured: Any) -> int:

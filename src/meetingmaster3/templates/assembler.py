@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import datetime as dt
 import math
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -24,8 +25,11 @@ You are MeetingMaster3, a meticulous chief of staff who writes meeting notes fro
 Rules that always apply:
 1. Use only what is in the transcript (or the meeting notes you are given). Never invent people, \
 owners, dates, numbers, decisions or quotes. If something was not said, leave it out or say so.
-2. Owners: name a person only when the transcript makes it clear they will do the task. \
-Otherwise write "Unassigned". Deadlines: give them as stated; otherwise write "not stated".
+2. Owners: the owner of a task is the person who said they will do it ("I'll...", "I can...") \
+or who was asked and agreed. Someone who only raised an issue, suggested it ("we should...", \
+"someone should...") or reported on other people's work is not the owner: write "Unassigned". \
+Deadlines: give them exactly as said ("Friday", "end of Q3") or write "not stated"; do not \
+convert them into calendar dates.
 3. Attribute statements, proposals and commitments to the person who made them, using the \
 speaker names exactly as given. "Speaker 1", "Speaker 2" and "Speaker" are unnamed people: keep \
 those labels and never guess a real name for them.
@@ -133,8 +137,8 @@ def meeting_block(facts: MeetingFacts, today: dt.date) -> str:
     if facts.language and facts.language != "en":
         lines.append(f"- Spoken language: {facts.language}")
     lines.append(
-        f'- Today\'s date: {_date_text(today)}. Resolve relative deadlines ("Friday", "next '
-        "week\") against the meeting date, not today's date."
+        f'- Today\'s date: {_date_text(today)}. Relative deadlines ("Friday", "next week") '
+        "refer to the meeting date, not to today."
     )
     return "\n".join(lines)
 
@@ -170,6 +174,31 @@ def section_instructions(template: Template, section: TemplateSection) -> str:
     )
 
 
+_SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
+_TASK_CUE_RE = re.compile(
+    r"\b(i'll|i will|i'm going to|i am going to|i can (?:do|take|have|send|look)|"
+    r"we'll|we will|can you|could you|would you|will you|please|"
+    r"we should|we need to|someone should|somebody should|needs? to|has to|have to|"
+    r"let's make sure|action item|follow up|take (?:it|that) offline)\b",
+    re.I,
+)
+MAX_TASK_CUES = 60
+
+
+def task_cues(turns: Sequence[Turn], *, hours: bool = False) -> list[str]:
+    """Sentences that sound like commitments, requests or "we should" (heuristic, in order).
+
+    Given to the model as candidates for task sections: small models otherwise miss tasks in
+    long transcripts, and "we should" lines are the ones that become **Unassigned** tasks."""
+    out: list[str] = []
+    for t in turns:
+        for sentence in _SENTENCE_RE.split(t.text):
+            if _TASK_CUE_RE.search(sentence):
+                stamp = f"[{clock(t.start, hours=hours)}] " if t.start is not None else ""
+                out.append(f"{stamp}{t.speaker}: {sentence.strip()}")
+    return out[:MAX_TASK_CUES]
+
+
 def section_prompt(
     template: Template,
     section: TemplateSection,
@@ -178,12 +207,21 @@ def section_prompt(
     instructions: str | None = None,
     previous: str | None = None,
     feedback: str | None = None,
+    cues: Sequence[str] = (),
 ) -> str:
-    """The user message for one section."""
+    """The user message for one section. ``cues`` (task sections only) are candidate lines
+    from :func:`task_cues`."""
     parts = [
         context,
         f'Now write the section "{section.title}".\n\n{section_instructions(template, section)}',
     ]
+    if cues and section.format == "tasks":
+        parts.append(
+            "To help you, these transcript sentences sound like commitments, requests or "
+            '"we should". Check each one against the transcript: some are tasks (with an '
+            "owner, or Unassigned), some are not tasks at all. Tasks can also appear elsewhere."
+            "\n<candidates>\n" + "\n".join(cues) + "\n</candidates>"
+        )
     if instructions and instructions.strip():
         parts.append(f"Additional instructions from the user:\n{instructions.strip()}")
     if previous is not None:
