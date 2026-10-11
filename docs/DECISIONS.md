@@ -191,6 +191,15 @@ the engine adds a `NullHandler` and re-enables propagation before importing it.
 18 s including model loading. 31 min: transcribe 38 s, align 27 s, diarize 66 s (131 s, 14.3x). 72 min:
 74 s / 55 s / 154 s (283 s, 15.3x). Peak whole-card VRAM 3.6 GB with Ollama unloaded. Recorded as
 `measured` in `hardware/recommendations.yaml` (vram8: 14-16x).
+**Known vulnerabilities accepted (pip-audit, 2026-10-11).** The `ml` extra carries advisories in torch
+2.8.0 (fixed in 2.9-2.13, including CVE-2026-24747 in the `weights_only` unpickler), transformers 4.57.6
+(model-config and checkpoint deserialization, fixed in 5.x) and nltk 3.10.3 (no fix). They cannot be
+patched: WhisperX 3.8.6 (and 3.8.7rc1) require `torch~=2.8.0` and `huggingface-hub<1.0`, which excludes
+transformers 5.x. Exposure is limited because they need a malicious model or checkpoint file: the app
+only loads the pinned faster-whisper repositories (CTranslate2 format, no pickle), torchaudio's wav2vec2
+from download.pytorch.org, the WhisperX-bundled VAD weights, the user's cached pyannote snapshot and
+WhisperX's fixed per-language alignment repositories. CI's `pip-audit` covers the default install only.
+Revisit when WhisperX allows torch 2.10+ (Phase 15).
 **Status.** Accepted (2026-10-11, Phase 06).
 **Consequences.** Upgrading WhisperX or pyannote needs the GPU acceptance test re-run. Phase 07 can ask
 `DiarizationPipeline` for speaker embeddings (`return_embeddings=True`) or compute its own. Phase 10's

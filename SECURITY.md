@@ -82,6 +82,7 @@ header only (no form-field fallback).
 | No telemetry (S6) | `transcription/models.py` `disable_telemetry` | pyannote.audio 4 sends OpenTelemetry traces to `otel.pyannote.ai` by default. `PYANNOTE_METRICS_ENABLED=false`, `HF_HUB_DISABLE_TELEMETRY=1` and `DO_NOT_TRACK=1` are forced before any ML library loads. |
 | Minimal network use | `transcription/stages.py` | Cached whisper models load with `local_files_only`, and a cached diarization pipeline is loaded from its folder, so a job makes no network calls (verified with a socket audit hook). `transcription.offline` forbids downloads entirely. |
 | ML library logs | `transcription/engine.py` | WhisperX's own stdout handler is suppressed so its records go through the app's redaction filter; library INFO chatter is silenced (transcript text is not logged at INFO). |
+| Known dependency advisories | `ml` extra | torch 2.8.0, transformers 4.57.6 and nltk 3.10.3 have published advisories, mostly about loading malicious model or checkpoint files. They cannot be upgraded while WhisperX 3.8.6 pins torch 2.8 and huggingface-hub below 1.0 (ADR-0014). The app loads model files only from fixed, well-known sources. Do not point `transcription.model` at untrusted repositories or folders. Tracked for Phase 15. |
 | Job options | `jobs/models.py` | `transcription_model` and `language` are pattern-checked; `compute_type`, `batch_size` and `on_non_english` are enumerated or bounded. A model name may be a local folder path (single-user app; Phase 15 threat model). |
 
 ## Data the app stores and where
