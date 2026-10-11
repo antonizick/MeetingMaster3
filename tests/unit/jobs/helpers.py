@@ -82,6 +82,7 @@ class RecStage(BaseStage):
 
     def run(self, ctx: StageContext) -> Path:
         self.calls += 1
+        assert ctx.db is not None
         start = time.monotonic()
         self.entered.set()
         if self.block is not None:

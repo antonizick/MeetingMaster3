@@ -31,7 +31,14 @@ The full baseline is in [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) section
   state-changing requests, `SameSite=Strict` cookies, sanitised rendering and a strict CSP (all
   assets are vendored; no CDN).
 - **Filesystem.** Vault writes are confined to the configured vault root (no `..` or symlink
-  escapes) and are atomic. Uploads are stored under app data with server-generated names.
+  escapes) and are atomic. Uploads are streamed straight into a per-job folder under app data
+  (`jobs/<uuid>/original.<ext>`, mode `0600`, folder `0700`) with a server-generated name; the client
+  filename only contributes an allowlisted extension and a display name. Job ids are validated UUIDs
+  and job folders must resolve inside the jobs folder.
+- **Untrusted media.** Uploads are size-limited while streaming (`audio.max_upload_mb`), probed with
+  `ffprobe` and rejected unless they contain audio. ffmpeg/ffprobe run without a shell, from an
+  argument list with `--` before the path, `-nostdin` and a timeout. ffmpeg's parsers remain attack
+  surface (Phase 15 threat model).
 - **Secrets.** API keys and the Hugging Face token come from environment variables or a `0600`
   config file; they are never logged, never returned unmasked, never written to the vault.
 - **Cloud egress consent.** Cloud LLM backends are clearly badged and need explicit confirmation on
@@ -63,6 +70,8 @@ header only (no form-field fallback).
 | Atomic writes | `vault/io.py` `atomic_write_text` | Temp file in the same folder, fsync, atomic move, folder fsync; the temp file is removed on success and failure. The confinement check is repeated at write time. |
 | No silent overwrite | `vault/io.py`, `vault/naming.py` | Existing files are replaced only with an explicit `overwrite=True`; new names get ` (2)`, ` (3)`; the no-overwrite move uses a hard link so a concurrently created file is not clobbered. |
 | Filename safety | `vault/naming.py` `sanitize_title` | R13 characters, control characters and bidi-override/zero-width characters are removed; length is capped at 150 UTF-8 bytes. |
+| Hostile upload names and paths | `audio/ingest.py`, `jobs/files.py` | Server-chosen file names, extension allowlist, UUID job ids, symlink-escape checks for job folders and artifacts. |
+| Oversized or malformed media | `web/api/jobs.py`, `audio/ingest.py` | Streaming size limit (413), ffprobe validation (422), subprocess timeouts, partial files removed. |
 | Hostile transcript text | `markdown/transcript_format.py` | The hidden data block is ASCII JSON with `<` and `>` escaped, so spoken text cannot close the HTML comment; section content containing marker-like lines is refused. |
 
 ## Data the app stores and where
@@ -71,8 +80,8 @@ _To be completed as phases land. Final version in Phase 15._
 | Data | Location | Added in | Leaves the machine? |
 |---|---|---|---|
 | Notes and companion transcripts | Your Obsidian vault | Phase 03/09 | Only if your vault syncs |
-| Job audio and stage artifacts | `$XDG_DATA_HOME/meetingmaster3/jobs/` | Phase 04 | No |
-| Job state, feedback, voiceprints | `$XDG_DATA_HOME/meetingmaster3/mm3.db` | Phase 04/07 | No |
+| Job audio and stage artifacts | `$XDG_DATA_HOME/meetingmaster3/jobs/<job-id>/` (folders `0700`): upload and 16 kHz WAV while processing, then Opus only, pruned after `privacy.audio_retention_days` (90) unless pinned | Phase 04 (done) | No |
+| Job state, feedback, voiceprints | `$XDG_DATA_HOME/meetingmaster3/mm3.db` (mode `0600`) | Phase 04 (done)/07 | No |
 | Config and secrets | `$XDG_CONFIG_HOME/meetingmaster3/config.yaml` (mode `0600`, directory `0700`) | Phase 02 (done) | No |
 | Model weights | `$XDG_CACHE_HOME/meetingmaster3/models` | Phase 06 | Downloaded in, never out |
 | Transcript text sent to an LLM | Selected backend | Phase 08 | **Only for a cloud backend you confirmed** |

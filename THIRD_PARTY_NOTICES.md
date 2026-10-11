@@ -75,6 +75,10 @@ Development only (not distributed): `respx` (BSD-3-Clause), used to mock httpx i
 | HTMX | tbd | BSD-2-Clause | Browser-side server interaction | Y (vendored in `static/vendor/`) | planned |
 | Alpine.js | tbd | MIT | Browser-side local state | Y (vendored in `static/vendor/`) | planned |
 
+**ffmpeg and ffprobe** (LGPL-2.1+ or GPL-2.0+, depending on the build) are required at runtime since
+Phase 04. MeetingMaster3 runs them as separate programs installed by the user (no linking, nothing
+bundled); the Opus encoder used for retained audio is libopus (BSD-3-Clause) inside the user's ffmpeg.
+
 Docker images (Phase 14) will additionally contain the base image, ffmpeg (LGPL/GPL depending on
 build) and NVIDIA CUDA runtime libraries under their own licences; those are listed here when the
 image is built.

@@ -45,8 +45,12 @@ variables in your shell or process manager (see `.env.example`).
 | `llm.backends.<name>.headers` | | `{}` | Extra HTTP headers, e.g. OpenRouter `HTTP-Referer` and `X-Title` (off by default; nothing identifying is sent unless you add it). |
 | `llm.backends.<name>.context_window` | | auto | Override when the server cannot report the model's context size (Bedrock never does). Unknown windows are treated as 8192 tokens. |
 | `llm.backends.<name>.consent_remembered` | | `false` | Remember cloud-egress consent for this backend (skips the per-job prompt). |
-| `privacy.audio_retention` | `MM3_PRIVACY__AUDIO_RETENTION` | `days` | `forever`, `days` or `delete_after_write` (ADR-0006). Enforced from Phase 04. |
-| `privacy.audio_retention_days` | `MM3_PRIVACY__AUDIO_RETENTION_DAYS` | `90` | Used when retention is `days`. |
+| `audio.max_upload_mb` | `MM3_AUDIO__MAX_UPLOAD_MB` | `2048` | Largest accepted upload, in MiB (R7). Larger uploads get HTTP 413 `E_UPLOAD_TOO_LARGE`. |
+| `audio.opus_bitrate_kbps` | `MM3_AUDIO__OPUS_BITRATE_KBPS` | `24` | Bitrate of the Opus copy kept after a note is written (6-128). |
+| `jobs.max_concurrent` | `MM3_JOBS__MAX_CONCURRENT` | `2` | Jobs processed at once (1-8). GPU stages never overlap regardless (R5); this lets one job's CPU work run beside another's GPU work. |
+| `jobs.prune_interval_hours` | `MM3_JOBS__PRUNE_INTERVAL_HOURS` | `24` | How often the audio retention pruner runs (it also runs at startup). |
+| `privacy.audio_retention` | `MM3_PRIVACY__AUDIO_RETENTION` | `days` | `forever`, `days` or `delete_after_write` (ADR-0006, ADR-0013). Applied by the pruner to every job using the **current** value. `delete_after_write` deletes the audio as soon as the note is written. |
+| `privacy.audio_retention_days` | `MM3_PRIVACY__AUDIO_RETENTION_DAYS` | `90` | With `days`: audio is deleted this many days after the note was written. With `days` or `delete_after_write`: audio of unfinished jobs (failed, cancelled, interrupted, waiting) is deleted this many days after the job last changed. Pinned meetings are never pruned. |
 | `privacy.voiceprints_enabled` | `MM3_PRIVACY__VOICEPRINTS_ENABLED` | `false` | Opt-in biometric store (Phase 07). |
 | `secrets.hf_token` | `MM3_SECRETS__HF_TOKEN` | unset | Hugging Face token for gated pyannote models. |
 | `secrets.openrouter_api_key` | `MM3_SECRETS__OPENROUTER_API_KEY` | unset | |
@@ -54,6 +58,12 @@ variables in your shell or process manager (see `.env.example`).
 | `secrets.aws_access_key_id` / `secrets.aws_secret_access_key` | `MM3_SECRETS__AWS_ACCESS_KEY_ID` / `MM3_SECRETS__AWS_SECRET_ACCESS_KEY` | unset | |
 
 Secrets are never printed or returned by the API unmasked, and are redacted from logs.
+
+## Development-only environment variables
+| Variable | Effect |
+|---|---|
+| `MM3_FAKE_PIPELINE=1` | Replace transcription, diarization, speaker suggestion and note generation with fakes that simulate progress and write sample results (no ML models or LLM needed; the vault is never written). For UI development and demos. |
+| `MM3_FAKE_STAGE_SECONDS` | Seconds each fake stage takes (default `2`). |
 
 ## Example `config.yaml`
 ```yaml
@@ -74,4 +84,6 @@ vault:
 privacy:
   audio_retention: days
   audio_retention_days: 90
+audio:
+  max_upload_mb: 2048
 ```

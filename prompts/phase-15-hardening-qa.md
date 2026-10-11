@@ -5,6 +5,8 @@
 ## Read first
 `CLAUDE.md`, `prompts/_shared-instructions.md`, all of `docs/SPECIFICATION.md` (especially §10, §13 and §15), `SECURITY.md`, `docs/PRIVACY.md`, `docs/ARCHITECTURE.md`, and every Phase Log entry, collecting all the open follow-ups.
 
+**Phase 04 notes for the threat model:** uploads are streamed with python-multipart's `MultipartParser` straight into the job folder; ffmpeg/ffprobe parse untrusted media (argument list, `--`, timeouts, no shell; consider resource limits and Docker seccomp); job folders are `0700`, uploads `0600`, but artifacts written via `atomic_write_text` are `0644` inside them; the SSE endpoint and `GET /api/jobs` are unauthenticated reads protected only by the localhost bind and Host allowlist (S1, S2). Stages run in threads, so a native call that ignores cancellation cannot be killed. Also measure a simulated 3-hour job's memory with the fake pipeline (`MM3_FAKE_PIPELINE=1`).
+
 ## Goal
 Turn a feature-complete MVP into a trustworthy one: a documented threat model, a security review with the findings fixed, a clean dependency and licence audit, end-to-end and regression coverage, **measured** performance on the 8 GB reference machine, and an accessibility pass.
 

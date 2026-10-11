@@ -32,6 +32,7 @@ async def test_happy_path_pauses_for_input_then_finishes(tmp_path: Path) -> None
         job_id = add_job(runner)
         await wait_status(runner, job_id, JobStatus.WAITING_FOR_INPUT)
         assert log.names() == ["ingest", "transcribe", "diarize"]
+        assert runner.stages.get(job_id, "ingest").detail == {"message": "Done"}
         desc = runner.describe(job_id)
         assert desc["waiting_for"]["kind"] == "speaker_confirmation"
         assert stage_statuses(runner, job_id)["await_speaker_confirmation"] is StageStatus.WAITING

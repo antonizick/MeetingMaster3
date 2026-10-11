@@ -551,6 +551,7 @@ class JobRunner:
                 attempt=attempt,
                 token=token,
                 _progress=report,
+                db=self.db,
             )
             try:
                 result = await loop.run_in_executor(self._executor, stage.run, ctx)

@@ -5,12 +5,13 @@
 [![CI](https://img.shields.io/badge/CI-pending-lightgrey)](#status)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-> ⚠️ **Pre-alpha, under construction.** Only the application skeleton runs so far (a placeholder home
-> page and a health check). Transcription, notes and the real UI arrive in the phases listed in the
+> ⚠️ **Pre-alpha, under construction.** The backend foundations run (configuration, hardware
+> detection, LLM backends, the note format and the job API with upload, live progress, cancel and
+> resume), but real transcription, note generation and the UI arrive in the phases listed in the
 > [plan](IMPLEMENTATION_PLAN.md).
 
 ## Status
-Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Currently: Phase 02 done (Python scaffold, configuration, security middleware, CI).
+Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-05 and 08 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, LLM backends).
 The CI badge above is a placeholder until the repository is published (Phase 16).
 
 ## Planned features (MVP)
@@ -58,7 +59,10 @@ uv sync
 uv run pre-commit install   # optional, recommended for contributors
 uv run pytest
 ```
-ffmpeg is required from Phase 04 onward. Docker Compose arrives in Phase 14. Details:
+**ffmpeg is required** (`ffmpeg` and `ffprobe` on `PATH`; Arch: `sudo pacman -S ffmpeg`, Debian/Ubuntu:
+`sudo apt install ffmpeg`, macOS: `brew install ffmpeg`); `uv run mm3 doctor` checks it. To try the job
+flow without ML models, run `MM3_FAKE_PIPELINE=1 uv run mm3 serve` (see
+[`docs/dev-guide/jobs-and-stages.md`](docs/dev-guide/jobs-and-stages.md)). Docker Compose arrives in Phase 14. Details:
 [`docs/user-guide/installation.md`](docs/user-guide/installation.md) and
 [`docs/dev-guide/setup.md`](docs/dev-guide/setup.md).
 

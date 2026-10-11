@@ -37,11 +37,11 @@ src/meetingmaster3/
 Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, inside
 `transcription/` and `speakers/` only.
 
-## Implemented so far (Phases 02, 03, 05 and 08)
+## Implemented so far (Phases 02, 03, 04, 05 and 08)
 | Module | Responsibility |
 |---|---|
-| `app.py` | `create_app(settings)` factory. Middleware order (outermost first): TrustedHost, security headers, CSRF. |
-| `cli.py` | Typer CLI `mm3`: `serve`, `version`, `doctor`, `config path`, `config show`, `llm list`, `llm test`. |
+| `app.py` | `create_app(settings, paths)` factory. Middleware order (outermost first): TrustedHost, security headers, CSRF. The lifespan opens `mm3.db` and starts/stops the `JobRunner`. |
+| `cli.py` | Typer CLI `mm3`: `serve`, `version`, `doctor`, `config path`, `config show`, `llm list`, `llm test`, `jobs list`, `jobs prune [--dry-run]`. |
 | `config/paths.py` | XDG directories with `MM3_*_DIR` overrides; created `0700`. |
 | `config/settings.py` | Pydantic `Settings`. Precedence: defaults < `config.yaml` < `MM3_*` env. Atomic `0600` save. Secrets are `SecretStr`. |
 | `errors.py` | `MM3Error(code, message, hint)` and a JSON/HTML exception handler chosen by `Accept` (FastAPI imported lazily). |
@@ -54,6 +54,11 @@ Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, ins
 | `markdown/transcript_format.py` | Companion transcript render/parse, hidden JSON-lines data block, `rename_speakers`. |
 | `markdown/diff.py` | `unified_diff`, `side_by_side` rows, `diff_stats` (stdlib difflib). |
 | `vault/naming.py`, `paths.py`, `io.py`, `archive.py` | R13 names and collisions; vault root checks and confinement; atomic non-clobbering writes and exact reads; R12 archives. |
+| `storage/db.py`, `migrations.py`, `repositories.py` | One shared WAL SQLite connection; forward-only numbered migrations (`schema_version`); `JobRepository` (enforces the job state machine), `StageRepository`, `RecentMeetingsRepository`. See [`dev-guide/storage.md`](dev-guide/storage.md). |
+| `audio/ingest.py`, `audio/stage.py` | Streamed upload save with size limit, ffprobe validation, 16 kHz mono WAV normalisation, Opus re-encode; the `ingest` stage. |
+| `jobs/models.py`, `stage.py`, `pipeline.py` | Job/stage states and transitions, `JobOptions`, `ProgressEvent`; the `Stage` protocol, `StageContext`, `InputRequired`; the canonical meeting pipeline and `register_stage`. |
+| `jobs/runner.py`, `progress.py`, `retention.py`, `files.py`, `fakes.py` | `JobRunner` (dispatcher, GPU semaphore, resume, cancel, input pauses, retry hooks); `ProgressBus` with ETA; R8 retention and pruning; job folders and path confinement; fake stages (`MM3_FAKE_PIPELINE=1`). |
+| `web/api/jobs.py` | `/api/jobs` routes: streamed multipart upload, list, get, cancel, resume, input, delete, pin/unpin, audio (HTTP Range), SSE events. |
 | `logging.py` | Logging setup with a secret-redaction filter on the handler. |
 | `web/security.py` | Security-headers and CSRF middleware. |
 | `hardware/detect.py` | `HardwareInfo`: nvidia-smi, then torch.cuda (only if importable), then CPU/RAM from `/proc`. Cached; `get_hardware(refresh=True)` re-detects. |
@@ -82,4 +87,17 @@ file text ──parse_note──▶ ParsedNote { note: Note, frontmatter chunks,
 `domain` and `markdown` are pure (no I/O); `vault` does all filesystem work. The format is
 normative in [`dev-guide/note-format.md`](dev-guide/note-format.md).
 
-_To be expanded in Phases 04-15 (data flow, job state machine, sequence diagrams)._
+### Jobs (Phase 04)
+```
+browser/curl ──POST /api/jobs (multipart, streamed)──▶ <data>/jobs/<id>/original.<ext> ──ffprobe──▶ jobs row (queued)
+JobRunner (asyncio, in the app lifespan)
+  dispatcher ──▶ up to jobs.max_concurrent job tasks
+     each stage: [GPU semaphore if uses_gpu] ──▶ worker thread: stage.run(ctx) ──▶ artifact in job folder
+                 job_stages row updated ──▶ ProgressBus ──▶ GET /api/jobs/<id>/events (SSE)
+  InputRequired ──▶ waiting_for_input ──POST /input──▶ queued again
+  all stages done ──▶ audio re-encoded to Opus ──▶ written ──▶ pruner deletes it after retention
+```
+The job state machine, the Stage protocol, checkpoint artifacts and the SSE format are specified in
+[`dev-guide/jobs-and-stages.md`](dev-guide/jobs-and-stages.md); ADR-0013 records the design choices.
+
+_To be expanded in Phases 06-15 (transcription, generation and UI data flow, sequence diagrams)._

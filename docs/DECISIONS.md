@@ -16,6 +16,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0010 | 2026-10-11 | Companion transcript: readable turns plus one hidden JSON-lines data block at the end | Accepted | 03 |
 | ADR-0011 | 2026-10-11 | Line endings: preserve the file's own; LF for new files | Accepted | 03 |
 | ADR-0012 | 2026-10-11 | Note round-trip: verbatim user bytes, per-key frontmatter reuse, strict markers charged to the outer section, lenient properties | Accepted | 03 |
+| ADR-0013 | 2026-10-11 | Jobs: stdlib sqlite3 (WAL), thread-pool stages with a GPU semaphore held per GPU block, artifact checkpoints, generic input pauses, streamed uploads, retention by current setting incl. unfinished jobs | Accepted | 04 |
 
 ---
 
@@ -99,3 +100,30 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 7. **`MeetingMeta.date` is optional**, because a user may delete it; new notes always set it.
 
 **Consequences.** Hypothesis checks the properties at 500 examples each: identity both ways, byte-identity for user-edited files (inserted text, stray and broken markers, trailing whitespace, frontmatter comments, CRLF), byte preservation outside the replaced section, and pure insertion for appends. Frontmatter comments are lost only for keys that actually change. `errors.py` now imports FastAPI lazily so the pure layers do not depend on it.
+
+## ADR-0013: Job runner, storage and retention design
+**Context.** Phase 04 needs durable job state, checkpointed stages that survive restarts, one GPU job at a time on an 8 GB card, live progress, human-in-the-loop pauses, and the R8 audio retention policy, in a single-user app with no external services.
+**Options considered.**
+
+| Topic | Option | Pros | Cons |
+|---|---|---|---|
+| Database access | stdlib `sqlite3` | No dependency; full control of WAL, transactions and threads; tiny schema | Hand-written SQL and row mapping |
+| | SQLAlchemy Core | Portable schema DSL, Alembic later | A large dependency for three tables; another abstraction to learn |
+| Execution | Threads (`run_in_executor`) | Stages share the process (models stay loaded between GPU stages); simple progress callbacks | A stuck native call cannot be killed; cancellation is cooperative |
+| | Subprocess per stage | Hard kill, isolation from native crashes | Models reload per stage (slow, VRAM churn); IPC for progress |
+| | Celery/RQ | Mature queueing | Needs a broker; overkill for one user |
+| GPU lock scope | Per stage | Simplest | Another job can load models between `transcribe` and `diarize` and OOM an 8 GB card |
+| | Per contiguous run of GPU stages | No interleaving while models are resident | A long GPU block delays other jobs' GPU work (acceptable, it is serial anyway) |
+| Speaker confirmation | Dedicated `/speakers` route now | Matches Phase 07's eventual URL | Phase 06's language gate needs the same pause |
+| | Generic `InputRequired` + `POST /input` | One mechanism for every pause; stages validate their own answers | Phase 07 adds friendlier routes on top |
+
+**Decision.**
+1. **stdlib `sqlite3`**, one shared connection (lock-guarded, WAL), forward-only numbered migrations in code.
+2. **Stages run in a thread pool**; GPU stages are serialised by one `asyncio.Semaphore(1)` held across each contiguous run of GPU stages of a job. Cancellation is cooperative (`ctx.check_cancelled()`), and a server stop marks running jobs `interrupted`. Interrupted jobs are not auto-resumed at startup (a job that crashed the server would crash it again); queued jobs are.
+3. **Checkpoints** are artifact files in the job folder, recorded by name in `job_stages`; resume starts at the first stage that is not completed or whose artifact is missing. Stages must write artifacts atomically inside the job folder.
+4. **Pauses** use `InputRequired` and `POST /api/jobs/{id}/input`; the answer is saved as `input.<stage>.json` and the stage re-runs to consume it.
+5. **Uploads** are parsed with python-multipart's streaming `MultipartParser` and written straight to the job folder (mode `0600`), so the size limit is enforced while streaming and audio never sits in `/tmp` (Starlette's `request.form()` spools to a temp file first). The upload is probed before the job is created; a rejected upload leaves nothing behind.
+6. **Retention** keeps `privacy.audio_retention` as the Phase 02 enum (`forever` / `days` / `delete_after_write`) rather than the prompt's `null`/`0` encoding of `audio_retention_days`. The pruner applies the **current** setting to every written job from its `written_at` (so switching to *forever* also keeps older audio), records `audio_expires_at` for display, and also prunes the audio of unfinished jobs `audio_retention_days` after their last change (unless *forever*), so abandoned uploads do not stay forever. Pinned and active jobs are never pruned; only audio files are deleted.
+7. **Job ids** are UUIDv4 strings, validated before any path is built; `jobs.audio_path` and artifact paths are file names relative to the job folder, so the data folder can move (Docker volumes).
+
+**Consequences.** No new runtime dependencies. A native call that ignores cancellation keeps its thread until it returns (Phase 06 must check for cancellation between chunks). Phase 07 builds its `/speakers` routes on `JobRunner.submit_input`, and Phase 06 uses `should_retry` for OOM and `InputRequired` for the language gate. Unfinished jobs lose their audio after the retention period; the spec records this as R19.

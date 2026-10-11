@@ -290,14 +290,6 @@ class JobRepository:
         if cur.rowcount == 0:
             raise JobNotFound(job_id)
 
-    def audio_expired_before(self, now: dt.datetime) -> list[JobRecord]:
-        rows = self.db.fetchall(
-            "SELECT * FROM jobs WHERE audio_path IS NOT NULL AND audio_pinned = 0"
-            " AND audio_expires_at IS NOT NULL AND audio_expires_at <= ? ORDER BY audio_expires_at",
-            (iso(now),),
-        )
-        return [JobRecord.from_row(r) for r in rows]
-
 
 class StageRepository:
     def __init__(self, db: Database) -> None:

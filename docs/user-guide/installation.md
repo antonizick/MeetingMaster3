@@ -1,14 +1,17 @@
 # Installation (native, development)
 
-MeetingMaster3 is pre-alpha: today the app is a skeleton (home page and `/healthz`). Docker Compose
-arrives in Phase 14.
+MeetingMaster3 is pre-alpha: the web UI is a placeholder, but the job API works (upload, progress,
+cancel, resume). Without the ML extras, try it with `MM3_FAKE_PIPELINE=1 uv run mm3 serve`, which
+simulates transcription and note generation. Docker Compose arrives in Phase 14.
 
 ## Requirements
 - Linux (developed on Arch-based Omarchy).
 - [uv](https://docs.astral.sh/uv/). It downloads and manages Python 3.12 for you, so the system
   Python version does not matter. Install: `curl -LsSf https://astral.sh/uv/install.sh | sh`
   (installs to `~/.local/bin`, no sudo) or `sudo pacman -S uv`.
-- ffmpeg (needed from Phase 04 onward).
+- **ffmpeg** with `ffprobe` (required: uploads are probed and converted with it). Arch:
+  `sudo pacman -S ffmpeg`; Debian/Ubuntu: `sudo apt install ffmpeg`; macOS: `brew install ffmpeg`.
+  `uv run mm3 doctor` reports whether it is found.
 
 ## Install and run
 ```bash

@@ -8,10 +8,25 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Changed
+- `.gitignore`: the app-data `jobs/` rule is anchored to the repository root (`/jobs/`); it was also
+  hiding the `meetingmaster3.jobs` package.
+- CI installs ffmpeg so the audio ingest tests run.
 - `errors.py` imports FastAPI lazily, so the pure `domain`/`markdown`/`vault` layers can raise `MM3Error`
   without depending on the web stack.
 
 ### Added
+- Job orchestration and audio ingest (Phase 04): SQLite storage in WAL mode with forward-only migrations
+  (`jobs`, `job_stages`, `recent_meetings`); streamed multipart upload into a per-job folder with a size
+  limit, ffprobe validation and ffmpeg normalisation to 16 kHz mono WAV; a `Stage` protocol, the
+  canonical meeting pipeline and a stage registry; `JobRunner` with one global GPU semaphore, resume from
+  the first incomplete stage (R4), cooperative cancel, human-in-the-loop `waiting_for_input`, retry hooks
+  and startup recovery of interrupted jobs; `ProgressBus` with ETA estimates; `/api/jobs` (upload, list,
+  get, cancel, resume, input, delete, pin/unpin, audio with HTTP Range, SSE events with replay and
+  heartbeat); audio retention (R8): Opus re-encode at `written`, expiry, pinning, pruning at startup,
+  every 24 h and with `mm3 jobs prune [--dry-run]`; `mm3 jobs list`; fake stages behind
+  `MM3_FAKE_PIPELINE=1`; settings `audio.max_upload_mb`, `audio.opus_bitrate_kbps`,
+  `jobs.max_concurrent`, `jobs.prune_interval_hours`. Docs: `docs/dev-guide/jobs-and-stages.md`,
+  `docs/dev-guide/storage.md`. ADR-0013, spec R19.
 - Data model and Markdown round-trip (Phase 03): pydantic domain models (`Transcript`, `Segment`, `Word`,
   `SpeakerMap`, `MeetingMeta`, `Note` as ordered text/section blocks, `CompanionTranscript`); a strict
   section-marker scanner with structured `MarkerError`s and byte-preserving `replace_section` /

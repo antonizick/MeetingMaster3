@@ -20,6 +20,7 @@ from meetingmaster3.vault.io import atomic_write_text
 
 if TYPE_CHECKING:
     from meetingmaster3.config.settings import Settings
+    from meetingmaster3.storage.db import Database
     from meetingmaster3.storage.repositories import JobRecord
 
 
@@ -78,6 +79,7 @@ class StageContext:
     attempt: int
     token: CancelToken
     _progress: ProgressFn
+    db: Database | None = None  # app database, e.g. for RecentMeetingsRepository (Phase 09)
     log: logging.Logger = field(default_factory=lambda: logging.getLogger("meetingmaster3.jobs"))
 
     @property
