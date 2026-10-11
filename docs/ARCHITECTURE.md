@@ -37,14 +37,23 @@ src/meetingmaster3/
 Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, inside
 `transcription/` and `speakers/` only.
 
-## Implemented so far (Phases 02, 05 and 08)
+## Implemented so far (Phases 02, 03, 05 and 08)
 | Module | Responsibility |
 |---|---|
 | `app.py` | `create_app(settings)` factory. Middleware order (outermost first): TrustedHost, security headers, CSRF. |
 | `cli.py` | Typer CLI `mm3`: `serve`, `version`, `doctor`, `config path`, `config show`, `llm list`, `llm test`. |
 | `config/paths.py` | XDG directories with `MM3_*_DIR` overrides; created `0700`. |
 | `config/settings.py` | Pydantic `Settings`. Precedence: defaults < `config.yaml` < `MM3_*` env. Atomic `0600` save. Secrets are `SecretStr`. |
-| `errors.py` | `MM3Error(code, message, hint)` and a JSON/HTML exception handler chosen by `Accept`. |
+| `errors.py` | `MM3Error(code, message, hint)` and a JSON/HTML exception handler chosen by `Accept` (FastAPI imported lazily). |
+| `domain/transcript.py` | `Word`, `Segment`, `Transcript`, `SpeakerMap` (stable `Speaker N` placeholders, `apply`), `Turn`/`group_turns`, `CompanionTranscript`. Immutable pydantic models. |
+| `domain/meeting.py`, `domain/note.py` | `MeetingMeta` (frontmatter fields, normalised); `Note` = metadata + ordered `TextBlock`/`Section` blocks; marker grammar constants. |
+| `domain/filenames.py` | `parse_filename`: date, time and title from recorder file names. |
+| `markdown/sections.py` | Strict marker scanner (`scan_sections`, `MarkerError`), `replace_section`, `append_section`, `list_sections`; byte-preserving. |
+| `markdown/frontmatter.py` | Frontmatter split/parse; per-key raw chunks; MM3-style emitter with verified fallbacks. |
+| `markdown/note_parser.py`, `note_writer.py` | `parse_note` → `ParsedNote`; `build_note`, `render_note(note, base=)` (reuses unchanged bytes). |
+| `markdown/transcript_format.py` | Companion transcript render/parse, hidden JSON-lines data block, `rename_speakers`. |
+| `markdown/diff.py` | `unified_diff`, `side_by_side` rows, `diff_stats` (stdlib difflib). |
+| `vault/naming.py`, `paths.py`, `io.py`, `archive.py` | R13 names and collisions; vault root checks and confinement; atomic non-clobbering writes and exact reads; R12 archives. |
 | `logging.py` | Logging setup with a secret-redaction filter on the handler. |
 | `web/security.py` | Security-headers and CSRF middleware. |
 | `hardware/detect.py` | `HardwareInfo`: nvidia-smi, then torch.cuda (only if importable), then CPU/RAM from `/proc`. Cached; `get_hardware(refresh=True)` re-detects. |
@@ -63,4 +72,14 @@ Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, ins
 
 All other packages are empty placeholders with a docstring, filled in by later phases.
 
-_To be expanded in Phases 03-15 (data flow, job state machine, sequence diagrams)._
+### Note round-trip (Phase 03)
+```
+file text ──parse_note──▶ ParsedNote { note: Note, frontmatter chunks, raw sections, errors }
+                                 │ edit the Note (with_section / with_meta)
+                                 ▼
+               render_note(note, base=parsed) ──▶ text: unchanged bytes reused verbatim
+```
+`domain` and `markdown` are pure (no I/O); `vault` does all filesystem work. The format is
+normative in [`dev-guide/note-format.md`](dev-guide/note-format.md).
+
+_To be expanded in Phases 04-15 (data flow, job state machine, sequence diagrams)._

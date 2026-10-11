@@ -7,7 +7,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- `errors.py` imports FastAPI lazily, so the pure `domain`/`markdown`/`vault` layers can raise `MM3Error`
+  without depending on the web stack.
+
 ### Added
+- Data model and Markdown round-trip (Phase 03): pydantic domain models (`Transcript`, `Segment`, `Word`,
+  `SpeakerMap`, `MeetingMeta`, `Note` as ordered text/section blocks, `CompanionTranscript`); a strict
+  section-marker scanner with structured `MarkerError`s and byte-preserving `replace_section` /
+  `append_section`; raw-preserving YAML frontmatter (unknown properties, order and comments kept); note
+  writer/parser with the Appendix B header and AI Recommendations last; the companion transcript format
+  with a hidden lossless data block and in-place speaker renaming; vault naming (R13), path confinement,
+  atomic non-clobbering writes and R12 archives; unified and side-by-side section diffs; a recorder
+  filename parser. Normative format: `docs/dev-guide/note-format.md`. ADR-0010 to ADR-0012, spec R18.
+- Tests: Hypothesis round-trip properties (500 examples each), every R11 marker failure mode, path-escape
+  and atomic-write tests, golden note/transcript fixtures in `tests/fixtures/notes/`.
 - Hardware awareness (Phase 05): GPU/VRAM detection (nvidia-smi, torch.cuda if present, CPU fallback; no ML extras needed),
   hardware profiles `cpu`/`vram8`/`vram16`/`vram24plus` with a `hardware.profile` override, data-driven transcription
   and local-LLM recommendations (`recommendations.yaml`, marked estimated vs measured), ETA estimates, risk warnings,

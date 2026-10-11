@@ -55,6 +55,16 @@ Known limitations to revisit in Phase 15: the CSP will need adjusting for Alpine
 standard build needs `'unsafe-eval'`, so the CSP-safe build is preferred), and CSRF currently accepts the
 header only (no form-field fallback).
 
+### Implemented in Phase 03 (vault filesystem, S4)
+| Control | Where | Behaviour |
+|---|---|---|
+| Vault root check | `vault/paths.py` `resolve_vault_root` | Must exist, be a folder and be writable; otherwise a blocking error with remediation. |
+| Path confinement | `vault/paths.py` `confine`, `ensure_folder` | Targets are resolved with symlinks followed and must stay inside the vault root. Absolute paths, `~`, NUL bytes, `..` escapes and symlinks leaving the vault are refused (`vault_path_escape`). |
+| Atomic writes | `vault/io.py` `atomic_write_text` | Temp file in the same folder, fsync, atomic move, folder fsync; the temp file is removed on success and failure. The confinement check is repeated at write time. |
+| No silent overwrite | `vault/io.py`, `vault/naming.py` | Existing files are replaced only with an explicit `overwrite=True`; new names get ` (2)`, ` (3)`; the no-overwrite move uses a hard link so a concurrently created file is not clobbered. |
+| Filename safety | `vault/naming.py` `sanitize_title` | R13 characters, control characters and bidi-override/zero-width characters are removed; length is capped at 150 UTF-8 bytes. |
+| Hostile transcript text | `markdown/transcript_format.py` | The hidden data block is ASCII JSON with `<` and `>` escaped, so spoken text cannot close the HTML comment; section content containing marker-like lines is refused. |
+
 ## Data the app stores and where
 _To be completed as phases land. Final version in Phase 15._
 

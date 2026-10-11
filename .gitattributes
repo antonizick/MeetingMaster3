@@ -1,4 +1,6 @@
 * text=auto eol=lf
+# Round-trip fixtures must keep their exact bytes (including any CRLF).
+tests/fixtures/notes/** -text
 
 *.wav binary
 *.mp3 binary

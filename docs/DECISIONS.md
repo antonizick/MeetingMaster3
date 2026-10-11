@@ -13,6 +13,9 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0007 | 2026-10-11 | Config: PyYAML + pydantic-settings, `MM3_<SECTION>__<FIELD>` env names, header-only CSRF | Accepted | 02 |
 | ADR-0008 | 2026-10-11 | Process: phases are claimed by a status commit on `main` and run in per-phase worktrees | Accepted | process |
 | ADR-0009 | 2026-10-11 | LLM adapters: plain httpx for Ollama and OpenAI-compatible, boto3 for Bedrock; typed backend config; remote Ollama counts as cloud | Accepted | 08 |
+| ADR-0010 | 2026-10-11 | Companion transcript: readable turns plus one hidden JSON-lines data block at the end | Accepted | 03 |
+| ADR-0011 | 2026-10-11 | Line endings: preserve the file's own; LF for new files | Accepted | 03 |
+| ADR-0012 | 2026-10-11 | Note round-trip: verbatim user bytes, per-key frontmatter reuse, strict markers charged to the outer section, lenient properties | Accepted | 03 |
 
 ---
 
@@ -64,3 +67,35 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 **Options considered.** OpenAI-compatible: official `openai` SDK vs plain httpx. Ollama: `ollama` Python package vs plain httpx. Bedrock: boto3 vs raw signed HTTP. Backend config: free-form dicts vs a typed model.
 **Decision.** (1) **Plain httpx** for Ollama and OpenAI-compatible: httpx is already a runtime dependency, the surface used is four endpoints, SSE and NDJSON parsing is about 20 lines each, and it mocks cleanly with respx; the SDKs add dependencies and hide retry and logging behaviour we must control (no body logging, bounded retries). (2) **boto3** (`bedrock` extra, lazy import) for Bedrock: SigV4, the credential chain and the event-stream decoder are not worth re-implementing. Calls run in threads; a stream's worker thread is told to stop on cancellation. (3) **Typed `BackendConfig`** (pydantic, `SecretStr` api_key) replaces the Phase 02 placeholder `dict[str, dict]`, so masking, saving and validation are uniform. (4) **Locality** is derived from the URL host: loopback and `host.docker.internal` are local; anything else, including a LAN Ollama, is treated as cloud for consent. Bedrock is always cloud. (5) Kinds are `ollama`, `openai_compat`, `openrouter`, `openai`, `bedrock`; the last three OpenAI-style kinds are presets of one class. (6) Unknown context windows fall back to 8192 tokens (conservative) unless the config sets `context_window`. (7) The Ollama `num_ctx` is sized from the prompt (min 4096, capped at the model maximum), because Ollama's default silently truncates long prompts.
 **Consequences.** Adding a backend is one module plus a `register_kind` call. Bedrock cannot report context sizes, so cloud users should set `context_window`. Phase 05's `check_ollama` read `llm.backends` as raw dicts; whichever phase merges second must switch it to the registry (`llm.doctor.check_backends`).
+
+## ADR-0010: Companion transcript data embedding
+**Context.** Re-open and regeneration must recover segments, timings, labels and word timings from the vault alone (spec §9), while the companion stays pleasant to read in Obsidian. The Phase 03 prompt offered an HTML comment per turn or a data block at the end.
+**Options considered.**
+
+| Option | Pros | Cons |
+|---|---|---|
+| A. `<!-- mm3:seg ... -->` comment before each turn | Data sits next to its text; a turn's edits map to its segments | A merged turn has several segments, so each comment grows a list; word timings make every turn long; hundreds of comments clutter Live Preview and source mode |
+| B. One hidden data block at the end (JSON lines) | Readable part stays clean; words fit compactly; trivial and robust to parse; one segment per line diffs well | Data and text are far apart; edits to the readable text are not reflected in the data |
+| C. Sidecar `.json` file | Cleanest Markdown | A second file to sync and keep paired; breaks "the vault is self-contained Markdown" |
+
+**Decision.** B. The block is `<!-- mm3:transcript-data v1`, a JSON header line, one JSON object per segment, then `-->`. JSON is ASCII-only with `<` and `>` escaped, so transcript text can never close the comment. The data block is the source of truth; the readable turns are derived. If the user edits the readable text, `body_matches_data` turns false and their text is kept as written. Speaker renames rewrite only turn-heading names, matched by turn position, and refuse rather than guess when turns were restructured.
+**Consequences.** About 25 bytes per word: roughly 250 KB for a one-hour meeting with word timings. That is fine for Obsidian, but large; a later option could drop words for very long meetings. Edits to the readable text do not flow back into regeneration input (Phase 11 can surface `body_matches_data`). Format details: `docs/dev-guide/note-format.md` §6.
+
+## ADR-0011: Line-ending policy
+**Context.** Notes may arrive with CRLF (Windows editors, some sync tools) or mixed endings. The phase requires that content outside markers stays byte-identical, and that an unchanged file re-renders exactly.
+**Options considered.** (A) Normalise everything to LF on read. (B) Preserve: keep user bytes exactly and write MM3 content in the file's own style. (C) Always write CRLF on Windows-like files only.
+**Decision.** B. A file's style is its first line break; user text (including mixed endings) is stored verbatim; MM3-written content (sections, re-emitted properties) uses the file's style; new files are LF. Section *bodies* are normalised to LF in the domain model and converted on write. Lines are split on `\n` only, never `str.splitlines`, so Unicode separators are ordinary characters. Files are read with `newline=""`.
+**Consequences.** Byte-identity holds for any input (verified by Hypothesis with CRLF and mixed input). A mixed-ending file gets its new content in the style of its first line, which is acceptable.
+
+## ADR-0012: Note round-trip rules
+**Context.** The vault is the source of truth and users edit notes freely in Obsidian. MM3 must re-open, regenerate one section and save without disturbing anything else, and it must never guess around damaged markers (R11).
+**Decision.**
+1. **Document model.** A note is frontmatter metadata plus an ordered list of `TextBlock | Section`. Text blocks hold user bytes verbatim; sections are normalised. `parse_note` returns a `ParsedNote` that also keeps the raw bytes; `render_note(note, base=parsed)` reuses them for everything unchanged. Without `base`, rendering is canonical, and `parse(render(note)) == note`.
+2. **Frontmatter reuse per key.** Each top-level key's raw text (and any comment lines after it) is kept, located with PyYAML's composer and verified by re-parsing each chunk. Unchanged keys keep their bytes; the whole block is verbatim when nothing changed. Unchanged means the *domain* value is equal, so a user's `participants: Alice, Bob` stays as typed until the participants really change. Comment preservation needs no new dependency (no ruamel.yaml, in line with ADR-0007).
+3. **Strict markers, outer-section blame.** A section is valid only when its two markers are adjacent marker lines and unique. Nesting errors are charged to the outer section, so an unclosed section does not make every later section unusable, and the R11 "append a fresh section" path always produces a usable section.
+4. **Lenient properties.** Hand-edited properties are understood where the intent is clear and otherwise ignored with a warning; only a missing or invalid `mm3-id` stops parsing.
+5. **Wikilink targets** cannot contain `[`, `]` or `|` (domain validation), so a link can never be mis-read as an alias.
+6. **Markers inside code fences** are still markers (a simpler, predictable grammar); MM3 refuses to write content that contains marker-like lines.
+7. **`MeetingMeta.date` is optional**, because a user may delete it; new notes always set it.
+
+**Consequences.** Hypothesis checks the properties at 500 examples each: identity both ways, byte-identity for user-edited files (inserted text, stray and broken markers, trailing whitespace, frontmatter comments, CRLF), byte preservation outside the replaced section, and pure insertion for appends. Frontmatter comments are lost only for keys that actually change. `errors.py` now imports FastAPI lazily so the pure layers do not depend on it.

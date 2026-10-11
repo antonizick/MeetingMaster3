@@ -15,8 +15,10 @@ repos:
       - id: check-added-large-files
         args: [--maxkb=500]
       - id: end-of-file-fixer
+        exclude: ^tests/fixtures/notes/  # byte-exact round-trip fixtures
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
+        exclude: ^tests/fixtures/notes/
   - repo: local
     hooks:
       - id: mypy

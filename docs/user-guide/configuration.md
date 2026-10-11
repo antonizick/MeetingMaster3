@@ -29,7 +29,7 @@ variables in your shell or process manager (see `.env.example`).
 | `server.port` | `MM3_SERVER__PORT` | `8765` | 1-65535. |
 | `server.allowed_hosts` | `MM3_SERVER__ALLOWED_HOSTS` | `[]` | Extra `Host` header values accepted; `127.0.0.1` and `localhost` are always allowed. Anything else gets HTTP 400 (DNS-rebinding defence). |
 | `vault.path` | `MM3_VAULT__PATH` | unset | Your Obsidian vault root. |
-| `vault.output_subfolder` | `MM3_VAULT__OUTPUT_SUBFOLDER` | `Meetings/{yyyy}/` | Where notes are written inside the vault. |
+| `vault.output_subfolder` | `MM3_VAULT__OUTPUT_SUBFOLDER` | `Meetings/{yyyy}/` | Where notes are written inside the vault. Placeholders `{yyyy}`, `{mm}` and `{dd}` come from the meeting date; other `{...}` placeholders are an error. It must stay inside the vault (no `..`, absolute paths or symlinks leading out). Archives go to its `Archive/` subfolder. |
 | `vault.templates_subfolder` | `MM3_VAULT__TEMPLATES_SUBFOLDER` | `MeetingMaster3/templates/` | User templates inside the vault. |
 | `transcription.model` | `MM3_TRANSCRIPTION__MODEL` | `auto` | `auto` uses the hardware recommendation (Phase 05); wired into the pipeline in Phase 06. |
 | `transcription.diarize` | `MM3_TRANSCRIPTION__DIARIZE` | `true` | Placeholder until Phase 06. |

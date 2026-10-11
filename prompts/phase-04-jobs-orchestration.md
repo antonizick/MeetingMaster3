@@ -5,6 +5,8 @@
 ## Read first
 `CLAUDE.md`, `prompts/_shared-instructions.md`, and `docs/SPECIFICATION.md` §3 (flow step 4, job controls), §4, §10, §15.2 (R3–R5, R7, R8) and §15.3 (S4). Audio retention is decided (Q1, ADR-0006, spec R8): Opus re-encode at `written`, 90-day default, per-meeting pin.
 
+**Phase 03 interfaces you will use:** `meetingmaster3.domain.transcript.Transcript` (serialise artifacts with `model_dump_json()` / `Transcript.model_validate_json()`), `domain.filenames.parse_filename` for upload pre-fill, and `vault.io.atomic_write_text` for any atomic file write. Domain models are frozen pydantic models; `model_copy(update=...)` skips validation, so build new instances when values come from outside.
+
 ## Goal
 A robust background job system: an upload becomes a job, the job runs an ordered list of stages with live progress, survives restarts (resume from the last checkpoint), can be cancelled, and runs at most one GPU-heavy job at a time. Fake stages prove the machinery end to end before any ML exists.
 

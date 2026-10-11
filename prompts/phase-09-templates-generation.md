@@ -3,7 +3,9 @@
 **Model:** Opus 5.5 (`/model claude-opus-5-5`) · **Depends on:** 03, 07, 08 · **Branch:** `phase-09-templates-generation`
 
 ## Read first
-`CLAUDE.md`, `prompts/_shared-instructions.md`, and `docs/SPECIFICATION.md` §2, §3, §5, §6, §8, §9, §15.1 (A3), §15.2 (R6, R9–R11), §15.3 (S6), and Appendices A and B. Phase Log entries for 03, 07 and 08. Open question Q2 (companion transcript optional?).
+`CLAUDE.md`, `prompts/_shared-instructions.md`, and `docs/SPECIFICATION.md` §2, §3, §5, §6, §8, §9, §15.1 (A3), §15.2 (R6, R9–R11), §15.3 (S6), and Appendices A and B. Phase Log entries for 03, 07 and 08. Open question Q2 (companion transcript optional?). `docs/dev-guide/note-format.md` (normative format).
+
+**Phase 03 interfaces for the WriteStage:** `vault.paths.resolve_vault_root` and `output_folder(root, settings.vault.output_subfolder, date)`; `vault.naming.allocate_note_paths(folder, date, title)` (gives `.note`, `.transcript`, `.note_link`, `.transcript_link`); `markdown.note_writer.build_note(meta, sections, ...)` + `render_note(note)` (H1, Appendix B header and AI Recommendations ordering are handled there, so templates do not render the header); `markdown.transcript_format.build_companion(...)` + `render_transcript(doc)`; `vault.io.atomic_write_text(path, text, vault_root=root)` (never overwrites without `overwrite=True`). Set `MeetingMeta.transcript_ref = paths.transcript_link`, `generated_at` truncated to seconds. `Section(id, title, body_markdown)` rejects bodies containing `<!-- mm3:section` lines, so strip marker-like lines from LLM output before building sections. For regeneration, compare old and new bodies with `markdown.diff.unified_diff` / `side_by_side`.
 
 ## Goal
 The heart of the product. A transcript, a speaker map and a chosen template produce a **secretary-grade** Markdown note, written into the vault together with the companion transcript. The whole flow works headlessly (API + CLI) before any UI exists.
