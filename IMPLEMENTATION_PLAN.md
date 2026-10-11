@@ -1,7 +1,7 @@
 # MeetingMaster3: Implementation Plan
 
 **Spec:** [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) (v1.1). **Decisions:** [`docs/DECISIONS.md`](docs/DECISIONS.md). **Agent rules:** [`CLAUDE.md`](CLAUDE.md). **Shared phase instructions:** [`prompts/_shared-instructions.md`](prompts/_shared-instructions.md)
-**Last updated:** 2026-10-11 (Phase 00, planning)
+**Last updated:** 2026-10-11 (Phase 01 complete)
 
 > ⚠️ **Mandatory:** every agent that works on this project keeps this file accurate. Set your phase to `In progress` when you start. At the end, set it to `Complete` or `Blocked` and add a Phase Log entry. See `CLAUDE.md`.
 
@@ -22,7 +22,7 @@ Phases run in order. Phases whose dependencies are all complete may run in paral
 | Phase | Phase Name | Phase Purpose | AI Model to Use | Depends on | Status | Prompt to Initiate This Phase |
 |---|---|---|---|---|---|---|
 | 00 | Planning & spec refinement | Review the PrePlan, resolve decisions, write the spec v1.1, this plan and the phase prompts | Opus 5.5 | none | ✅ Complete | n/a (this session) |
-| 01 | Repository foundation & governance | Create a GitHub-ready repo: LICENSE, NOTICE, README, SECURITY, CONTRIBUTING, CoC, CHANGELOG, .gitignore, .github templates, docs skeleton | Sonnet 5.5 | 00 | ⬜ Not started | [phase-01-repo-foundation.md](prompts/phase-01-repo-foundation.md) |
+| 01 | Repository foundation & governance | Create a GitHub-ready repo: LICENSE, NOTICE, README, SECURITY, CONTRIBUTING, CoC, CHANGELOG, .gitignore, .github templates, docs skeleton | Sonnet 5.5 | 00 | ✅ Complete | [phase-01-repo-foundation.md](prompts/phase-01-repo-foundation.md) |
 | 02 | Python scaffold, config & CI | uv/Python 3.12 project, FastAPI app factory, `mm3` CLI, pydantic+YAML config, XDG paths, security middleware, lint/type/test CI | Sonnet 5.5 | 01 | ⬜ Not started | [phase-02-python-scaffold.md](prompts/phase-02-python-scaffold.md) |
 | 03 | Data model & Markdown round-trip | Domain models, note and companion-transcript writer/parser, section markers, frontmatter, naming, archive, vault path safety, diffs | Opus 5.5 | 02 | ⬜ Not started | [phase-03-data-model-markdown.md](prompts/phase-03-data-model-markdown.md) |
 | 04 | Job orchestration & audio ingest | SQLite storage, job queue (single GPU worker), stage pipeline, checkpoints and resume, cancel, SSE progress, upload and ffmpeg normalisation | Opus 5.5 | 03 | ⬜ Not started | [phase-04-jobs-orchestration.md](prompts/phase-04-jobs-orchestration.md) |
@@ -78,3 +78,9 @@ Newest entries at the bottom. Format: `### YYYY-MM-DD: Phase NN: <title> (<statu
 - Created `CLAUDE.md`, this plan, `prompts/_shared-instructions.md`, phase prompts 01–16 and the Obsidian project note.
 - `git init` (branch `main`); nothing committed yet.
 - Follow-up (same day): every owner question needed before Phase 16 is resolved. Q1 is audio retention: Opus for 90 days with pin (ADR-0006, spec R8). Added the `/phase` command and status icons. This project is the reference implementation of the `phased-project` skill (`~/.claude/skills/phased-project/`).
+
+### 2026-10-11: Phase 01: Repository foundation & governance (Complete)
+- Built on branch `phase-01-repo-foundation`: `LICENSE` (Apache-2.0), `NOTICE`, `THIRD_PARTY_NOTICES.md` (planned stack plus model-weights section), `README.md` (pre-alpha, placeholder sections with owning phases), `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), `CHANGELOG.md`, `.gitignore`, `.editorconfig`, `.gitattributes`, `.env.example`, `.github/` (bug and feature issue forms, config, PR template, Dependabot, `docs-check.yml` with SHA-pinned actions), `docs/ARCHITECTURE.md`, `docs/PRIVACY.md`, user and developer guide indexes.
+- Deviations: `main` had no commits, so the branch was created on the unborn `main` and its first commit holds the Phase 00 planning artifacts (`docs: add Phase 00 planning artifacts`). Copyright holder is written "Nick Antonizick" (the prompt said "Antoncic", which looks like a typo; matches git user and email). Dependabot docker directory is `/docker` (where Phase 14 puts the Dockerfile). No ADR needed.
+- Verification: `git check-ignore` confirms `x.wav` and `.env` ignored, `tests/fixtures/audio/sample.fixture.opus` and `.env.example` not. A script checked every relative Markdown link: 0 broken. `lychee` is not installed locally, so the `docs-check` workflow itself is untested until it runs on GitHub. No tests exist yet (no code).
+- Follow-ups: Phase 02 adds gitleaks and the Python CI and fills CONTRIBUTING dev setup. Phase 16 must replace `OWNER/REPO` in `.github/ISSUE_TEMPLATE/config.yml`, confirm the private security contact in `SECURITY.md` and `CODE_OF_CONDUCT.md` (no email was invented), and set the README badge URLs. `THIRD_PARTY_NOTICES.md` versions are "tbd" until pinned.

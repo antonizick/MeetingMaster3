@@ -1,0 +1,56 @@
+name: Bug report
+description: Something is broken or behaves unexpectedly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Do not attach private audio, transcripts, vault contents or tokens.**
+        Describe the problem or use a synthetic or Creative Commons clip instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: MeetingMaster3 version or commit
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How are you running it?
+      options: [Native (uv), Docker (GPU), Docker (CPU)]
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+    validations:
+      required: true
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Hardware profile
+      description: Output of `mm3 doctor` once available (GPU model, VRAM, RAM).
+  - type: dropdown
+    id: backend
+    attributes:
+      label: LLM backend
+      options: [Ollama, AWS Bedrock, OpenRouter, Other OpenAI-compatible, Not applicable]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Redact secrets and any transcript content.
+      render: shell

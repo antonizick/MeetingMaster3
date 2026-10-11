@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.python-version.local
+.venv/
+venv/
+.uv-cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+dist/
+build/
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+CLAUDE.local.md
+
+# Audio (never commit recordings) - short synthetic/CC fixtures are the exception
+*.wav
+*.mp3
+*.m4a
+*.flac
+*.ogg
+*.opus
+*.webm
+*.mp4
+*.aac
+!tests/fixtures/audio/*.fixture.*
+
+# Model caches and weights
+models/
+.cache/
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.gguf
+
+# Local app data
+data/
+jobs/
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Test output
+tests/**/_vault_out/
+
+# IDEs and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db

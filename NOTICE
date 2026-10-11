@@ -1,0 +1,8 @@
+MeetingMaster3
+Copyright 2026 Nick Antonizick and MeetingMaster3 contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+MeetingMaster3 builds on open-source software and uses, but never bundles,
+third-party model weights. See THIRD_PARTY_NOTICES.md for the component and
+model licence inventory.
