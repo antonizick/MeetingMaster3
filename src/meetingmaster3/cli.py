@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import typer
 import uvicorn
 
@@ -9,6 +11,9 @@ from meetingmaster3 import __version__
 from meetingmaster3.config.paths import resolve_paths
 from meetingmaster3.config.settings import load_settings
 from meetingmaster3.logging import configure_logging
+
+if TYPE_CHECKING:
+    from meetingmaster3.speakers.store import VoiceprintStore
 
 app = typer.Typer(help="MeetingMaster3: local-first meeting intelligence.", no_args_is_help=True)
 config_app = typer.Typer(help="Inspect configuration.", no_args_is_help=True)
@@ -19,6 +24,10 @@ jobs_app = typer.Typer(help="Inspect jobs and manage retained audio.", no_args_i
 app.add_typer(jobs_app, name="jobs")
 models_app = typer.Typer(help="Download and inspect transcription models.", no_args_is_help=True)
 app.add_typer(models_app, name="models")
+voiceprints_app = typer.Typer(
+    help="List or delete stored voices (opt-in speaker recognition).", no_args_is_help=True
+)
+app.add_typer(voiceprints_app, name="voiceprints")
 
 
 @app.command()
@@ -234,6 +243,73 @@ def jobs_prune(
         )
     total = sum(i.bytes for i in items) / 1_048_576
     typer.echo(f"{verb} audio of {len(items)} job(s), {total:.1f} MB.")
+
+
+def _voiceprint_store() -> VoiceprintStore:
+    from meetingmaster3.speakers.store import VoiceprintStore
+    from meetingmaster3.storage.db import Database
+
+    paths = resolve_paths()
+    paths.ensure()
+    settings = load_settings()
+    return VoiceprintStore(
+        Database.open(paths.database), enabled=settings.privacy.voiceprints_enabled
+    )
+
+
+@voiceprints_app.command("list")
+def voiceprints_list() -> None:
+    """List stored voices: name, id, samples and when last seen (never the voice data)."""
+    store = _voiceprint_store()
+    try:
+        people = store.list_people()
+        state = "on" if store.enabled else "off"
+        typer.echo(f"Voice recognition is {state}; {len(people)} stored voice(s).")
+        for p in people:
+            typer.echo(
+                f"{p.person_id}  {p.n_samples:>3} sample(s)  {p.total_seconds / 60:5.1f} min  "
+                f"last seen {p.updated_at[:10]}  {p.display_name}"
+            )
+    finally:
+        store.db.close()
+
+
+@voiceprints_app.command("delete")
+def voiceprints_delete(person_id: str = typer.Argument(..., help="Id from `list`.")) -> None:
+    """Delete one person's stored voice."""
+    from meetingmaster3.errors import MM3Error
+
+    store = _voiceprint_store()
+    try:
+        person = store.delete_person(person_id)
+    except MM3Error as exc:
+        typer.echo(f"{exc.message} {exc.hint}", err=True)
+        raise typer.Exit(1) from exc
+    finally:
+        store.db.close()
+    typer.echo(f"Deleted the stored voice of {person.display_name}.")
+
+
+@voiceprints_app.command("wipe")
+def voiceprints_wipe(
+    yes: bool = typer.Option(False, "--yes", help="Do not ask for confirmation."),
+) -> None:
+    """Delete every stored voice (cannot be undone)."""
+    store = _voiceprint_store()
+    try:
+        people = store.count_rows()["voiceprints"]
+        if not yes and not typer.confirm(
+            f"Delete every stored voice ({people} people)? This cannot be undone."
+        ):
+            typer.echo("Nothing deleted.")
+            raise typer.Exit(1)
+        counts = store.wipe()
+    finally:
+        store.db.close()
+    typer.echo(
+        f"Deleted {counts['voiceprints']} stored voice(s) and "
+        f"{counts['voiceprint_embeddings']} sample(s)."
+    )
 
 
 def _recommended_whisper() -> str:

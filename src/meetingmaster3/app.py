@@ -15,6 +15,7 @@ from meetingmaster3.config.settings import Settings, load_settings
 from meetingmaster3.errors import install_error_handlers
 from meetingmaster3.llm.registry import BackendRegistry
 from meetingmaster3.web.api.jobs import router as jobs_router
+from meetingmaster3.web.api.speakers import speakers_router, voiceprints_router
 from meetingmaster3.web.hardware import router as hardware_router
 from meetingmaster3.web.llm import router as llm_router
 from meetingmaster3.web.routes import WEB_DIR, router
@@ -58,6 +59,8 @@ def create_app(settings: Settings | None = None, paths: AppPaths | None = None) 
     app.include_router(hardware_router)
     app.include_router(llm_router)
     app.include_router(jobs_router)
+    app.include_router(speakers_router)
+    app.include_router(voiceprints_router)
 
     # Added innermost-first: TrustedHost runs first, then headers, then CSRF.
     app.add_middleware(CSRFMiddleware, trusted_hosts=settings.trusted_hosts)
