@@ -66,6 +66,14 @@ flow without ML models, run `MM3_FAKE_PIPELINE=1 uv run mm3 serve` (see
 [`docs/user-guide/installation.md`](docs/user-guide/installation.md) and
 [`docs/dev-guide/setup.md`](docs/dev-guide/setup.md).
 
+**Transcription engine (optional extra).** Real transcription and speaker diarization need
+`uv sync --extra ml` (WhisperX, PyTorch, pyannote.audio; about 6 GB), an NVIDIA GPU with a CUDA 12.8
+capable driver (570+; no CUDA toolkit install needed) or patience on the CPU, and about 2 GB more
+for the default models. Speaker diarization uses a gated model: accept its terms at
+<https://huggingface.co/pyannote/speaker-diarization-community-1>, set a Hugging Face read token
+(`secrets.hf_token`), then run `uv run mm3 models download`. After that everything runs offline.
+Guide: [`docs/user-guide/transcription.md`](docs/user-guide/transcription.md).
+
 ## Configuration
 Settings come from `config.yaml`, overridden by `MM3_*` environment variables. Run `uv run mm3 config path`
 to see where files live. Every setting is documented in
@@ -73,13 +81,14 @@ to see where files live. Every setting is documented in
 
 ## Hardware guidance
 MeetingMaster3 detects your GPU and recommends settings; run `uv run mm3 doctor` to see them for your
-machine. Values below are **estimates** from the specification, to be replaced by measured numbers
-(Phase 15). Details: [`docs/user-guide/hardware.md`](docs/user-guide/hardware.md).
+machine. The 8 GB row is **measured** on the reference laptop (RTX 2070 Max-Q); the others are
+**estimates** from the specification until Phase 15 measures them. Details:
+[`docs/user-guide/hardware.md`](docs/user-guide/hardware.md).
 
 | Profile | Whisper model | Diarization | Speed (x real time) | Local LLM (Ollama) |
 |---|---|---|---|---|
 | CPU only | small / medium, int8 | optional | 0.5-2 (estimated) | 3-4B, or a cloud backend |
-| 8 GB VRAM | large-v3-turbo, int8_float16 | yes | 15-30 (estimated) | 7-9B at Q4_K_M |
+| 8 GB VRAM | large-v3-turbo, int8_float16 | yes | 14-16 (measured: 60 min in about 4-5 min) | 7-9B at Q4_K_M |
 | 16 GB VRAM | large-v3, float16 | yes | 30-50 (estimated) | 12-14B at Q4_K_M |
 | 24 GB+ VRAM | large-v3, float16 | yes | 40-70 (estimated) | about 30B at Q4_K_M |
 

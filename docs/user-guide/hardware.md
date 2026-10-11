@@ -10,7 +10,8 @@ treated as CPU-only.
 uv run mm3 doctor
 ```
 Prints the detected hardware, the profile, the recommended settings, any warnings, and environment
-checks (ffmpeg and ffprobe, Python, ML extras, Hugging Face token, Ollama, vault, data directories).
+checks (ffmpeg and ffprobe, Python, the transcription engine and its downloaded models, Hugging
+Face token, Ollama, vault, data directories).
 It exits non-zero only for blocking problems (missing ffmpeg, wrong Python, an unwritable vault or
 data directory). The same data is available at `GET /api/hardware`; `POST /api/hardware/refresh`
 re-runs detection (for example after you close another GPU program).
@@ -22,13 +23,16 @@ report slightly less (an "8 GB" card shows 8192 MiB).
 | Profile | Total VRAM | Whisper model | Compute type | Batch | Diarization | Speed (x real time) |
 |---|---|---|---|---|---|---|
 | `cpu` | under about 7 GB or no GPU | small (or medium) | int8 | 4 | optional | 0.5-2 |
-| `vram8` | about 7-14 GB | large-v3-turbo (or medium, small) | int8_float16 | 8 | yes | 15-30 |
+| `vram8` | about 7-14 GB | large-v3-turbo (or medium, small) | int8_float16 | 8 | yes | 14-16 (measured) |
 | `vram16` | about 14-22 GB | large-v3 (or large-v3-turbo) | float16 | 16 | yes | 30-50 |
 | `vram24plus` | about 22 GB and up | large-v3 (or large-v3-turbo) | float16 | 24 | yes | 40-70 |
 
-All speeds are **estimates** from the specification until real measurements replace them (Phases 06
-and 15). They are targets, not promises: a laptop GPU such as the RTX 2070 Max-Q with diarization on
-may be slower. Estimated time for a meeting is `duration / speed`, shown as a range.
+The `vram8` speed was **measured** in Phase 06 on the reference laptop (RTX 2070 Max-Q 8 GB, whole
+transcribe + align + diarize pipeline, diarization on): 31 minutes of audio in 131 s and 72 minutes in
+283 s, so a 60-minute meeting takes about 4-5 minutes. Peak GPU memory was 3.6 GB. The other speeds
+are still **estimates** from the specification until Phase 15 measures them; they are targets, not
+promises. Estimated time for a meeting is `duration / speed`, shown as a range. More in
+[transcription.md](transcription.md).
 
 ### Overriding the profile
 Set `hardware.profile` in `config.yaml` (or `MM3_HARDWARE__PROFILE`) to `cpu`, `vram8`, `vram16` or

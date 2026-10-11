@@ -16,7 +16,9 @@ def isolated_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[No
     for var in ("MM3_CONFIG_DIR", "MM3_DATA_DIR", "MM3_CACHE_DIR", "MM3_MODELS_DIR"):
         monkeypatch.delenv(var, raising=False)
     # transcription.models.configure_model_cache() sets these; monkeypatch restores them.
-    for var in ("HF_HOME", "TORCH_HOME", "HF_HUB_OFFLINE", "HF_TOKEN", "MM3_SECRETS__HF_TOKEN"):
+    model_env = ("HF_HOME", "TORCH_HOME", "HF_HUB_OFFLINE", "HF_TOKEN", "MM3_SECRETS__HF_TOKEN")
+    telemetry_env = ("PYANNOTE_METRICS_ENABLED", "HF_HUB_DISABLE_TELEMETRY", "DO_NOT_TRACK")
+    for var in model_env + telemetry_env:
         monkeypatch.delenv(var, raising=False)
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "cfg"))
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))

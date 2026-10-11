@@ -1,7 +1,7 @@
 # Installation (native, development)
 
 MeetingMaster3 is pre-alpha: the web UI is a placeholder, but the job API works (upload, progress,
-cancel, resume). Without the ML extras, try it with `MM3_FAKE_PIPELINE=1 uv run mm3 serve`, which
+cancel, resume) and, with the `ml` extra, transcribes and diarizes for real. Without it, try it with `MM3_FAKE_PIPELINE=1 uv run mm3 serve`, which
 simulates transcription and note generation. Docker Compose arrives in Phase 14.
 
 ## Requirements
@@ -25,6 +25,12 @@ Open `http://127.0.0.1:8765/`. `http://127.0.0.1:8765/healthz` returns `{"status
 The server binds to the loopback address only. Binding elsewhere (`--host 0.0.0.0`) prints a warning,
 because the app has no login: anyone who can reach the port can read your meetings. See
 [`../../SECURITY.md`](../../SECURITY.md).
+
+## Transcription engine (optional)
+Real transcription needs the `ml` extra: `uv sync --extra ml` (about 6 GB: WhisperX, PyTorch with
+its CUDA 12.8 libraries, pyannote.audio). An NVIDIA driver 570 or newer is enough; the CUDA toolkit
+is not needed. Then set up diarization and download the models as described in
+[transcription.md](transcription.md), and check with `uv run mm3 doctor`.
 
 ## Where files go
 `uv run mm3 config path` prints the config file and data, cache and model directories

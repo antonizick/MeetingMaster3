@@ -131,6 +131,7 @@ def test_quiet_libraries_keeps_whisperx_logs_in_the_app_logger(fake_ml: dict[str
     before = list(wx.handlers)
     try:
         engine_mod._import("whisperx")
+        assert __import__("os").environ["PYANNOTE_METRICS_ENABLED"] == "false"
         assert wx.propagate and wx.level == logging.WARNING
         assert any(isinstance(h, logging.NullHandler) for h in wx.handlers)
     finally:

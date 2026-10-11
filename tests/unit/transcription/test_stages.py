@@ -453,6 +453,49 @@ async def test_no_speech_produces_an_empty_transcript(tmp_path: Path) -> None:
     assert "load_aligner" not in engine.names() and "load_diarizer" not in engine.names()
 
 
+async def test_cached_whisper_model_loads_without_network(tmp_path: Path) -> None:
+    from meetingmaster3.config.paths import resolve_paths
+
+    snap = (
+        resolve_paths().models_dir
+        / "hub/models--mobiuslabsgmbh--faster-whisper-large-v3-turbo/snapshots/x"
+    )
+    snap.mkdir(parents=True)
+    (snap / "model.bin").write_bytes(b"x")
+    (snap / "config.json").write_text("{}")
+    engine = FakeEngine()
+    runner = runner_for(tmp_path, engine, token_settings())
+    await runner.start(prune=False)
+    try:
+        await wait_status(runner, add(runner), JobStatus.WRITTEN)
+    finally:
+        await runner.stop()
+    assert engine.kwargs("load_asr")[0]["local_only"] is True
+
+
+async def test_cached_diarization_model_loads_from_its_folder(tmp_path: Path) -> None:
+    from meetingmaster3.config.paths import resolve_paths
+
+    snap = (
+        resolve_paths().models_dir
+        / "hub/models--pyannote--speaker-diarization-community-1/snapshots/abc"
+    )
+    for f in ("config.yaml", "segmentation/pytorch_model.bin", "embedding/pytorch_model.bin",
+              "plda/plda.npz"):  # fmt: skip
+        (snap / f).parent.mkdir(parents=True, exist_ok=True)
+        (snap / f).write_bytes(b"x")
+    engine = FakeEngine()
+    runner = runner_for(tmp_path, engine, Settings())  # no token needed once cached
+    await runner.start(prune=False)
+    try:
+        job_id = add(runner)
+        await wait_status(runner, job_id, JobStatus.WRITTEN)
+    finally:
+        await runner.stop()
+    assert engine.kwargs("load_diarizer")[0]["model"] == str(snap)
+    assert final(runner, job_id).diarized
+
+
 async def test_cpu_device_uses_int8(tmp_path: Path, handoff_calls: list[Any]) -> None:
     engine = FakeEngine(cuda=False)
     runner = runner_for(tmp_path, engine, token_settings())

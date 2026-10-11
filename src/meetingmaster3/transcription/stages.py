@@ -230,7 +230,10 @@ class TranscribeStage(TranscriptionStage):
                 device=plan.device,
                 compute_type=plan.compute_type,
                 language=forced,
-                local_only=models.offline_mode(),
+                # A cached model loads without asking Hugging Face for updates, so model
+                # downloads stay the only network calls (no per-job lookup).
+                local_only=models.offline_mode()
+                or models.whisper_cached(resolve_paths().models_dir, plan.model),
             )
             ctx.check_cancelled()
             detected: tuple[str, float] | None = None
@@ -461,7 +464,8 @@ class DiarizeStage(TranscriptionStage):
     ) -> list[SpeakerTurn] | None:
         """Run pyannote. Returns ``None`` after recording a fallback warning in ``info``."""
         token = models.hf_token(ctx.settings)
-        if token is None and not models.diarization_cached(resolve_paths().models_dir, model_id):
+        snapshot = models.diarization_snapshot(resolve_paths().models_dir, model_id)
+        if token is None and snapshot is None:
             err = models.diarization_access_error(RuntimeError("no token"), token_present=False)
             return self.fallback(ctx, info, "skipped", err.message, err.hint)
         lo, hi = ctx.options.get("min_speakers"), ctx.options.get("max_speakers")
@@ -477,7 +481,9 @@ class DiarizeStage(TranscriptionStage):
         failure: MM3Error | None = None
         turns: list[SpeakerTurn] | None = None
         try:
-            diarizer = engine.load_diarizer(model_id, token=token, device=device)
+            diarizer = engine.load_diarizer(
+                str(snapshot) if snapshot else model_id, token=token, device=device
+            )
             ctx.check_cancelled()
             audio = engine.load_audio(ctx.artifacts["ingest"])
             turns = engine.diarize(

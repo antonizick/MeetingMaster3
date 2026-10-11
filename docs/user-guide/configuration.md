@@ -31,8 +31,16 @@ variables in your shell or process manager (see `.env.example`).
 | `vault.path` | `MM3_VAULT__PATH` | unset | Your Obsidian vault root. |
 | `vault.output_subfolder` | `MM3_VAULT__OUTPUT_SUBFOLDER` | `Meetings/{yyyy}/` | Where notes are written inside the vault. Placeholders `{yyyy}`, `{mm}` and `{dd}` come from the meeting date; other `{...}` placeholders are an error. It must stay inside the vault (no `..`, absolute paths or symlinks leading out). Archives go to its `Archive/` subfolder. |
 | `vault.templates_subfolder` | `MM3_VAULT__TEMPLATES_SUBFOLDER` | `MeetingMaster3/templates/` | User templates inside the vault. |
-| `transcription.model` | `MM3_TRANSCRIPTION__MODEL` | `auto` | `auto` uses the hardware recommendation (Phase 05); wired into the pipeline in Phase 06. |
-| `transcription.diarize` | `MM3_TRANSCRIPTION__DIARIZE` | `true` | Placeholder until Phase 06. |
+| `transcription.model` | `MM3_TRANSCRIPTION__MODEL` | `auto` | faster-whisper model (`large-v3-turbo`, `large-v3`, `medium`, `small`, a Hugging Face repo id or a local folder). `auto` uses the hardware recommendation. See [`transcription.md`](transcription.md). |
+| `transcription.compute_type` | `MM3_TRANSCRIPTION__COMPUTE_TYPE` | `auto` | `float16`, `int8_float16`, `int8` or `float32`; `auto` = recommendation. GPU-only types become `int8` on the CPU. |
+| `transcription.batch_size` | `MM3_TRANSCRIPTION__BATCH_SIZE` | unset | 1-64; unset = recommendation (8 on 8 GB). Halved automatically after an out-of-memory error. |
+| `transcription.device` | `MM3_TRANSCRIPTION__DEVICE` | `auto` | `auto` (CUDA if usable), `cuda` or `cpu`. |
+| `transcription.language` | `MM3_TRANSCRIPTION__LANGUAGE` | unset | Force a language code (`en`, `de`, ...) and skip detection. |
+| `transcription.on_non_english` | `MM3_TRANSCRIPTION__ON_NON_ENGLISH` | `ask` | `ask` pauses the job, `proceed` transcribes in the detected language with a warning, `abort` fails the job (`E_NOT_ENGLISH`). |
+| `transcription.diarize` | `MM3_TRANSCRIPTION__DIARIZE` | `true` | Speaker diarization. Off, or without the model, transcripts have no speaker labels. |
+| `transcription.diarization_model` | `MM3_TRANSCRIPTION__DIARIZATION_MODEL` | `pyannote/speaker-diarization-community-1` | The pyannote pipeline (gated; see [`transcription.md`](transcription.md)). |
+| `transcription.offline` | `MM3_TRANSCRIPTION__OFFLINE` | `false` | Never download models (sets `HF_HUB_OFFLINE=1`). Cached models are always loaded without network access anyway. |
+| `transcription.unload_ollama` | `MM3_TRANSCRIPTION__UNLOAD_OLLAMA` | `true` | Before GPU transcription, ask the job's LLM backend to unload its models if it is an Ollama on this machine (spec R5). |
 | `hardware.profile` | `MM3_HARDWARE__PROFILE` | `auto` | `auto`, `cpu`, `vram8`, `vram16` or `vram24plus`. Declares the hardware profile instead of detecting it; see [`hardware.md`](hardware.md). |
 | `llm.default_backend` | `MM3_LLM__DEFAULT_BACKEND` | `ollama` | Name of the backend used for notes. If no backend is configured under that name and it is `ollama`, a local Ollama at `http://127.0.0.1:11434` is used. |
 | `llm.backends.<name>` | `MM3_LLM__BACKENDS__<NAME>__<FIELD>` | none | One entry per backend; fields below. See [`llm-backends.md`](llm-backends.md). |
@@ -52,7 +60,7 @@ variables in your shell or process manager (see `.env.example`).
 | `privacy.audio_retention` | `MM3_PRIVACY__AUDIO_RETENTION` | `days` | `forever`, `days` or `delete_after_write` (ADR-0006, ADR-0013). Applied by the pruner to every job using the **current** value. `delete_after_write` deletes the audio as soon as the note is written. |
 | `privacy.audio_retention_days` | `MM3_PRIVACY__AUDIO_RETENTION_DAYS` | `90` | With `days`: audio is deleted this many days after the note was written. With `days` or `delete_after_write`: audio of unfinished jobs (failed, cancelled, interrupted, waiting) is deleted this many days after the job last changed. Pinned meetings are never pruned. |
 | `privacy.voiceprints_enabled` | `MM3_PRIVACY__VOICEPRINTS_ENABLED` | `false` | Opt-in biometric store (Phase 07). |
-| `secrets.hf_token` | `MM3_SECRETS__HF_TOKEN` | unset | Hugging Face token for gated pyannote models. |
+| `secrets.hf_token` | `MM3_SECRETS__HF_TOKEN` (or `HF_TOKEN`) | unset | Hugging Face read token, needed once to download the gated diarization model (`pyannote/speaker-diarization-community-1`). |
 | `secrets.openrouter_api_key` | `MM3_SECRETS__OPENROUTER_API_KEY` | unset | |
 | `secrets.openai_api_key` | `MM3_SECRETS__OPENAI_API_KEY` | unset | |
 | `secrets.aws_access_key_id` / `secrets.aws_secret_access_key` | `MM3_SECRETS__AWS_ACCESS_KEY_ID` / `MM3_SECRETS__AWS_SECRET_ACCESS_KEY` | unset | |
@@ -64,6 +72,14 @@ Secrets are never printed or returned by the API unmasked, and are redacted from
 |---|---|
 | `MM3_FAKE_PIPELINE=1` | Replace transcription, diarization, speaker suggestion and note generation with fakes that simulate progress and write sample results (no ML models or LLM needed; the vault is never written). For UI development and demos. |
 | `MM3_FAKE_STAGE_SECONDS` | Seconds each fake stage takes (default `2`). |
+| `MM3_MODELS_DIR` | Model cache folder (default `$XDG_CACHE_HOME/meetingmaster3/models`); `HF_HOME` and `TORCH_HOME` point here while the app runs. |
+| `HF_HUB_OFFLINE=1` | Same as `transcription.offline: true`. |
+| `MM3_PRIVATE_TEST_AUDIO` | A file or folder of real recordings for the `slow` GPU test (never committed). |
+
+## Per-job transcription options
+The upload's `options` JSON (and `POST /api/jobs/{id}/resume` `overrides`) accept
+`transcription_model`, `compute_type`, `batch_size`, `language`, `on_non_english`, `diarize`,
+`min_speakers` and `max_speakers`; they win over the settings above. `model` is the **LLM** model.
 
 ## Example `config.yaml`
 ```yaml
@@ -86,4 +102,9 @@ privacy:
   audio_retention_days: 90
 audio:
   max_upload_mb: 2048
+transcription:
+  model: auto             # or large-v3-turbo, medium, ...
+  on_non_english: ask
+secrets:
+  hf_token: hf_...        # once, for the gated diarization model
 ```

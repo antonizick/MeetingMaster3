@@ -91,6 +91,9 @@ def _quiet_libraries() -> None:
     if _quieted:
         return
     _quieted = True
+    from meetingmaster3.transcription.models import disable_telemetry
+
+    disable_telemetry()  # before pyannote is imported (spec S6)
     # whisperx's get_logger() installs its own stdout handler and stops propagation (bypassing
     # the app's redaction filter) unless the "whisperx" logger already has a handler.
     wx = logging.getLogger("whisperx")

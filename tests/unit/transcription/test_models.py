@@ -109,6 +109,9 @@ def test_configure_model_cache(tmp_path: Path) -> None:
     assert os.environ["HF_HOME"] == str(root)
     assert os.environ["TORCH_HOME"] == str(root / "torch")
     assert "HF_HUB_OFFLINE" not in os.environ and not models.offline_mode()
+    # no telemetry, ever (S6): pyannote.audio 4 reports to otel.pyannote.ai unless told not to
+    assert os.environ["PYANNOTE_METRICS_ENABLED"] == "false"
+    assert os.environ["HF_HUB_DISABLE_TELEMETRY"] == "1"
     assert root.stat().st_mode & 0o777 == 0o700
     configure_model_cache(root, offline=True)
     assert models.offline_mode()

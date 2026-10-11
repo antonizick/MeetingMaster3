@@ -42,6 +42,7 @@ try:
 except Exception:  # pragma: no cover - unreadable config
     REAL_SETTINGS = None
 PRIVATE_AUDIO = os.environ.get("MM3_PRIVATE_TEST_AUDIO", "")
+OFFLINE = os.environ.get("HF_HUB_OFFLINE", "")  # run with HF_HUB_OFFLINE=1 to test offline mode
 
 
 def require_engine() -> Settings:
@@ -72,6 +73,8 @@ async def transcribe_file(
 ) -> tuple[Transcript, float, float, JobRunner, str]:
     settings = require_engine()
     monkeypatch.setenv("MM3_MODELS_DIR", str(REAL_MODELS_DIR))
+    if OFFLINE:
+        monkeypatch.setenv("HF_HUB_OFFLINE", OFFLINE)
     runner = transcription_runner(tmp_path, settings)
     job_id = new_job_id()
     folder = job_dir(runner.jobs_root, job_id, create=True)

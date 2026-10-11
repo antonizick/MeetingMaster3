@@ -100,12 +100,27 @@ def configure_model_cache(models_dir: Path, *, offline: bool = False) -> None:
 
     ``HF_HUB_OFFLINE=1`` set by the user is always respected; ``offline=True`` (the
     ``transcription.offline`` setting) sets it."""
+    disable_telemetry()
     models_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     os.environ["HF_HOME"] = str(models_dir)
     os.environ["TORCH_HOME"] = str(models_dir / "torch")
-    os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
     if offline:
         os.environ["HF_HUB_OFFLINE"] = "1"
+
+
+TELEMETRY_OFF = {
+    # pyannote.audio 4 sends OpenTelemetry traces to otel.pyannote.ai by default (model and
+    # pipeline names, audio duration, speaker hints). It reads this variable at every report.
+    "PYANNOTE_METRICS_ENABLED": "false",
+    "HF_HUB_DISABLE_TELEMETRY": "1",
+    "DO_NOT_TRACK": "1",
+}
+
+
+def disable_telemetry() -> None:
+    """Turn off every library's usage reporting (spec S6: no telemetry, ever). Forced, not a
+    default: a user-level setting cannot turn it back on inside MeetingMaster3."""
+    os.environ.update(TELEMETRY_OFF)
 
 
 def offline_mode() -> bool:
@@ -129,11 +144,18 @@ def _repo_dir(models_dir: Path, repo_id: str) -> Path:
     return models_dir / "hub" / ("models--" + repo_id.replace("/", "--"))
 
 
-def _snapshot_has(models_dir: Path, repo_id: str, required: tuple[str, ...]) -> bool:
+def _complete_snapshot(models_dir: Path, repo_id: str, required: tuple[str, ...]) -> Path | None:
     snapshots = _repo_dir(models_dir, repo_id) / "snapshots"
     if not snapshots.is_dir():
-        return False
-    return any(all((snap / f).exists() for f in required) for snap in snapshots.iterdir())
+        return None
+    for snap in sorted(snapshots.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
+        if all((snap / f).exists() for f in required):
+            return snap
+    return None
+
+
+def _snapshot_has(models_dir: Path, repo_id: str, required: tuple[str, ...]) -> bool:
+    return _complete_snapshot(models_dir, repo_id, required) is not None
 
 
 def whisper_cached(models_dir: Path, model: str) -> bool:
@@ -146,17 +168,25 @@ def whisper_cached(models_dir: Path, model: str) -> bool:
     return _snapshot_has(models_dir, repo, ("model.bin", "config.json"))
 
 
-def diarization_cached(models_dir: Path, model: str = DIARIZATION_MODEL) -> bool:
+def _diarization_files(model: str) -> tuple[str, ...]:
     if model == DIARIZATION_MODEL:
-        required: tuple[str, ...] = (
+        return (
             "config.yaml",
             "segmentation/pytorch_model.bin",
             "embedding/pytorch_model.bin",
             "plda/plda.npz",
         )
-    else:
-        required = ("config.yaml",)
-    return _snapshot_has(models_dir, model, required)
+    return ("config.yaml",)
+
+
+def diarization_cached(models_dir: Path, model: str = DIARIZATION_MODEL) -> bool:
+    return _snapshot_has(models_dir, model, _diarization_files(model))
+
+
+def diarization_snapshot(models_dir: Path, model: str = DIARIZATION_MODEL) -> Path | None:
+    """The cached pipeline folder. pyannote loads it without contacting Hugging Face (from the
+    repo id it checks every file's metadata online, on every job)."""
+    return _complete_snapshot(models_dir, model, _diarization_files(model))
 
 
 def align_cached(models_dir: Path, language: str = "en") -> bool:
