@@ -87,7 +87,7 @@ def archive_note(vault_root: Path, note_path: Path, *, when: dt.datetime | None 
     text = read_text(note_path)
     folder = ensure_folder(vault_root, note_path.parent.relative_to(vault_root) / ARCHIVE_FOLDER)
     target = note_archive_path(folder.parent, _stem(note_path), when)
-    bom = "﻿" if text.startswith("﻿") else ""
+    bom = "\ufeff" if text.startswith("\ufeff") else ""
     fm, body = split_frontmatter(text.removeprefix(bom))
     added = {"mm3-archived": when, "mm3-archived-from": wikilink(_stem(note_path))}
     newline = detect_newline(text)

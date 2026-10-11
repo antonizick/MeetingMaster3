@@ -200,6 +200,19 @@ def _emit_mm3_style(key: str, value: Any, newline: str) -> str:
     return f"{k}: {scalar(value)}".rstrip() + newline
 
 
+def _flow(value: Any) -> str:
+    """JSON-like YAML flow syntax with every string double-quoted and escaped."""
+    if isinstance(value, dict):
+        return (
+            "{" + ", ".join(f"{_double_quoted(str(k))}: {_flow(v)}" for k, v in value.items()) + "}"
+        )
+    if isinstance(value, list):
+        return "[" + ", ".join(_flow(v) for v in value) + "]"
+    if isinstance(value, str):
+        return _double_quoted(value)
+    return scalar(value, flow=True)
+
+
 def emit_key(key: str, value: Any, newline: str = "\n") -> str:
     """Render one top-level property. Falls back to PyYAML for shapes MM3's emitter does not
     handle, and verifies the result parses back to the same value."""
@@ -210,6 +223,8 @@ def emit_key(key: str, value: Any, newline: str = "\n") -> str:
         {key: value}, allow_unicode=True, default_flow_style=False, sort_keys=False, width=1000
     )
     candidates.append(dumped.replace("\n", newline))
+    with contextlib.suppress(TypeError):
+        candidates.append(f"{_double_quoted(key)}: {_flow(value)}{newline}")
     for text in candidates:
         try:
             loaded = yaml.safe_load(text)

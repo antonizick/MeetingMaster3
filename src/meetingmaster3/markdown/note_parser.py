@@ -22,7 +22,7 @@ from meetingmaster3.errors import MM3Error
 from meetingmaster3.markdown.frontmatter import ParsedFrontmatter, parse_wikilink, split_frontmatter
 from meetingmaster3.markdown.sections import MarkerError, detect_newline, parse_inner, scan_sections
 
-BOM = "﻿"
+BOM = "\ufeff"
 
 
 class NoteParseError(MM3Error):

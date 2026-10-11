@@ -160,13 +160,13 @@ def scan_sections(doc: str) -> SectionScan:
             seen_open[sid] += 1
             if seen_open[sid] > 1:
                 errors.append(MarkerError("duplicate", mk.line, f"'{sid}' opened again", (sid,)))
-            if stack:
+            if stack:  # charged to the outer section; the inner one may still be intact
                 errors.append(
                     MarkerError(
                         "misnested",
                         mk.line,
-                        f"'{sid}' opened inside '{stack[-1]}'",
-                        (sid, stack[-1]),
+                        f"'{sid}' opened before '{stack[-1]}' was closed",
+                        (stack[-1],),
                     )
                 )
             stack.append(sid)
@@ -211,6 +211,14 @@ def scan_sections(doc: str) -> SectionScan:
         and b.section_id == a.section_id
         and a.section_id not in broken
     ]
+    valid = {s.id for s in sections}
+    for mk in named:  # e.g. the inner id of interleaved sections: A, B, /A, /B
+        sid = mk.section_id
+        if sid is not None and sid not in valid and sid not in broken:
+            errors.append(
+                MarkerError("misnested", mk.line, f"'{sid}' overlaps another section", (sid,))
+            )
+            broken.add(sid)
     errors.sort(key=lambda e: e.line)
     return SectionScan(tuple(sections), tuple(errors), tuple(markers))
 

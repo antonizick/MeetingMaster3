@@ -177,6 +177,14 @@ class CompanionTranscript(DomainModel):
     def _title(cls, v: str) -> str:
         return clean_name(v) or "Untitled meeting"
 
+    @field_validator("note_ref")
+    @classmethod
+    def _note_ref(cls, v: str | None) -> str | None:
+        v = (clean_name(v) or None) if v is not None else None
+        if v is not None and any(c in v for c in "[]|"):
+            raise ValueError("a wikilink target cannot contain '[', ']' or '|'")
+        return v
+
     @field_validator("extra_properties")
     @classmethod
     def _extras(cls, v: dict[str, Any]) -> dict[str, Any]:

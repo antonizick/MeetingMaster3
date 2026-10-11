@@ -48,6 +48,13 @@ class MeetingMeta(DomainModel):
     def _optional_line(cls, v: str | None) -> str | None:
         return (clean_name(v) or None) if v is not None else None
 
+    @field_validator("audio_ref", "transcript_ref")
+    @classmethod
+    def _link_target(cls, v: str | None) -> str | None:
+        if v is not None and any(c in v for c in "[]|"):
+            raise ValueError("a wikilink target cannot contain '[', ']' or '|'")
+        return v
+
     @field_validator("participants")
     @classmethod
     def _participants(cls, v: list[str]) -> list[str]:
