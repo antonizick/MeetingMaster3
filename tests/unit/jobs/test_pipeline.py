@@ -35,7 +35,7 @@ def test_canonical_order_and_placeholders(monkeypatch: pytest.MonkeyPatch) -> No
     assert not fake_pipeline_enabled()
     p = build_pipeline("meeting", Settings())
     assert p.names == CANONICAL == [s[0] for s in MEETING_STAGES]
-    assert isinstance(p.stage("transcribe"), UnavailableStage)
+    assert isinstance(p.stage("speaker_suggest"), UnavailableStage)
     assert p.stage("transcribe").uses_gpu and not p.stage("generate").uses_gpu
     assert all(isinstance(s, Stage) for s in p.stages)
     with pytest.raises(KeyError):
@@ -54,6 +54,15 @@ def test_fake_pipeline_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert t.speaker_labels == ["SPEAKER_00", "SPEAKER_01"] and t.duration == 60
 
 
+@pytest.fixture
+def no_engine(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Behave as if the ``ml`` extra were not installed."""
+    from meetingmaster3.transcription import models
+
+    monkeypatch.setattr(models, "missing_engine_modules", lambda *a: ["torch"])
+
+
+@pytest.mark.usefixtures("no_engine")
 def test_register_stage_replaces_placeholder() -> None:
     class Real(BaseStage):
         name, uses_gpu = "transcribe", True
@@ -73,6 +82,7 @@ def test_register_stage_replaces_placeholder() -> None:
     )
 
 
+@pytest.mark.usefixtures("no_engine")
 async def test_unavailable_stage_fails_with_install_hint(tmp_path: Path) -> None:
     from meetingmaster3.jobs.pipeline import Pipeline
 

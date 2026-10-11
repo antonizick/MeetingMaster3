@@ -226,6 +226,11 @@ class JobRunner:
             (s["detail"].get("input") for s in stages if s["status"] == StageStatus.WAITING),
             None,
         )
+        out["warnings"] = [
+            {"stage": s["stage"], "message": w}
+            for s in stages
+            for w in s["detail"].get("warnings", [])
+        ]
         out["seq"] = self.bus.last_seq(job_id)
         return out
 
@@ -587,12 +592,17 @@ class JobRunner:
                     continue
                 self.bus.eta.stop(job_id, stage.name)
                 err = _error_fields(exc)
+                failed: dict[str, Any] = {"error": dict(err)}
+                if isinstance(exc, MM3Error) and exc.details:
+                    failed["error"]["details"] = exc.details
+                if ctx.warnings:
+                    failed["warnings"] = ctx.warnings
                 self.stages.update(
                     job_id,
                     stage.name,
                     status=StageStatus.FAILED,
                     finished_at=utcnow(),
-                    detail={"error": err},
+                    detail=failed,
                 )
                 self._publish_stage(
                     job_id, stage.name, StageStatus.FAILED, None, err["error_message"], error=err
@@ -624,9 +634,10 @@ class JobRunner:
                 status=StageStatus.COMPLETED,
                 finished_at=utcnow(),
                 artifact_path=artifact.name,
-                detail={"message": "Done"},
+                detail={"message": "Done", **({"warnings": ctx.warnings} if ctx.warnings else {})},
             )
-            self._publish_stage(job_id, stage.name, StageStatus.COMPLETED, 1.0, "Done")
+            extra: dict[str, Any] = {"warnings": ctx.warnings} if ctx.warnings else {}
+            self._publish_stage(job_id, stage.name, StageStatus.COMPLETED, 1.0, "Done", **extra)
             return artifact
 
     async def _should_retry(self, stage: Stage, ctx: StageContext, exc: Exception) -> bool:

@@ -15,6 +15,9 @@ from meetingmaster3.logging import clear_secrets
 def isolated_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     for var in ("MM3_CONFIG_DIR", "MM3_DATA_DIR", "MM3_CACHE_DIR", "MM3_MODELS_DIR"):
         monkeypatch.delenv(var, raising=False)
+    # transcription.models.configure_model_cache() sets these; monkeypatch restores them.
+    for var in ("HF_HOME", "TORCH_HOME", "HF_HUB_OFFLINE", "HF_TOKEN", "MM3_SECRETS__HF_TOKEN"):
+        monkeypatch.delenv(var, raising=False)
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "cfg"))
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))

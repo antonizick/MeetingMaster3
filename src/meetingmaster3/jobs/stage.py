@@ -81,6 +81,8 @@ class StageContext:
     _progress: ProgressFn
     db: Database | None = None  # app database, e.g. for RecentMeetingsRepository (Phase 09)
     log: logging.Logger = field(default_factory=lambda: logging.getLogger("meetingmaster3.jobs"))
+    warnings: list[str] = field(default_factory=list)
+    """User-visible warnings of this run (``warn``); kept in the stage's detail on completion."""
 
     @property
     def job_id(self) -> str:
@@ -100,6 +102,13 @@ class StageContext:
         if fraction is not None:
             fraction = min(1.0, max(0.0, float(fraction)))
         self._progress(fraction, message, eta_seconds)
+
+    def warn(self, message: str) -> None:
+        """Record a user-visible warning (e.g. "diarization skipped") without failing the stage.
+        It is reported as progress now and stays in the stage's ``detail.warnings``."""
+        self.warnings.append(message)
+        self.log.warning("Job %s, stage %s: %s", self.job_id, self.stage, message)
+        self._progress(None, message, None)
 
     def sleep(self, seconds: float) -> None:
         """Cancellable sleep (for fakes and polling loops)."""
@@ -196,16 +205,31 @@ class AwaitInputStage(BaseStage):
 class UnavailableStage(BaseStage):
     """Placeholder for a stage whose implementation is not installed or not built yet."""
 
-    def __init__(self, name: str, display_name: str, uses_gpu: bool = False) -> None:
+    DEFAULT_HINT = (
+        "Install the transcription engine with `uv sync --extra ml` (see the installation "
+        "guide), or start the server with MM3_FAKE_PIPELINE=1 to try the app with "
+        "simulated results."
+    )
+
+    def __init__(
+        self,
+        name: str,
+        display_name: str,
+        uses_gpu: bool = False,
+        *,
+        message: str | None = None,
+        hint: str | None = None,
+    ) -> None:
         self.name, self.display_name, self.uses_gpu = name, display_name, uses_gpu
+        self.message = message
+        self.hint = self.DEFAULT_HINT if hint is None else hint
         super().__init__()
 
     def run(self, ctx: StageContext) -> Path:
         raise MM3Error(
             "E_STAGE_UNAVAILABLE",
-            f"The {self.display_name.lower()} step is not available in this installation.",
-            "Install the transcription engine with `uv sync --extra ml` (see the installation "
-            "guide), or start the server with MM3_FAKE_PIPELINE=1 to try the app with "
-            "simulated results.",
+            self.message
+            or f"The {self.display_name.lower()} step is not available in this installation.",
+            self.hint,
             status_code=500,
         )

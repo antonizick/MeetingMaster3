@@ -35,11 +35,29 @@ class VaultSettings(BaseModel):
     templates_subfolder: str = "MeetingMaster3/templates/"
 
 
-class TranscriptionSettings(BaseModel):
-    """Placeholder; populated in Phase 06."""
+MODEL_NAME_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$"
+LANGUAGE_PATTERN = r"^[a-z]{2,3}$"
 
-    model: str = "auto"
+
+class TranscriptionSettings(BaseModel):
+    """WhisperX transcription, alignment and diarization (Phase 06). ``auto`` and ``None`` mean
+    "use the hardware recommendation" (``hardware/recommendations.yaml``)."""
+
+    model: str = Field(default="auto", pattern=MODEL_NAME_PATTERN)
+    compute_type: Literal["auto", "float16", "int8_float16", "int8", "float32"] = "auto"
+    batch_size: int | None = Field(default=None, ge=1, le=64)
+    device: Literal["auto", "cuda", "cpu"] = "auto"
+    language: str | None = Field(default=None, pattern=LANGUAGE_PATTERN)
+    """Force a language (ISO 639-1 code such as ``en``); ``None`` detects it."""
+    on_non_english: Literal["ask", "proceed", "abort"] = "ask"
     diarize: bool = True
+    diarization_model: str = Field(
+        default="pyannote/speaker-diarization-community-1", pattern=MODEL_NAME_PATTERN
+    )
+    offline: bool = False
+    """Never contact Hugging Face (sets ``HF_HUB_OFFLINE=1``); models must be downloaded."""
+    unload_ollama: bool = True
+    """Ask a local Ollama to unload its models before transcription starts (spec R5)."""
 
 
 class HardwareSettings(BaseModel):

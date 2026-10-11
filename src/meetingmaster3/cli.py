@@ -17,6 +17,8 @@ llm_app = typer.Typer(help="Inspect LLM backends.", no_args_is_help=True)
 app.add_typer(llm_app, name="llm")
 jobs_app = typer.Typer(help="Inspect jobs and manage retained audio.", no_args_is_help=True)
 app.add_typer(jobs_app, name="jobs")
+models_app = typer.Typer(help="Download and inspect transcription models.", no_args_is_help=True)
+app.add_typer(models_app, name="models")
 
 
 @app.command()
@@ -114,7 +116,10 @@ def doctor(
             typer.echo(f"  [{w.severity}] {w.message}")
 
     typer.secho("Environment", bold=True)
-    checks = run_checks(settings, resolve_paths())
+    whisper_model = (
+        t.model if settings.transcription.model == "auto" else settings.transcription.model
+    )
+    checks = run_checks(settings, resolve_paths(), whisper_model)
     marks = {"ok": ("OK  ", typer.colors.GREEN), "warn": ("WARN", typer.colors.YELLOW)}
     for c in checks:
         mark, color = marks.get(c.status, ("FAIL", typer.colors.RED))
@@ -229,6 +234,74 @@ def jobs_prune(
         )
     total = sum(i.bytes for i in items) / 1_048_576
     typer.echo(f"{verb} audio of {len(items)} job(s), {total:.1f} MB.")
+
+
+def _recommended_whisper() -> str:
+    from meetingmaster3.hardware.detect import get_hardware
+    from meetingmaster3.hardware.recommend import recommend
+
+    settings = load_settings()
+    if settings.transcription.model != "auto":
+        return settings.transcription.model
+    return recommend(get_hardware(), settings.hardware.profile).transcription.model
+
+
+@models_app.command("status")
+def models_status() -> None:
+    """Show which transcription models are in the local cache."""
+    from meetingmaster3.transcription.models import model_status
+
+    settings = load_settings()
+    paths = resolve_paths()
+    whisper = sorted({_recommended_whisper(), "large-v3-turbo", "medium", "small"})
+    typer.echo(f"Model cache: {paths.models_dir}")
+    for m in model_status(paths.models_dir, whisper, settings.transcription.diarization_model):
+        mark = "cached " if m.cached else "missing"
+        typer.echo(f"  [{mark}] {m.kind:<12} {m.name}{f'  ({m.note})' if m.note else ''}")
+
+
+@models_app.command("download")
+def models_download(
+    whisper: str | None = typer.Option(
+        None, "--whisper", help="faster-whisper model (default: the recommended one)."
+    ),
+    align: str = typer.Option("en", "--align", help="Alignment model language ('' to skip)."),
+    diarization: bool = typer.Option(
+        True, "--diarization/--no-diarization", help="Fetch the gated diarization model."
+    ),
+) -> None:
+    """Pre-fetch models so that transcription can run offline (HF_HUB_OFFLINE=1)."""
+    from meetingmaster3.errors import MM3Error
+    from meetingmaster3.transcription import models
+
+    missing = models.missing_engine_modules()
+    if missing:
+        typer.secho(f"Transcription engine not installed (missing: {', '.join(missing)}).",
+                    fg=typer.colors.RED, err=True)  # fmt: skip
+        typer.echo(models.INSTALL_HINT, err=True)
+        raise typer.Exit(1)
+    settings = load_settings()
+    paths = resolve_paths()
+    models.configure_model_cache(paths.models_dir, offline=False)
+    if models.offline_mode():
+        typer.secho("HF_HUB_OFFLINE is set; unset it to download.", fg=typer.colors.RED, err=True)
+        raise typer.Exit(1)
+    name = whisper or _recommended_whisper()
+    typer.echo(f"Downloading whisper model {name} into {paths.models_dir} ...")
+    typer.echo(f"  {models.download_whisper(name)}")
+    if align:
+        typer.echo(f"Downloading the alignment model for '{align}' ...")
+        models.download_align(align)
+    if diarization:
+        model_id = settings.transcription.diarization_model
+        typer.echo(f"Downloading the diarization model {model_id} ...")
+        try:
+            typer.echo(f"  {models.download_diarization(models.hf_token(settings), model_id)}")
+        except MM3Error as exc:
+            typer.secho(exc.message, fg=typer.colors.RED, err=True)
+            typer.echo(exc.hint, err=True)
+            raise typer.Exit(1) from exc
+    typer.secho("Done.", fg=typer.colors.GREEN)
 
 
 def main() -> None:

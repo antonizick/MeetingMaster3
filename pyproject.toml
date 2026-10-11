@@ -27,7 +27,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-ml = []       # whisperx, torch, pyannote.audio: pinned in Phase 06
+ml = [
+    "whisperx>=3.8.6",
+]
 bedrock = [
     "boto3>=1.43.111",
 ]  # boto3: added in Phase 08

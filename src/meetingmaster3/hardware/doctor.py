@@ -54,15 +54,58 @@ def check_binary(name: str, which: Callable[[str], str | None] = shutil.which) -
 
 
 def check_ml_extras(find_spec: Callable[[str], object | None] = importlib.util.find_spec) -> Check:
-    missing = [m for m in ("torch", "whisperx", "pyannote.audio") if _spec(find_spec, m) is None]
+    from meetingmaster3.transcription.models import INSTALL_HINT, missing_engine_modules
+
+    missing = missing_engine_modules(lambda m: _spec(find_spec, m))
     if not missing:
-        return Check("ML extras", "ok", "torch, whisperx and pyannote.audio are installed")
+        return Check("Transcription engine", "ok", "torch, whisperx and pyannote.audio installed")
     return Check(
-        "ML extras",
+        "Transcription engine",
         "warn",
-        f"not installed: {', '.join(missing)}",
-        "Transcription needs them: `uv sync --extra ml` (available from Phase 06).",
+        f"not installed (missing: {', '.join(missing)})",
+        f"Transcription needs it. {INSTALL_HINT}",
     )
+
+
+def check_models(settings: Settings, paths: AppPaths, whisper_model: str) -> list[Check]:
+    """Are the transcription, alignment and diarization models in the local cache?"""
+    from meetingmaster3.transcription import models
+
+    if models.missing_engine_modules():
+        return []
+    root = paths.models_dir
+    offline = settings.transcription.offline or models.offline_mode()
+    missing_status: CheckStatus = "fail" if offline else "warn"
+    later = "Offline mode is on, so it cannot be downloaded." if offline else (
+        "It downloads on first use, or now with `mm3 models download`."
+    )  # fmt: skip
+    checks = []
+    if models.whisper_cached(root, whisper_model):
+        checks.append(Check("Whisper model", "ok", f"{whisper_model} (cached in {root})"))
+    else:
+        checks.append(
+            Check("Whisper model", missing_status, f"{whisper_model} not downloaded", later)
+        )
+    if models.align_cached(root, "en"):
+        checks.append(Check("Alignment model", "ok", "English wav2vec2 (cached)"))
+    else:
+        checks.append(Check("Alignment model", missing_status, "English not downloaded", later))
+    diar = settings.transcription.diarization_model
+    if not settings.transcription.diarize:
+        checks.append(Check("Diarization model", "ok", "diarization is turned off"))
+    elif models.diarization_cached(root, diar):
+        checks.append(Check("Diarization model", "ok", f"{diar} (cached)"))
+    else:
+        checks.append(
+            Check(
+                "Diarization model",
+                "warn",
+                f"{diar} not downloaded",
+                f"Accept the terms at https://huggingface.co/{diar}, set the Hugging Face token, "
+                "then run `mm3 models download`. Until then transcripts have no speakers.",
+            )
+        )
+    return checks
 
 
 def _spec(find_spec: Callable[[str], object | None], module: str) -> object | None:
@@ -80,8 +123,10 @@ def check_hf_token(settings: Settings) -> Check:
         "Hugging Face token",
         "warn",
         "not set",
-        "Needed once to download the gated pyannote diarization models "
-        "(set MM3_SECRETS__HF_TOKEN). Transcription without speakers works without it.",
+        "Needed once to download the gated diarization model (accept the terms at "
+        "https://huggingface.co/pyannote/speaker-diarization-community-1, then set "
+        "secrets.hf_token or MM3_SECRETS__HF_TOKEN). Transcription without speakers works "
+        "without it.",
     )
 
 
@@ -132,13 +177,14 @@ def check_data_dirs(paths: AppPaths) -> list[Check]:
     return checks
 
 
-def run_checks(settings: Settings, paths: AppPaths) -> list[Check]:
+def run_checks(settings: Settings, paths: AppPaths, whisper_model: str = "") -> list[Check]:
     """All environment checks, in display order."""
     return [
         check_python(),
         check_binary("ffmpeg"),
         check_binary("ffprobe"),
         check_ml_extras(),
+        *check_models(settings, paths, whisper_model or "large-v3-turbo"),
         check_hf_token(settings),
         *check_llm_backends(settings),
         check_vault(settings),

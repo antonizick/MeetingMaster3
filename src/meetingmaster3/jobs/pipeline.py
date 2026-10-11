@@ -1,9 +1,11 @@
 """Pipelines: the ordered stages of a job type, assembled from a stage registry.
 
-Later phases plug in real stages with :func:`register_stage` (Phase 06: ``transcribe``,
-``align``, ``diarize``; Phase 07: ``speaker_suggest`` and the confirmation input; Phase 09:
-``generate``, ``write``). Until a stage is registered, an :class:`UnavailableStage` stands in and
-fails with an install hint. ``MM3_FAKE_PIPELINE=1`` swaps every ML/LLM stage for a fake.
+Later phases plug in real stages with :func:`register_stage` (Phase 07: ``speaker_suggest`` and
+the confirmation input; Phase 09: ``generate``, ``write``). Until a stage is registered, an
+:class:`UnavailableStage` stands in and fails with an install hint. ``transcribe``, ``align`` and
+``diarize`` (Phase 06) are built in: they are the WhisperX stages when the ``ml`` extra is
+installed, and an "engine not installed" placeholder otherwise. ``MM3_FAKE_PIPELINE=1`` swaps
+every ML/LLM stage for a fake.
 """
 
 from __future__ import annotations
@@ -32,6 +34,8 @@ MEETING_STAGES: list[tuple[str, str, bool]] = [
     ("generate", "Generating notes", False),
     ("write", "Writing to vault", False),
 ]
+
+TRANSCRIPTION_STAGES = frozenset({"transcribe", "align", "diarize"})
 
 StageFactory = Callable[["Settings"], Stage]
 _REGISTRY: dict[str, StageFactory] = {}
@@ -98,6 +102,14 @@ def _default_factory(name: str, display: str, gpu: bool) -> StageFactory:
             return IngestStage()
 
         return ingest
+    if name in TRANSCRIPTION_STAGES:
+
+        def transcription(settings: Settings) -> Stage:
+            from meetingmaster3.transcription.stages import build_stage
+
+            return build_stage(name, display, settings)
+
+        return transcription
     if name == "await_speaker_confirmation":
         return lambda settings: SpeakerConfirmationStage()
     return lambda settings: UnavailableStage(name, display, uses_gpu=gpu)

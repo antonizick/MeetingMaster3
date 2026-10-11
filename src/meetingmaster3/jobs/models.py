@@ -5,10 +5,11 @@ from __future__ import annotations
 import datetime as dt
 from dataclasses import asdict, dataclass, field
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from meetingmaster3.config.settings import LANGUAGE_PATTERN, MODEL_NAME_PATTERN
 from meetingmaster3.errors import MM3Error
 
 
@@ -98,8 +99,14 @@ class JobOptions(BaseModel):
     max_speakers: int | None = Field(default=None, ge=1, le=32)
     template: str | None = None
     backend: str | None = None
-    model: str | None = None
+    model: str | None = None  # the LLM model (with ``backend``)
     cloud_consent: bool = False
+    # Transcription overrides (Phase 06); ``None`` uses settings, then the hardware recommendation.
+    transcription_model: str | None = Field(default=None, pattern=MODEL_NAME_PATTERN)
+    compute_type: Literal["float16", "int8_float16", "int8", "float32"] | None = None
+    batch_size: int | None = Field(default=None, ge=1, le=64)
+    language: str | None = Field(default=None, pattern=LANGUAGE_PATTERN)
+    on_non_english: Literal["ask", "proceed", "abort"] | None = None
 
 
 @dataclass(frozen=True)

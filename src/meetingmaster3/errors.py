@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from markupsafe import escape
 
@@ -16,16 +16,29 @@ class MM3Error(Exception):
 
     status_code = 400
 
-    def __init__(self, code: str, message: str, hint: str = "", status_code: int | None = None):
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        hint: str = "",
+        status_code: int | None = None,
+        *,
+        details: dict[str, Any] | None = None,
+    ):
         super().__init__(message)
         self.code = code
         self.message = message
         self.hint = hint
+        self.details = details or {}
+        """Machine-readable extras for the UI, e.g. ``{"suggested_overrides": {...}}``."""
         if status_code is not None:
             self.status_code = status_code
 
-    def to_dict(self) -> dict[str, str]:
-        return {"code": self.code, "message": self.message, "hint": self.hint}
+    def to_dict(self) -> dict[str, Any]:
+        out: dict[str, Any] = {"code": self.code, "message": self.message, "hint": self.hint}
+        if self.details:
+            out["details"] = self.details
+        return out
 
 
 def _wants_html(request: Request) -> bool:

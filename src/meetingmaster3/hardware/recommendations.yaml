@@ -1,6 +1,6 @@
 # Data-driven hardware recommendations (Phase 05). Edit values here, not in code.
-# `status: estimated` values come from the specification (section 7); Phase 06 and Phase 15 replace
-# them with `status: measured` numbers from the reference machine (RTX 2070 Max-Q, 8 GB).
+# `status: estimated` values come from the specification (section 7); `status: measured` values
+# come from the reference machine (RTX 2070 Max-Q, 8 GB): vram8 in Phase 06, the rest in Phase 15.
 # rtf = real-time factor: audio seconds processed per wall-clock second (higher is faster).
 version: 1
 
@@ -29,8 +29,11 @@ profiles:
       compute_type: int8_float16
       batch_size: 8
       diarize: true
-      rtf: [15, 30]
-      status: estimated
+      # Measured 2026-10-11 (Phase 06) on the reference RTX 2070 Max-Q 8 GB, whole pipeline
+      # (transcribe + align + diarize, models loaded per stage): 31 min in 131 s (14.3x),
+      # 72 min in 283 s (15.3x); diarization is about half the time. Peak VRAM 3.6 GB.
+      rtf: [14, 16]
+      status: measured
       notes: Balanced. Falls back to a smaller batch, then a smaller model, on out-of-memory.
     llm:
       status: estimated
