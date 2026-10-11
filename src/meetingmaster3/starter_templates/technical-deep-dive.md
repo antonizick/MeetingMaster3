@@ -80,8 +80,9 @@ Structure:
 If none were raised, write exactly: No risks were raised.
 
 <!-- mm3:prompt:action-items -->
-List every concrete task that someone agreed to do or was asked to do (investigations,
-prototypes, fixes, reviews, tickets), one per line.
+List every concrete task that someone agreed to do or was asked to do, one per line: technical
+work (investigations, prototypes, fixes, reviews, tickets) and small follow-ups alike (asking,
+sending, booking, checking).
 
 Structure:
 - [ ] **<Owner>:** <task, starting with a verb> (due: <deadline as said, or "not stated">) [mm:ss]

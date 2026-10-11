@@ -3,7 +3,8 @@
 > **Status:** normative since Phase 09 (template schema version 1). The loader
 > (`src/meetingmaster3/templates/`) and every shipped or user template must follow this page; if
 > the code and this page disagree, that is a bug in one of them. Spec: §6, §8, §15.1 A3, §15.2 R6
-> and R10. Decisions: ADR-0016 (map-reduce), ADR-0017 (default temperatures and prompt layout).
+> and R10, R22. Decisions: ADR-0016 (map-reduce), ADR-0017 (prompt layout, temperatures and the
+> deterministic aids), ADR-0018 (stages).
 
 A template tells MeetingMaster3 which sections a note has and how to write each one. It is a
 plain Markdown file, so it can be read and edited in Obsidian like any other note.
@@ -107,9 +108,13 @@ AI Recommendations).
 * The model returns **only the section body**: no heading, no markers. MM3 post-processes every
   answer: strips a reasoning block (`<think>…</think>`), a wrapping code fence, a leading heading,
   and any `mm3` marker-like lines; demotes `#`/`##` headings to `###`; trims blank lines.
-  * `format: tasks`: every list item becomes an Obsidian checkbox
-    `- [ ] **<Owner>:** <task> (due: <date or "not stated">)`. Items the model already ticked
-    (`- [x]`) stay ticked.
+  * `format: tasks`: every top-level list item becomes an Obsidian checkbox
+    `- [ ] **<Owner>:** <task> (due: <deadline as said, or "not stated">)`; items the model
+    already ticked (`- [x]`) stay ticked. Deadlines said as "today", "tomorrow", a weekday,
+    "next <weekday>" or "<weekday> next week" get their date appended from the meeting date
+    (`(due: Friday, 2026-10-09)`): the model is told *not* to compute dates (ADR-0017). Then the
+    **owner guard** runs: a named owner who only suggested ("we should…") or declined the task, and
+    never committed to it or was asked to do it, is replaced by `Unassigned`.
   * `format: bullets`: `*` and `+` bullets become `-`.
 * The Appendix B header (title, date, participants, tags, location; R10) is rendered by code from
   the meeting metadata. Templates do not ask for it.
@@ -135,6 +140,7 @@ invalid template is listed with its errors instead of crashing the app.
 | `malformed_prompt_marker` | A line that looks like a prompt marker but is not one. |
 | `duplicate_template_id` | Two vault templates share an `id`. |
 | `file_too_large` | Larger than 256 KiB. |
+| `unreadable` | Not readable as UTF-8 text. |
 
 Warnings (the template still loads): `unknown_key`.
 
@@ -147,13 +153,28 @@ For each section, one chat request (see `templates/assembler.py`):
   deadlines ("by Friday") can be resolved against the meeting date.
 * **User message:** the transcript (or, for long meetings, the merged map-reduce notes) **first**,
   formatted as `[mm:ss] Name: text` per speaker turn (`[h:mm:ss]` past one hour); then the section
-  title and its prompt block; optional user instructions; on regeneration the previous section
-  content and the user's feedback; and the output rules.
+  title and its prompt block; for `format: tasks` sections, the **task candidates**: transcript
+  sentences that sound like a commitment, a request, a suggestion or a refusal, tagged by kind
+  (`templates/cues.py`); optional user instructions; on regeneration the previous section content
+  and the user's feedback; and the output rules.
+* One request per section, with the section's temperature and `max_tokens`, one `num_ctx` for the
+  whole note, and `think: false` for reasoning models unless `generation.think` is set.
 
 Because the system message and the transcript are identical for every section of a note, a local
 Ollama reuses its prompt cache and only processes the short section-specific tail (ADR-0017).
 
-## 8. Long meetings (map-reduce, R6, ADR-0016)
+## 8. Writing good template prompts
+Lessons from the Phase 09 eval (`tests/eval/`, small local models):
+* Show the structure with **placeholders** (`<Owner>`, `<task>`), never with realistic values: models
+  copy example dates and names into notes.
+* Give every section an explicit "nothing here" sentence ("If no decision was made, write exactly:
+  No decisions were made."), so the model does not invent content to fill it.
+* For task sections, keep the `**Unassigned:**` example line in the structure and the owner rule in
+  the prompt; the candidates and the owner guard rely on them.
+* Say what does **not** belong in a section (e.g. task assignments are not decisions).
+* Check a change with `uv run python -m tests.eval.run_eval --model <model> --templates <id>`.
+
+## 9. Long meetings (map-reduce, R6, ADR-0016)
 If the system message, the transcript, the longest section prompt and the output reserve exceed
 70 % of the model's context window, MM3 switches to map-reduce:
 1. **Map:** the transcript is cut into chunks on speaker-turn boundaries

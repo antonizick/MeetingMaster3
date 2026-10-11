@@ -128,7 +128,8 @@ The team agreed to ...
 ```
 * The H1 and the Appendix B header (R10) come straight after the frontmatter and are **outside**
   every section. MM3 renders them from metadata when it creates the note; after that they are user
-  text. The header has `Date & Time` (when known), `Participants` (`Not recorded` if none), `Tags`
+  text. The header has `Date & Time` (when known; a time of exactly midnight means "time not
+  recorded" and is shown as the date alone), `Participants` (`Not recorded` if none), `Tags`
   (when any) and `Location / Context` (when set).
 * Sections follow, separated by one blank line. **AI Recommendations (`ai-recommendations`) is
   always last** in a new note, and `append_section` inserts before it.

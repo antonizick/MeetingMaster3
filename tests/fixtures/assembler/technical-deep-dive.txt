@@ -98,8 +98,9 @@ Output rules: return only the content of the "Risks & Concerns" section, in Mark
 === SECTION action-items ===
 Now write the section "Action Items".
 
-List every concrete task that someone agreed to do or was asked to do (investigations,
-prototypes, fixes, reviews, tickets), one per line.
+List every concrete task that someone agreed to do or was asked to do, one per line: technical
+work (investigations, prototypes, fixes, reviews, tickets) and small follow-ups alike (asking,
+sending, booking, checking).
 
 Structure:
 - [ ] **<Owner>:** <task, starting with a verb> (due: <deadline as said, or "not stated">) [mm:ss]
@@ -111,7 +112,7 @@ neither does reporting on work that someone else (another team, a vendor) is doi
 tasks as **Unassigned:**. Give deadlines exactly as said ("Friday", "end of Q3"), not as dates.
 If there are no tasks, write exactly: No action items were agreed.
 
-To help you, these transcript sentences sound like commitments, requests or suggestions. Check each one against the transcript. A commitment makes its speaker the owner; a request makes the person asked the owner if they agreed; a suggestion is an **Unassigned** task unless someone later took it on; someone who declines is never the owner. Some are not tasks at all, and tasks can also appear elsewhere.
+To help you, these transcript sentences sound like commitments, requests or suggestions. Check each one against the transcript. A commitment makes its speaker the owner; a request makes the person asked the owner if they agreed; a suggestion is an **Unassigned** task unless someone later took it on; someone who declines is never the owner. Every commitment in the list is a task and must appear once, however small. Some other lines are not tasks, and tasks can also appear elsewhere.
 <candidates>
 [00:19] Speaker 3 (suggestion: no owner unless someone takes it on): We should check with finance.
 [00:26] Sam Lee (asks someone): Ana, can you send the contract to legal by Friday?

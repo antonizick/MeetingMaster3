@@ -14,6 +14,8 @@ leave your machine. It is completed as phases land and finalised in Phase 15.
 | Config, API keys, HF token | `config.yaml` (mode `0600`) or environment variables; never logged or put in the vault |
 | Model weights | `$XDG_CACHE_HOME/meetingmaster3/models` (`MM3_MODELS_DIR`) |
 | Transcription artifacts | Job folder: `transcript.json`, `aligned.json`, `diarization.json` (who spoke when, as time ranges; no voice embeddings), `transcript.final.json`. Deleted with the job. |
+| Note drafts | Job folder: `notes.draft.md` (the generated note), `generation.json` (template, backend, model), `generate.partial.json` (finished sections while generating), `written.json` (vault paths). Deleted with the job. |
+| Templates | Your vault's templates folder (`MeetingMaster3/templates/`); `templates.installed.json` in the app data folder records only file hashes, to avoid overwriting your edits. |
 
 ## What can leave your machine
 - **Model downloads** from Hugging Face, download.pytorch.org and Ollama (inbound; your IP address
@@ -26,7 +28,8 @@ leave your machine. It is completed as phases land and finalised in Phase 15.
   `127.0.0.1`; nothing leaves the machine).
 - **Transcript text sent to a cloud LLM**, only if you choose a cloud backend (AWS Bedrock, OpenRouter
   or another OpenAI-compatible endpoint). The UI badges the backend as "local" or "cloud: <provider>"
-  and asks for confirmation on first use per job (which you can remember per backend). A remote Ollama on another machine counts as cloud. Only the transcript text and prompt are sent; audio never leaves the machine.
+  and asks for confirmation on first use per job (which you can remember per backend): the job
+  pauses before anything is sent, and declining stops it with nothing sent. A remote Ollama on another machine counts as cloud. Only the transcript text and prompt are sent; audio never leaves the machine.
 - **Your vault**, if you sync it (Obsidian Sync, cloud drives). That is outside this app's control.
   If you enable the optional "copy audio to vault" setting, the audio syncs too.
 

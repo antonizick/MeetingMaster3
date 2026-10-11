@@ -262,3 +262,111 @@ recording took 0.3 s on the GPU and 1.6 s on the CPU.
 configurable and Phase 15 can re-measure with more data. A diarization-pipeline upgrade with new
 embedding weights starts a new embedding space: old voiceprints are kept but not used until people are
 enrolled again. Spec amendment R21.
+
+## ADR-0016: Map-reduce for long meetings
+**Context.** R6 asks for map-reduce when the transcript and prompt exceed about 70 % of the model's
+context window. On the 8 GB reference GPU an 8B model cannot hold its advertised window next to its
+weights (`qwen3:8b` advertises 40 960 tokens), so a one-hour meeting (about 12k tokens) is already
+"long" there. Phase 09 needs a design that is correct, resumable and cheap enough on small models.
+**Options considered.**
+
+| Option | Pros | Cons |
+|---|---|---|
+| A. Truncate or sample the transcript | Simple, one call per section | Silently loses decisions and tasks: unacceptable for minutes |
+| B. Rolling summary (refine each chunk into a running summary) | Few tokens | Sequential, early detail fades, errors compound, nothing structured to merge |
+| C. Per-chunk JSON extraction, deterministic merge, sections from the merged notes | Structured (decisions, actions, questions survive verbatim), parallelisable later, merge and dedupe are testable code | One extra call per chunk; small models produce bad JSON |
+| D. Hierarchical summaries of summaries | Scales without limit | Many calls; loses attribution and timestamps |
+
+**Decision.** Option C.
+1. *Fit check:* system prompt + transcript + the longest section tail + that section's output limit
+   against `llm.budget.fits_window` (70 %). The planned window is `min(model window,
+   generation.max_context)` for local backends (default 16 384, sized for 8 GB) and the model window
+   for cloud backends.
+2. *Map:* `chunk_transcript` on speaker-turn boundaries with one overlap turn; budget per chunk =
+   70 % of the window − extraction prompt − 1 500 output tokens. Each chunk returns `{summary, points,
+   decisions, actions, questions}` with `[mm:ss]` times and speakers, at temperature 0.1 with JSON
+   mode. Bad JSON is repaired locally (code fences, prose around the object, trailing commas,
+   reasoning blocks, lenient shapes); otherwise asked once more with the parser error; a chunk that
+   still fails is skipped with a user-visible warning (all chunks failing is an error).
+3. *Merge:* concatenate in time order; near-duplicates (normalised equality, containment, or ≥ 80 %
+   word overlap) are combined, keeping the earliest timestamp and the clearly more detailed wording;
+   the same task for two different named owners is kept twice.
+4. *Reduce:* every section is generated from the merged notes (`<meeting_notes>`) instead of the
+   transcript; if the notes are still too long, minor points and then chunk summaries are thinned
+   evenly (decisions, actions and questions are never cut) with a warning.
+**Status.** Accepted (2026-10-11, Phase 09).
+**Consequences.** A long meeting costs one extra call per chunk. Regenerating one section of a long
+meeting repeats the map step (a cache of the merged notes is a possible optimisation). Chunk
+extraction quality depends on the model's JSON discipline; the repair path is covered by tests.
+
+## ADR-0017: Prompt layout, default temperatures and deterministic aids for small models
+**Context.** The notes must read like a skilled chief of staff wrote them: specific, attributed, no
+invented owners or dates. The default model is a local 7-9B model on 8 GB. The Phase 09 eval (three
+synthetic meetings × five templates, `tests/eval/`) showed what prompts alone cannot fix on such
+models: owners invented from whoever said "we should…", wrong weekday-to-date arithmetic (even with a
+calendar in the prompt, and copying an example date from the prompt), dropped small commitments, and
+reasoning models spending the output budget on hidden "thinking".
+**Options considered.**
+
+| Topic | Option | Pros | Cons |
+|---|---|---|---|
+| Layout | One call for the whole note | Fewest calls | Small models lose structure; one bad answer spoils every section; no per-section regeneration |
+| | **One call per section, shared prefix** | Regenerable sections, per-section temperature, prompt-cache reuse | N calls |
+| Dates | Ask the model to resolve dates | No code | Measured wrong on qwen3:8b |
+| | **Deadline as said; code adds the date** | Correct by construction | Only simple forms (weekday, today, tomorrow, next X) |
+| Owners | Stronger wording only | No code | Still ~1 in 3 notes wrong in the eval |
+| | **Tagged cues in the prompt + owner guard after** | Measured fix (8/15 → 14/15 notes passing) | Heuristic regexes; English only |
+| Thinking | Model default | Possibly better reasoning | 2-10× slower, eats `max_tokens` |
+| | **`think: false` by default** (`generation.think`) | Fast, predictable | Users of reasoning models opt in |
+
+**Decision.**
+1. One chat call per section. The system message (MM3 global rules, the template's `_system` block,
+   meeting facts, today's date) and the start of the user message (the transcript as
+   `[mm:ss] Name: text` turns, or the map-reduce notes) are identical for every section; only the
+   tail (section instructions, task candidates, user instructions, regeneration context, output
+   rules) differs. One `num_ctx` per note, so a local Ollama reuses its prompt cache and never
+   reloads the model between sections.
+2. Temperatures (R6): `extraction` sections 0.2, `narrative` 0.4; templates override per section or
+   globally; map extraction 0.1.
+3. Task sections get **tagged candidate sentences** from `templates/cues.py` (commits / asks /
+   suggestion / declines, with negation handling), and their output passes the **owner guard**: a
+   named owner becomes **Unassigned** only when that person merely suggested or declined the task and
+   never committed to it or was asked to do it (word overlap ≥ 0.25). It never assigns anyone.
+   Replaying it over every note from the eval changed exactly the invented-owner lines.
+4. **Deadlines** are written as said; post-processing appends the date for "today", "tomorrow",
+   weekdays, "next <weekday>" and "<weekday> next week", relative to the meeting date.
+5. **Post-processing** strips reasoning blocks, wrapping code fences, preambles, a leading heading
+   and marker-like lines, demotes `#`/`##` to `###`, normalises checkboxes; an empty answer is asked
+   once more, then shown as `_Nothing to report._` with a warning.
+6. Reasoning models run with `think: false` (Ollama) unless `generation.think` is true.
+**Status.** Accepted (2026-10-11, Phase 09).
+**Consequences.** Templates stay plain prompts; the deterministic aids apply to every template with a
+`format: tasks` section. The cue regexes are English; other languages get the prompts without the
+aids' benefit (Phase 15 follow-up). Eval scores are recorded in the Phase 09 log.
+
+## ADR-0018: Generation and write stages: consent pause, idempotent writes, fake pipeline
+**Context.** The `generate` and `write` stages join the Phase 04 job pipeline. They must honour S6
+(cloud consent) without losing work, survive crashes without duplicate files, and let Phase 10 click
+through the whole flow with `MM3_FAKE_PIPELINE=1`.
+**Decision.**
+1. *Consent (S6):* a cloud backend without consent (job option `cloud_consent`, or the backend's
+   `consent_remembered`) pauses the job with `InputRequired("cloud_consent", {backend,
+   backend_kind, badge, message})` instead of failing. `{"consent": true}` continues and is recorded
+   as `cloud_consent_for: <backend>` in the job options (a later backend change asks again);
+   `{"consent": false}` fails the job with `E_CONSENT_REQUIRED`, and nothing was sent.
+   `NoteGenerator` also calls `llm.consent.enforce_consent` before its first call, so no other
+   caller can skip the check.
+2. *GPU:* the runner asks a stage `gpu_for(job options)` when it has one; `generate` holds the GPU
+   semaphore only when the job's backend is a local Ollama (R5).
+3. *Checkpoints:* finished sections are kept in `generate.partial.json` keyed by a hash of template,
+   backend, model, instructions and transcript, so a failed or interrupted generation resumes at the
+   first missing section. `write` records its chosen stem in `write.intent.json` and skips a file that
+   already carries the note's `mm3-id`, so a crash between the two files never produces `(2)` copies.
+   The companion transcript is written before the note, so the note's link is never dangling.
+4. `resume(job, overrides, from_stage=...)` re-runs a completed stage (e.g. `generate` with another
+   template); `POST /api/jobs/{id}/generate` uses it.
+5. *Fake pipeline:* `generate` is the real stage with the offline `FakeLLMBackend` (local or cloud like
+   the configured backend, so consent can be exercised), and `write` is the real stage whenever a vault
+   is configured.
+**Status.** Accepted (2026-10-11, Phase 09).
+**Consequences.** Spec amendment R22. The UI (Phase 10) handles a third input kind, `cloud_consent`.

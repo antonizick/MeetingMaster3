@@ -99,15 +99,18 @@ Rules:
 
 ## Adding a stage
 1. Implement the stage (see above) in its own package, e.g. `transcription/stages.py`.
-2. Register it, typically from that package's setup code: `jobs.pipeline.register_stage("generate",
-   lambda settings: GenerateStage(settings))`. Until a stage is registered, `UnavailableStage`
-   stands in and fails with `E_STAGE_UNAVAILABLE` and an install hint. (`transcribe`, `align` and
-   `diarize` are built in: `transcription.stages.build_stage` returns the WhisperX stage when the `ml`
-   extra is installed, otherwise an `UnavailableStage` saying "Transcription engine not installed".)
-3. Use the canonical name from `jobs.pipeline.MEETING_STAGES`. Adding a **new** stage name to that list
+2. Wire it into `jobs.pipeline._default_factory` (with a lazy import, as all built-in stages do), or
+   register it: `jobs.pipeline.register_stage(name, lambda settings: MyStage(settings))` replaces a
+   stage's implementation (tests, plugins). A stage name with neither gets `UnavailableStage`, which
+   fails with `E_STAGE_UNAVAILABLE` and an install hint. (`transcribe`, `align` and `diarize`:
+   `transcription.stages.build_stage` returns the WhisperX stage when the `ml` extra is installed,
+   otherwise an `UnavailableStage` saying "Transcription engine not installed".)
+3. A stage whose GPU use depends on the job can define `gpu_for(options) -> bool`; the runner calls it
+   instead of reading `uses_gpu` (see `templates.stages.GenerateStage`).
+4. Use the canonical name from `jobs.pipeline.MEETING_STAGES`. Adding a **new** stage name to that list
    changes the stage list of new jobs only; older jobs whose stored stages differ fail resume with
    `E_PIPELINE_CHANGED`.
-4. Test it with a `StageContext` built by hand (see `tests/unit/jobs/test_ingest.py`) and through the
+5. Test it with a `StageContext` built by hand (see `tests/unit/jobs/test_ingest.py`) and through the
    runner with a custom pipeline factory (`tests/unit/jobs/helpers.py`).
 
 ## Canonical pipeline and checkpoint artifacts
@@ -119,10 +122,11 @@ Rules:
 | 4 | `diarize` | yes | `transcript.final.json` (a serialised `domain.Transcript`; `diarization.json` alongside) | Phase 06 |
 | 5 | `speaker_suggest` | yes | `speakers.json` (`speaker_embeddings.json` alongside while waiting, voiceprints on only) | Phase 07 |
 | 6 | `await_speaker_confirmation` | no | `speakers.confirmed.json` (`speaker_map.json`, `transcript.named.json` alongside; the raw answer is `input.await_speaker_confirmation.json`) | Phase 04, replaced in 07 |
-| 7 | `generate` | no* | `notes.draft.md` | Phase 09 |
-| 8 | `write` | no | a JSON record of the vault files written | Phase 09 |
+| 7 | `generate` | local Ollama only* | `notes.draft.md` (`generation.json`, and `generate.partial.json` while unfinished) | Phase 09 |
+| 8 | `write` | no | `written.json` (`write.intent.json` alongside) | Phase 09 |
 
-\* Phase 09 should mark `generate` as a GPU stage when the backend is a local Ollama on the same GPU.
+\* `GenerateStage.gpu_for(options)` is true when the job's backend is a local Ollama, which shares
+the GPU with transcription (R5).
 
 ### Transcription stages (Phase 06)
 Implemented in `transcription/stages.py` (user guide: [`../user-guide/transcription.md`](../user-guide/transcription.md);
@@ -215,6 +219,49 @@ companion=, old_map=)` returns the named transcript (generation context), `Meeti
 kept, placeholders never added), and the companion with the new map. `rename_companion_text(text, map)`
 renames an existing companion file in place. `load_job_speaker_map(job_dir)` reads the stored map.
 
+### Generation stages (Phase 09)
+Implemented in `templates/stages.py` (ADR-0016 to ADR-0018, spec R22; template format in
+[`template-format.md`](template-format.md); user guide [`../user-guide/templates.md`](../user-guide/templates.md)).
+
+**`generate`** (`GenerateStage`): loads the template (`options.template` or
+`generation.default_template`) from the library (built-ins + the vault's templates folder, installed
+on first use), the backend (`options.backend` or `llm.default_backend`) and the model
+(`options.model`, else the backend's `default_model`, else `E_LLM_CONFIG`). It builds `MeetingMeta`
+from the job (title, `meeting_date` + `meeting_time`, else the upload day; `participants`, `tags`
+prefixed with `meeting`, `location`) and fills speakers and participants with
+`speakers.cascade.apply_speaker_map`. The generation context is `transcript.named.json`.
+* **Cloud consent (S6):** a non-local backend without `cloud_consent` (or the backend's
+  `consent_remembered`) raises `InputRequired("cloud_consent", {"backend", "backend_kind", "badge",
+  "message"})`. Answer `{"consent": true}` (sets the job option `cloud_consent_for: <backend>`) or
+  `{"consent": false}` (the job fails with `E_CONSENT_REQUIRED`; nothing was sent).
+* Sections are generated one by one with progress `Writing <title>` (map-reduce adds `Reading part
+  i of n`); each finished section is saved in `generate.partial.json`, so a resume continues at the
+  first missing section (the file is keyed by template, backend, model, instructions and transcript).
+* Warnings (a skipped chunk, a section that hit its length limit, an empty answer) are job warnings.
+* Output: `notes.draft.md`, a complete note rendered with `markdown.note_writer` (no transcript link
+  yet) and `generation.json` (`template`, `backend`, `model`, `mode` full/map-reduce, `chunks`,
+  `calls`, `reused_sections`).
+
+**`write`** (`WriteStage`): resolves the vault (`vault_not_configured` and friends fail the stage;
+resume after fixing), picks the stem with `vault.naming.allocate_note_paths` in the output folder and
+records it in `write.intent.json`, writes the companion transcript (`build_companion` with the
+label transcript and the job's speaker map, linking back to the note) and then the note (with
+`mm3-transcript`), both via `atomic_write_text` (never overwriting). A file that already carries the
+note's `mm3-id` (an earlier attempt) is left alone. With `generation.write_companion: false` only the
+note is written, with a warning. Then `recent_meetings` is updated and `written.json` returned:
+```json
+{"mm3_id": "…", "vault_root": "/vault", "note_path": "/vault/Meetings/2026/2026-10-11 - Product Sync.md",
+ "note_relative": "Meetings/2026/2026-10-11 - Product Sync.md",
+ "transcript_path": "/vault/…/2026-10-11 - Product Sync.transcript.md",
+ "transcript_relative": "Meetings/2026/2026-10-11 - Product Sync.transcript.md",
+ "title": "Product Sync", "template": "executive-summary"}
+```
+Audio retention is applied by the runner afterwards, as before.
+
+**Re-generating.** `JobRunner.resume(job_id, overrides, from_stage="generate")` re-runs `generate`
+and `write` even if they completed; `JobRunner.update_options(job_id, overrides)` changes the options
+of a queued or waiting job. `POST /api/jobs/{id}/generate` combines them (below).
+
 ## GPU exclusivity (R5)
 One `asyncio.Semaphore(1)` is shared by all jobs. A job acquires it before its first GPU stage and
 keeps it across consecutive GPU stages (`transcribe → align → diarize → speaker_suggest`), so another
@@ -275,7 +322,11 @@ retention period. The pruner (`jobs.retention.prune`) runs at startup, every
 | `GET /api/jobs/{id}` | Job, stages (with live fraction, message, ETA, `detail.warnings`, `detail.error.details`), `waiting_for` and `warnings` (all stages' warnings). |
 | `POST /api/jobs/{id}/cancel` | Cancel a queued, running, waiting or interrupted job. |
 | `POST /api/jobs/{id}/resume` | Resume a failed, cancelled or interrupted job; body `{"overrides": {...}}` optional. |
-| `POST /api/jobs/{id}/input` | Answer a waiting job, e.g. `{"speakers": {"SPEAKER_00": "Alice"}}` or, for the language question, `{"action": "proceed"}`. |
+| `POST /api/jobs/{id}/input` | Answer a waiting job, e.g. `{"speakers": {"SPEAKER_00": "Alice"}}`, for the language question `{"action": "proceed"}`, for cloud consent `{"consent": true}`. |
+| `POST /api/jobs/{id}/generate` | `{"template"?, "backend"?, "model"?, "instructions"?, "cloud_consent"?}`. Queued or waiting job: stores the options (and answers a pending `cloud_consent` question when the new backend is local or consent is given). Failed, cancelled or interrupted job: resumes from `generate`. Running or written job: 409 `E_JOB_STATE`. Returns the job. |
+| `GET /api/templates` | `{"default", "templates": [{id, name, description, tags, favorite, source (builtin/vault), overrides_builtin, file, valid, sections, issues}]}`, favourites first, invalid files last. |
+| `POST /api/templates/install` | Copy the built-in templates into the vault (`results`: `installed`, `updated`, `unchanged` or `kept` per file). |
+| `POST /api/notes/regenerate-section` | `{"note": "<vault-relative path>", "section_id", "instructions"?, "backend"?, "model"?, "cloud_consent"?}` → `{note, section_id, title, old_body, new_body, unified_diff, side_by_side, stats, template, backend, model}`. Writes nothing. 404 `E_NOTE_NOT_FOUND` / `E_SECTION_NOT_FOUND`, 409 `section_markers_invalid` (R11) / `E_TRANSCRIPT_MISSING`, 403 `E_CONSENT_REQUIRED`. |
 | `GET /api/jobs/{id}/speakers` | `speakers.json` plus `job_id`, `status`, `waiting` and `confirmed` (`speakers.confirmed.json` or null); 409 `E_SPEAKERS_NOT_READY` before `speaker_suggest` completed. |
 | `POST /api/jobs/{id}/speakers` | Confirm names: `{"SPEAKER_00": {"name": "Alice", "person_id": "…" \| null, "enroll": true}, "SPEAKER_01": "Bob"}` (or wrapped in `{"speakers": …}`). 422 for unknown labels, invalid entries or a deleted person; 409 `E_JOB_STATE` when not waiting. Resumes the job. |
 | `GET /api/voiceprints` | `{"enabled", "people": [{person_id, name, created_at, last_seen, samples, total_seconds, models}]}`; never vectors. |
@@ -292,8 +343,10 @@ All POST and DELETE routes need the CSRF header (S2). Errors use the standard
 ## Fake pipeline
 `MM3_FAKE_PIPELINE=1 uv run mm3 serve` replaces every ML and LLM stage with a fake from
 `jobs/fakes.py` (the real ffmpeg `ingest` still runs). Each fake takes `MM3_FAKE_STAGE_SECONDS`
-(default 2) and writes plausible artifacts, including a two-speaker transcript; `FakeWrite` never
-touches the vault. `FakeSpeakerSuggest` is the real suggestion stage with a deterministic
+(default 2) and writes plausible artifacts, including a two-speaker transcript. `FakeGenerate` is the
+real generation stage with the offline `llm.fake.FakeLLMBackend` (cloud-like when the chosen backend
+is, so the consent question appears), and `FakeWrite` is the real write stage when a vault is
+configured (otherwise it only records what it would write). `FakeSpeakerSuggest` is the real suggestion stage with a deterministic
 `FakeEmbedder`, so with `MM3_PRIVACY__VOICEPRINTS_ENABLED=true` a second upload suggests the names you
 enrolled from the first. Try it:
 ```bash

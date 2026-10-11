@@ -8,6 +8,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Security
+- Note generation enforces cloud-egress consent (S6) before any request: a job using a cloud backend
+  without consent pauses with a `cloud_consent` question, and declining sends nothing. Template files
+  and model output are treated as untrusted (strict validation; forged section markers are stripped).
 - Voiceprints (biometric data, S7) are opt-in, stored only for speakers the user marks "remember", never
   returned by the API or CLI, and physically erased on delete: SQLite `secure_delete` is now on for
   `mm3.db` and voiceprint deletes truncate the WAL. Deleting all voiceprints over the API needs a
@@ -18,6 +21,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   makes no network calls (verified with a socket audit).
 
 ### Changed
+- The `generate` and `write` stages are built in (no longer placeholders). `MM3_FAKE_PIPELINE=1` now
+  runs the real generation stage with an offline fake model and writes the note to the vault when one
+  is configured.
+- `JobRunner.resume()` takes `from_stage` to re-run completed stages; `JobRunner.update_options()`
+  changes a queued or waiting job's options; stages may decide their GPU use per job (`gpu_for`).
+- `GenerateRequest.think` turns reasoning on or off for Ollama models that support it.
+- The note header shows only the date when the meeting time is unknown (stored as midnight).
 - The `await_speaker_confirmation` stage moved to `speakers.stages.SpeakerConfirmationStage` (Phase 07).
   It normalises answers to `{label: {"name", "person_id", "enroll"}}`, refuses unknown fields, completes
   without asking when the transcript has no speakers, and its artifact is now `speakers.confirmed.json`.
@@ -37,6 +47,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   without depending on the web stack.
 
 ### Added
+- Templates and note generation (Phase 09): template file format with line-numbered validation
+  (`docs/dev-guide/template-format.md`); five built-in templates (Executive Summary, Technical
+  Deep-Dive, Decision Log, Action-Focused, Just the Facts) copied into the vault on first use without
+  ever overwriting edited copies; vault templates override built-ins; prompt assembly with a
+  prompt-cache-friendly shared prefix; one LLM call per section with temperatures by section kind;
+  map-reduce for meetings that exceed the context window (per-chunk JSON extraction with repair and
+  retry, merge and dedupe); tagged task candidates and an owner guard against invented owners;
+  deadline dates computed from the meeting date; section checkpoints so failed generation resumes;
+  `generate` and `write` stages (note + companion transcript linked both ways, recent meetings,
+  idempotent after a crash); `mm3 process` (headless audio → vault note) and `mm3 templates
+  list|validate|install`; `GET /api/templates`, `POST /api/templates/install`,
+  `POST /api/jobs/{id}/generate`, `POST /api/notes/regenerate-section`; settings `generation.*`; job
+  options `meeting_time`, `participants`, `tags`, `location`, `instructions`; a generation eval
+  (`tests/eval/`). Docs: `docs/user-guide/templates.md`. ADR-0016 to ADR-0018, spec R22.
 - Speaker naming and opt-in voiceprints (Phase 07): per-speaker talk time, overlap-free speech and sample
   clips; WeSpeaker embeddings from the cached diarization model; matching by max cosine similarity with a
   one-to-one (Hungarian) assignment, threshold and margin (ADR-0015); `GET/POST /api/jobs/{id}/speakers`

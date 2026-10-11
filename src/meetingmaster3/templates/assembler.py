@@ -204,8 +204,8 @@ def section_prompt(
             "suggestions. Check each one against the transcript. A commitment makes its speaker "
             "the owner; a request makes the person asked the owner if they agreed; a suggestion "
             "is an **Unassigned** task unless someone later took it on; someone who declines is "
-            "never the owner. Some are not tasks at "
-            "all, and tasks can also appear elsewhere."
+            "never the owner. Every commitment in the list is a task and must appear once, "
+            "however small. Some other lines are not tasks, and tasks can also appear elsewhere."
             "\n<candidates>\n" + "\n".join(c.render() for c in cues) + "\n</candidates>"
         )
     if instructions and instructions.strip():

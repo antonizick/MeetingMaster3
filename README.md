@@ -5,13 +5,12 @@
 [![CI](https://img.shields.io/badge/CI-pending-lightgrey)](#status)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-> ⚠️ **Pre-alpha, under construction.** The backend foundations run (configuration, hardware
-> detection, LLM backends, the note format and the job API with upload, live progress, cancel and
-> resume), but real transcription, note generation and the UI arrive in the phases listed in the
-> [plan](IMPLEMENTATION_PLAN.md).
+> ⚠️ **Pre-alpha, under construction.** The whole pipeline works headlessly (audio → transcript →
+> named speakers → structured note in your vault, via `mm3 process` or the API), but the web UI and
+> the review workspace arrive in the phases listed in the [plan](IMPLEMENTATION_PLAN.md).
 
 ## Status
-Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-08 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, transcription and diarization, speaker naming and voiceprints, LLM backends).
+Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-09 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, transcription and diarization, speaker naming and voiceprints, LLM backends, templates and note generation).
 The CI badge above is a placeholder until the repository is published (Phase 16).
 
 ## Planned features (MVP)
@@ -46,11 +45,21 @@ physically erased when deleted. See [`docs/PRIVACY.md`](docs/PRIVACY.md).
 Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Quickstart
-Development server (the real flow arrives in Phase 10; Docker in Phase 14):
+Process a recording headlessly, from audio to a note in your vault (the web UI arrives in Phase 10,
+Docker in Phase 14):
 ```bash
-uv sync
-uv run mm3 serve          # http://127.0.0.1:8765/  (health check: /healthz)
+uv sync --extra ml                      # transcription engine (see Installation)
+ollama pull qwen3:8b                    # a local LLM that fits an 8 GB GPU
+uv run mm3 process "2026-10-11 Product Sync.m4a" \
+    --vault ~/Documents/MyVault --backend ollama --model qwen3:8b \
+    --template executive-summary --speakers "SPEAKER_00=Alice,SPEAKER_01=Bob"
 ```
+It transcribes, separates and names the speakers, writes the notes with a local model and saves
+`Meetings/2026/2026-10-11 - Product Sync.md` plus its `.transcript.md` in the vault. Leave out
+`--speakers` to be asked on the terminal (the speakers are listed with their talk time). Without the
+`ml` extra or a model, `MM3_FAKE_PIPELINE=1` runs the same flow with simulated results.
+`uv run mm3 templates list` shows the templates; `uv run mm3 serve` starts the API server
+(<http://127.0.0.1:8765/>, health check `/healthz`).
 
 ## Installation
 Native install for development (needs [uv](https://docs.astral.sh/uv/); it fetches Python 3.12 for you):
@@ -79,6 +88,12 @@ Guide: [`docs/user-guide/transcription.md`](docs/user-guide/transcription.md).
 Optional voice recognition (`privacy.voiceprints_enabled: true`, off by default) remembers the voices
 you choose and suggests their names in later meetings; `uv run mm3 voiceprints list|delete|wipe`
 manages what is stored. Guide: [`docs/user-guide/speakers.md`](docs/user-guide/speakers.md).
+
+**Notes and templates.** Five built-in templates (Executive Summary, Technical Deep-Dive, Decision
+Log, Action-Focused, Just the Facts) are copied into your vault's `MeetingMaster3/templates/` folder,
+where you can edit them or add your own. Action items are Obsidian checkboxes with an owner only when
+someone actually took the task on; long meetings are summarised in parts so nothing is skipped. Cloud
+models are used only after you confirm. Guide: [`docs/user-guide/templates.md`](docs/user-guide/templates.md).
 
 ## Configuration
 Settings come from `config.yaml`, overridden by `MM3_*` environment variables. Run `uv run mm3 config path`

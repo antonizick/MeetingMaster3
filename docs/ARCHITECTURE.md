@@ -37,11 +37,12 @@ src/meetingmaster3/
 Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, inside
 `transcription/` and `speakers/` only.
 
-## Implemented so far (Phases 02 to 08)
+## Implemented so far (Phases 02 to 09)
 | Module | Responsibility |
 |---|---|
 | `app.py` | `create_app(settings, paths)` factory. Middleware order (outermost first): TrustedHost, security headers, CSRF. The lifespan opens `mm3.db` and starts/stops the `JobRunner`. |
-| `cli.py` | Typer CLI `mm3`: `serve`, `version`, `doctor`, `config path`, `config show`, `llm list`, `llm test`, `jobs list`, `jobs prune [--dry-run]`, `models status`, `models download`, `voiceprints list|delete|wipe`. |
+| `cli.py` | Typer CLI `mm3`: `serve`, `version`, `doctor`, `process`, `config path`, `config show`, `llm list`, `llm test`, `jobs list`, `jobs prune [--dry-run]`, `models status`, `models download`, `voiceprints list|delete|wipe`, `templates list|validate|install`. |
+| `headless.py` | `mm3 process`: runs a `JobRunner` in its own event loop for one recording and answers its questions from arguments or the terminal. |
 | `config/paths.py` | XDG directories with `MM3_*_DIR` overrides; created `0700`. |
 | `config/settings.py` | Pydantic `Settings`. Precedence: defaults < `config.yaml` < `MM3_*` env. Atomic `0600` save. Secrets are `SecretStr`. |
 | `errors.py` | `MM3Error(code, message, hint, details=)` and a JSON/HTML exception handler chosen by `Accept` (FastAPI imported lazily). |
@@ -83,6 +84,12 @@ Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, ins
 | `llm/budget.py`, `llm/consent.py` | 70% context budgeting and speaker-turn chunking; cloud-egress consent check. |
 | `llm/recommendations.py` + `cloud_recommendations.yaml` | Local (Phase 05) plus cloud model suggestions, no prices. |
 | `web/llm.py` | `/api/llm/*` routes (masked config, test, models, recommendations). |
+| `llm/fake.py` | `FakeLLMBackend`: deterministic, offline (tests and `MM3_FAKE_PIPELINE`). |
+| `templates/schema.py`, `loader.py` | Template file parser with line-numbered validation; library of built-ins (`starter_templates/*.md`) and vault templates (override by id); non-clobbering install with a hash manifest. |
+| `templates/assembler.py`, `cues.py` | Prompt assembly (global rules, template, meeting facts, `[mm:ss] Name: text` transcript); tagged task candidates and the owner guard. |
+| `templates/generator.py`, `mapreduce.py`, `postprocess.py` | `NoteGenerator` (consent, fit check, per-section calls, map-reduce, checkpoints, `regenerate_section`); chunk extraction, JSON repair, merge; output clean-up and deadline dates. |
+| `templates/stages.py`, `regenerate.py` | The `generate` and `write` stages; preview of one section's regeneration for a vault note. |
+| `web/api/templates.py` | `GET /api/templates`, `POST /api/templates/install`, `POST /api/jobs/{id}/generate`, `POST /api/notes/regenerate-section`. |
 
 All other packages are empty placeholders with a docstring, filled in by later phases.
 
@@ -139,3 +146,24 @@ speakers.cascade.apply_speaker_map ─▶ named transcript (Phase 09 context), n
 Voiceprint vectors stay inside `VoiceprintStore` and the job folder until confirmation; ADR-0015.
 
 _To be expanded in Phases 09-15 (generation and UI data flow, sequence diagrams)._
+
+### Note generation (Phase 09)
+```
+transcript.named.json + template (vault override > built-in) + MeetingMeta (job options, speaker map)
+  ─▶ generate: [cloud backend?] consent ─▶ InputRequired("cloud_consent") until answered (S6)
+       NoteGenerator.prepare:
+         system = global rules + template _system + meeting facts + today
+         fits 70% of min(model window, generation.max_context)?
+           yes ─▶ context = "[mm:ss] Name: text" transcript
+           no  ─▶ map: chunk on speaker turns ─▶ JSON extraction per chunk (repair, 1 retry)
+                  merge + dedupe ─▶ context = merged notes                       (ADR-0016)
+       per section (same system + context prefix, one num_ctx):
+         tail = section prompt [+ tagged task candidates] [+ instructions / previous + feedback]
+         LLM (temperature by kind, think off) ─▶ clean-up ─▶ due dates ─▶ owner guard (ADR-0017)
+         ─▶ generate.partial.json (resume point)
+       ─▶ notes.draft.md (build_note + render_note), generation.json
+  ─▶ write: allocate stem (write.intent.json) ─▶ companion .transcript.md ─▶ note .md (atomic, vault-confined)
+       ─▶ recent_meetings ─▶ written.json                                         (ADR-0018)
+```
+The template format is normative in [`dev-guide/template-format.md`](dev-guide/template-format.md);
+stage details in [`dev-guide/jobs-and-stages.md`](dev-guide/jobs-and-stages.md).

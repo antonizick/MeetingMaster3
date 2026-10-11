@@ -97,6 +97,15 @@ header only (no form-field fallback).
 | Model isolation | `voiceprint_embeddings.model_id` | Embeddings are tagged with the model and a hash of its weights; different models are never compared. |
 | Offline model load | `speakers/embeddings.py` | The WeSpeaker model loads from the cached diarization snapshot folder (no network); telemetry is disabled before pyannote is imported (verified with `HF_HUB_OFFLINE=1` in the GPU test). |
 
+### Implemented in Phase 09 (templates and note generation)
+| Control | Where | Behaviour |
+|---|---|---|
+| Cloud consent before any call (S6) | `templates/stages.py`, `templates/generator.py` | A cloud backend without consent pauses the job (`cloud_consent` question) before a single request; declining fails the job with nothing sent. `NoteGenerator` also calls `enforce_consent` before its first request, and `POST /api/notes/regenerate-section` returns 403 `E_CONSENT_REQUIRED` without `cloud_consent`. Consent is per backend: switching the job to another cloud backend asks again. |
+| Vault confinement (S4) | `templates/loader.py`, `templates/regenerate.py`, `templates/stages.py` | The templates folder and the note path of a regeneration resolve inside the vault (`vault.paths.confine`); template files that are symlinks out of the vault are ignored. Notes and companions are written with `atomic_write_text(..., vault_root=)`, never overwriting. |
+| Template files are untrusted input | `templates/schema.py` | Parsed with `yaml.safe_load`/`compose`, size-limited (256 KiB), strictly validated; an invalid template is reported, never executed. Template text only becomes prompt text. |
+| Model output is untrusted | `templates/postprocess.py` | Marker-like lines and `mm3` HTML comments are stripped before a section is built (a model cannot forge section markers), headings demoted; the note is otherwise plain Markdown. Rendering it in the browser must sanitise it (S3, Phases 10/11). A transcript could contain instructions aimed at the model (prompt injection); the worst outcome is wrong note text in your own vault, which you review. Phase 15 threat model. |
+| No transcript text in logs | `templates/generator.py` | Prompts and answers are not logged; the owner guard logs only the changed task line at INFO. |
+
 ## Data the app stores and where
 _To be completed as phases land. Final version in Phase 15._
 
@@ -107,4 +116,6 @@ _To be completed as phases land. Final version in Phase 15._
 | Job state, feedback, voiceprints | `$XDG_DATA_HOME/meetingmaster3/mm3.db` (mode `0600`, `secure_delete` on) | Phase 04 (done)/07 (done) | No |
 | Config and secrets | `$XDG_CONFIG_HOME/meetingmaster3/config.yaml` (mode `0600`, directory `0700`) | Phase 02 (done) | No |
 | Model weights | `$XDG_CACHE_HOME/meetingmaster3/models` (`MM3_MODELS_DIR`, folder `0700`) | Phase 06 (done) | Downloaded in, never out |
-| Transcript text sent to an LLM | Selected backend | Phase 08 | **Only for a cloud backend you confirmed** |
+| Transcript text sent to an LLM | Selected backend | Phase 08/09 (done) | **Only for a cloud backend you confirmed** |
+| Generation checkpoints and drafts | Job folder: `notes.draft.md`, `generation.json`, `generate.partial.json`, `written.json` | Phase 09 (done) | No |
+| Template install record | `$XDG_DATA_HOME/meetingmaster3/templates.installed.json` (file hashes only) | Phase 09 (done) | No |
