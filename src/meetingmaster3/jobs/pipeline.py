@@ -1,12 +1,15 @@
 """Pipelines: the ordered stages of a job type, assembled from a stage registry.
 
-Later phases plug in real stages with :func:`register_stage` (Phase 09: ``generate``, ``write``).
-Until a stage is registered, an :class:`UnavailableStage` stands in and fails with an install
-hint. ``transcribe``, ``align`` and ``diarize`` (Phase 06) are built in: they are the WhisperX
-stages when the ``ml`` extra is installed, and an "engine not installed" placeholder otherwise.
+:func:`register_stage` replaces a stage's implementation (tests, plugins); an unknown stage
+without one gets an :class:`UnavailableStage` that fails with an install hint. ``transcribe``,
+``align`` and ``diarize`` (Phase 06) are built in: they are the WhisperX stages when the ``ml``
+extra is installed, and an "engine not installed" placeholder otherwise.
 ``speaker_suggest`` and ``await_speaker_confirmation`` (Phase 07, :mod:`meetingmaster3.speakers`)
 are always available; voice suggestions need the ``ml`` extra and opt-in voiceprints.
-``MM3_FAKE_PIPELINE=1`` swaps every ML/LLM stage for a fake.
+``generate`` and ``write`` (Phase 09, :mod:`meetingmaster3.templates.stages`) are built in too.
+``MM3_FAKE_PIPELINE=1`` swaps every ML/LLM stage for a fake (generation uses the offline
+:class:`~meetingmaster3.llm.fake.FakeLLMBackend`; writing still writes to the vault when one is
+configured).
 """
 
 from __future__ import annotations
@@ -77,6 +80,14 @@ def _default_factory(name: str, display: str, gpu: bool) -> StageFactory:
         return lambda settings: SpeakerSuggestStage()
     if name == "await_speaker_confirmation":
         return lambda settings: SpeakerConfirmationStage()
+    if name in ("generate", "write"):
+
+        def generation(settings: Settings) -> Stage:
+            from meetingmaster3.templates.stages import GenerateStage, WriteStage
+
+            return GenerateStage(settings) if name == "generate" else WriteStage()
+
+        return generation
     return lambda settings: UnavailableStage(name, display, uses_gpu=gpu)
 
 

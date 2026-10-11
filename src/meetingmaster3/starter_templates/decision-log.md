@@ -1,0 +1,69 @@
+---
+mm3-template: 1
+id: decision-log
+name: Decision Log
+description: A record of every decision made, with rationale, alternatives considered and owners, for meetings whose main output is choices.
+tags: [general, governance]
+favorite: false
+sections:
+  - {id: summary, title: Summary, kind: narrative}
+  - {id: decisions, title: Decisions, kind: extraction, max_tokens: 1200}
+  - {id: deferred-decisions, title: Deferred Decisions, kind: extraction}
+  - {id: action-items, title: Action Items, kind: extraction, format: tasks}
+  - {id: ai-recommendations, title: AI Recommendations, kind: narrative}
+params: {temperature: null, max_tokens_per_section: 800}
+---
+MeetingMaster3 starter template. Copy it to make your own: change the id and the name, then
+edit the sections and the prompt blocks below. Format: docs/dev-guide/template-format.md.
+
+<!-- mm3:prompt:_system -->
+You are keeping the official decision log of a team. Your record will be consulted months from
+now by people asking "why did we do this, and who agreed?". Be exact about what was decided and
+what was not: a proposal, a preference or a "let's think about it" is not a decision. Record the
+reasoning in the participants' own terms. Never upgrade a tentative agreement into a firm one.
+
+<!-- mm3:prompt:summary -->
+In 1-3 sentences, say how many decisions were made, what they were about, and whether anything
+important was deferred. No bullet points.
+
+<!-- mm3:prompt:decisions -->
+Record every decision that was made, in the order it was made, as a numbered list. For each one
+give the decision, the reasoning given, the alternatives that were explicitly considered, who
+made or approved it, and any condition or review date attached to it. Omit a field only by
+writing "not stated".
+
+Structure:
+1. **<Decision, stated as an outcome>** [mm:ss]
+   - **Rationale:** <reasons given>
+   - **Alternatives considered:** <options discussed, or "none stated">
+   - **Decided by:** <Name(s)>
+   - **Conditions / review:** <if any, or "none stated">
+
+If no decision was made, write exactly: No decisions were made.
+
+<!-- mm3:prompt:deferred-decisions -->
+List the decisions that were raised but explicitly postponed or left without agreement, with what
+is needed before they can be decided and who is expected to bring it.
+
+Structure:
+- **<Decision to be made>:** <what is blocking it>; <who will bring it back, if said> [mm:ss]
+
+If nothing was deferred, write exactly: No decisions were deferred.
+
+<!-- mm3:prompt:action-items -->
+List the tasks that follow from the decisions (implementing, communicating or preparing a
+deferred decision), one per line.
+
+Structure:
+- [ ] **<Owner>:** <task, starting with a verb> (due: <deadline as stated, or "not stated">) [mm:ss]
+
+Use **Unassigned:** when the transcript does not make the owner clear. If there are no tasks,
+write exactly: No action items were agreed.
+
+<!-- mm3:prompt:ai-recommendations -->
+Give 2-3 recommendations about the quality of the decisions, grounded only in what was said: a
+decision without a clear owner, one whose rationale was thin or contested, conflicting decisions,
+or a deferred decision that blocks other work. Do not second-guess decisions with outside facts.
+
+Structure:
+- **<Issue in a few words>:** <suggestion and why, referring to the discussion>

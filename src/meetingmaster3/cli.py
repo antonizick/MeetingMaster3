@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import sys
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, NoReturn
 
 import typer
 import uvicorn
 
 from meetingmaster3 import __version__
 from meetingmaster3.config.paths import resolve_paths
-from meetingmaster3.config.settings import load_settings
+from meetingmaster3.config.settings import Settings, load_settings
+from meetingmaster3.errors import MM3Error
 from meetingmaster3.logging import configure_logging
 
 if TYPE_CHECKING:
@@ -24,6 +27,8 @@ jobs_app = typer.Typer(help="Inspect jobs and manage retained audio.", no_args_i
 app.add_typer(jobs_app, name="jobs")
 models_app = typer.Typer(help="Download and inspect transcription models.", no_args_is_help=True)
 app.add_typer(models_app, name="models")
+templates_app = typer.Typer(help="List, validate and install note templates.", no_args_is_help=True)
+app.add_typer(templates_app, name="templates")
 voiceprints_app = typer.Typer(
     help="List or delete stored voices (opt-in speaker recognition).", no_args_is_help=True
 )
@@ -378,6 +383,209 @@ def models_download(
             typer.echo(exc.hint, err=True)
             raise typer.Exit(1) from exc
     typer.secho("Done.", fg=typer.colors.GREEN)
+
+
+# -- templates and headless processing (Phase 09) ------------------------------------------
+
+
+def _library_settings(vault: str | None) -> Settings:
+    settings = load_settings()
+    if vault is not None:
+        settings.vault.path = Path(vault)
+    return settings
+
+
+@templates_app.command("list")
+def templates_list(
+    vault: str | None = typer.Option(None, help="Vault folder (default from settings)."),
+) -> None:
+    """List the templates (vault copies override built-ins) and any invalid files."""
+    from meetingmaster3.templates.stages import template_library
+
+    settings = _library_settings(vault)
+    library = template_library(settings)
+    default = settings.generation.default_template
+    for entry in library.listing():
+        data = entry.to_dict()
+        mark = "*" if data["id"] == default else " "
+        state = "ok     " if entry.valid else "INVALID"
+        origin = data["source"] + (" (overrides built-in)" if data["overrides_builtin"] else "")
+        typer.echo(f"{mark} {state} {data['id'] or '?':<24} {data['name']:<28} {origin}")
+        for issue in entry.all_issues:
+            typer.echo(f"      {data['file']}: {issue}")
+    typer.echo(f"(* = default: {default})")
+
+
+@templates_app.command("validate")
+def templates_validate(
+    files: list[str] | None = typer.Argument(  # noqa: B008 - typer's declaration style
+        None, help="Template files (default: the library)."
+    ),
+    vault: str | None = typer.Option(None, help="Vault folder (default from settings)."),
+) -> None:
+    """Check templates and report problems with line numbers. Exits 1 if any is invalid."""
+    from meetingmaster3.templates.schema import parse_template_file
+    from meetingmaster3.templates.stages import template_library
+
+    bad = 0
+    if files:
+        for path in map(Path, files):
+            report = parse_template_file(path)
+            ok = report.ok
+            bad += not ok
+            typer.echo(f"{'ok     ' if ok else 'INVALID'} {path}")
+            for issue in report.issues:
+                typer.echo(f"  {path.name}:{issue.line}: {issue.message} [{issue.code}]")
+    else:
+        for entry in template_library(_library_settings(vault)).entries:
+            bad += not entry.valid
+            typer.echo(f"{'ok     ' if entry.valid else 'INVALID'} {entry.source:<7} {entry.path}")
+            for issue in entry.all_issues:
+                typer.echo(f"  {entry.path.name}:{issue.line}: {issue.message} [{issue.code}]")
+    if bad:
+        raise typer.Exit(1)
+
+
+@templates_app.command("install")
+def templates_install(
+    vault: str | None = typer.Option(None, help="Vault folder (default from settings)."),
+) -> None:
+    """Copy the built-in templates into the vault (your edited copies are never replaced)."""
+    from meetingmaster3.templates.loader import MANIFEST_NAME, install_builtins
+    from meetingmaster3.vault.paths import resolve_vault_root
+
+    settings = _library_settings(vault)
+    paths = resolve_paths()
+    paths.ensure()
+    try:
+        root = resolve_vault_root(settings.vault.path)
+        results = install_builtins(
+            root, settings.vault.templates_subfolder, paths.data_dir / MANIFEST_NAME
+        )
+    except MM3Error as exc:
+        _fail(exc)
+    for r in results:
+        typer.echo(f"{r.action:<10} {settings.vault.templates_subfolder.rstrip('/')}/{r.file}")
+
+
+def _fail(exc: MM3Error) -> NoReturn:
+    typer.secho(f"Error: {exc.message}", fg=typer.colors.RED, err=True)
+    if exc.hint:
+        typer.echo(f"Hint: {exc.hint}", err=True)
+    raise typer.Exit(1)
+
+
+def _ask_on_tty(kind: str, payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Answer a job question interactively (None when stdin is not a terminal)."""
+    if not sys.stdin.isatty():
+        return None
+    if kind == "speaker_confirmation":
+        typer.echo("Name the speakers (Enter keeps the suggestion or placeholder):")
+        answer: dict[str, str] = {}
+        for sp in payload.get("speakers", []):
+            label = sp.get("label")
+            suggestion = (sp.get("suggestion") or {}).get("name") or sp.get("placeholder") or label
+            talk = sp.get("talk_seconds")
+            extra = f" ({talk:.0f} s of speech)" if isinstance(talk, int | float) else ""
+            answer[label] = typer.prompt(f"  {label}{extra}", default=suggestion)
+        return {"speakers": answer}
+    if kind == "cloud_consent":
+        ok = typer.confirm(str(payload.get("message") or "Send the transcript to the cloud?"))
+        return {"consent": ok}
+    if kind == "language":
+        typer.echo(str(payload.get("message", "The audio does not look like English.")))
+        go = typer.confirm("Transcribe it in the detected language?", default=True)
+        return {"action": "proceed" if go else "abort"}
+    return None
+
+
+@app.command()
+def process(
+    audio_file: str = typer.Argument(..., metavar="AUDIO", help="Recording to process."),
+    title: str | None = typer.Option(None, help="Meeting title (default: from the file name)."),
+    date: str | None = typer.Option(None, help="Meeting date, YYYY-MM-DD (default: file name)."),
+    time: str | None = typer.Option(None, help="Meeting start time, HH:MM."),
+    template: str | None = typer.Option(None, help="Template id (default from settings)."),
+    backend: str | None = typer.Option(None, help="LLM backend name (default from settings)."),
+    model: str | None = typer.Option(None, help="LLM model (default: the backend's)."),
+    speakers: str | None = typer.Option(
+        None, help='Speaker names, e.g. "SPEAKER_00=Alice,SPEAKER_01=Bob". Asked if omitted.'
+    ),
+    participants: str | None = typer.Option(None, help="Comma-separated extra participants."),
+    tags: str | None = typer.Option(None, help="Comma-separated note tags."),
+    location: str | None = typer.Option(None, help="Location or context."),
+    instructions: str | None = typer.Option(None, help="Extra instructions for every section."),
+    cloud_consent: bool = typer.Option(
+        False, "--cloud-consent", help="Allow sending the transcript to a cloud backend."
+    ),
+    vault: str | None = typer.Option(None, help="Vault folder (default from settings)."),
+    diarize: bool | None = typer.Option(None, "--diarize/--no-diarize", help="Separate speakers."),
+    transcription_model: str | None = typer.Option(None, help="Whisper model override."),
+    language: str | None = typer.Option(None, help="Force the spoken language (e.g. en)."),
+) -> None:
+    """Process a recording end to end: transcript, speaker names, notes, written to the vault."""
+    audio = Path(audio_file)
+    import asyncio
+    import datetime as dt
+
+    from meetingmaster3.headless import ProcessRequest, build_options, parse_speakers
+    from meetingmaster3.headless import process as run_process
+    from meetingmaster3.vault.paths import resolve_vault_root
+
+    configure_logging()
+    settings = _library_settings(vault)
+    paths = resolve_paths()
+
+    def split(text: str | None) -> list[str]:
+        return [p.strip() for p in (text or "").split(",") if p.strip()]
+
+    try:
+        resolve_vault_root(settings.vault.path)  # fail before transcribing for minutes
+        try:
+            day = dt.date.fromisoformat(date) if date else None
+            start = dt.time.fromisoformat(time) if time else None
+        except ValueError as exc:
+            raise MM3Error("E_OPTIONS_INVALID", f"Invalid date or time: {exc}.", "") from exc
+        options = build_options(
+            audio,
+            title=title,
+            date=day,
+            meeting_time=start,
+            template=template,
+            backend=backend,
+            model=model,
+            participants=split(participants),
+            tags=split(tags),
+            location=location,
+            instructions=instructions,
+            cloud_consent=cloud_consent,
+            diarize=diarize,
+            transcription_model=transcription_model,
+            language=language,
+        )
+        request = ProcessRequest(
+            audio, options, parse_speakers(speakers) if speakers else None, cloud_consent
+        )
+        result = asyncio.run(
+            run_process(settings, paths, request, ask=_ask_on_tty, echo=typer.echo)
+        )
+    except MM3Error as exc:
+        _fail(exc)
+    except KeyboardInterrupt:
+        typer.echo("Cancelled.", err=True)
+        raise typer.Exit(130) from None
+    for warning in result.warnings:
+        typer.secho(f"Warning: {warning}", fg=typer.colors.YELLOW, err=True)
+    if result.status.value != "written":
+        err = result.error or {}
+        _fail(MM3Error(err.get("code") or "E_JOB", err.get("message") or "", err.get("hint") or ""))
+    w = result.written
+    if w.get("note_path"):
+        typer.secho(f"Note:       {w['note_path']}", fg=typer.colors.GREEN)
+        if w.get("transcript_path"):
+            typer.echo(f"Transcript: {w['transcript_path']}")
+    else:
+        typer.echo("Done (no vault configured; nothing was written).")
 
 
 def main() -> None:

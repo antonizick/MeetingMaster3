@@ -101,6 +101,15 @@ class JobOptions(BaseModel):
     backend: str | None = None
     model: str | None = None  # the LLM model (with ``backend``)
     cloud_consent: bool = False
+    # Note generation (Phase 09).
+    meeting_time: dt.time | None = None
+    participants: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    location: str | None = Field(default=None, max_length=500)
+    instructions: str | None = Field(default=None, max_length=4000)
+    """Extra instructions for every section ("focus on the budget")."""
+    cloud_consent_for: str | None = None
+    """Set by the generate stage when the user confirmed cloud use of this backend (S6)."""
     # Transcription overrides (Phase 06); ``None`` uses settings, then the hardware recommendation.
     transcription_model: str | None = Field(default=None, pattern=MODEL_NAME_PATTERN)
     compute_type: Literal["float16", "int8_float16", "int8", "float32"] | None = None

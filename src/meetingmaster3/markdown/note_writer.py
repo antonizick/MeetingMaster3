@@ -8,6 +8,7 @@ unchanged sections. ``render_note(parse_note(text).note, base=parse_note(text)) 
 
 from __future__ import annotations
 
+import datetime as dt
 from typing import Any
 
 from meetingmaster3.domain.meeting import MeetingMeta
@@ -95,10 +96,16 @@ def frontmatter_data(note: Note, base: ParsedNote | None = None) -> dict[str, An
 
 
 def render_header(meta: MeetingMeta, newline: str = "\n") -> str:
-    """The Appendix B header block (R10), rendered from metadata."""
+    """The Appendix B header block (R10), rendered from metadata. A date whose time is exactly
+    midnight means "time unknown" and is shown without a time."""
     lines = []
     if meta.date is not None:
-        lines.append(f"- **Date & Time:** {meta.date:%Y-%m-%d %H:%M}")
+        shown = (
+            f"{meta.date:%Y-%m-%d}"
+            if meta.date.time() == dt.time(0)
+            else f"{meta.date:%Y-%m-%d %H:%M}"
+        )
+        lines.append(f"- **Date & Time:** {shown}")
     lines.append(f"- **Participants:** {', '.join(meta.participants) or 'Not recorded'}")
     if meta.tags:
         lines.append(f"- **Tags:** {' '.join('#' + t for t in meta.tags)}")

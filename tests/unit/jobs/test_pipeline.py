@@ -35,9 +35,12 @@ def test_canonical_order_and_placeholders(monkeypatch: pytest.MonkeyPatch) -> No
     assert not fake_pipeline_enabled()
     p = build_pipeline("meeting", Settings())
     assert p.names == CANONICAL == [s[0] for s in MEETING_STAGES]
-    assert isinstance(p.stage("generate"), UnavailableStage)
+    assert type(p.stage("generate")).__name__ == "GenerateStage"
+    assert type(p.stage("write")).__name__ == "WriteStage"
     assert type(p.stage("speaker_suggest")).__name__ == "SpeakerSuggestStage"
-    assert p.stage("transcribe").uses_gpu and not p.stage("generate").uses_gpu
+    # The default backend is the local Ollama, which shares the GPU (R5).
+    assert p.stage("transcribe").uses_gpu and p.stage("generate").uses_gpu
+    assert not p.stage("write").uses_gpu
     assert all(isinstance(s, Stage) for s in p.stages)
     with pytest.raises(KeyError):
         p.stage("nope")

@@ -1,8 +1,10 @@
 """Fake stages that sleep, report progress and write plausible artifacts.
 
 Used by the tests and, with ``MM3_FAKE_PIPELINE=1``, for UI development without ML models or
-an LLM. ``MM3_FAKE_STAGE_SECONDS`` (default 2) sets how long each fake stage takes. The fakes
-never touch the vault: ``FakeWrite`` only records what would have been written.
+an LLM. ``MM3_FAKE_STAGE_SECONDS`` (default 2) sets how long each fake stage takes. Generation
+runs the real stage against the offline fake model; ``FakeWrite`` writes the note into the
+vault when one is configured (so the whole flow can be clicked through) and otherwise only
+records what would have been written.
 """
 
 from __future__ import annotations
@@ -15,13 +17,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from meetingmaster3.domain.transcript import Segment, Transcript
+from meetingmaster3.errors import MM3Error
 from meetingmaster3.jobs.stage import BaseStage, Stage, StageContext
 from meetingmaster3.speakers.embeddings import Interval
 from meetingmaster3.speakers.stages import SpeakerSuggestStage
 from meetingmaster3.speakers.vectors import Vector, normalize
+from meetingmaster3.templates.stages import GenerateStage, WriteStage
 
 if TYPE_CHECKING:
     from meetingmaster3.config.settings import Settings
+    from meetingmaster3.llm.base import LLMBackend
 
 SECONDS_ENV = "MM3_FAKE_STAGE_SECONDS"
 STEPS = 10
@@ -150,33 +155,55 @@ class FakeSpeakerSuggest(SpeakerSuggestStage):
         pass
 
 
-class FakeGenerate(FakeStage):
-    name, display_name, uses_gpu = "generate", "Generating notes", False
-    artifact_name = "notes.draft.md"
+def fake_backend(settings: Settings, name: str | None) -> tuple[str, LLMBackend]:
+    """The offline fake model, standing in for the requested backend. It is "cloud" when that
+    backend is, so the consent flow (S6) can be exercised without a network."""
+    from meetingmaster3.llm.fake import FakeLLMBackend
+    from meetingmaster3.llm.registry import BackendRegistry
 
-    def produce(self, ctx: StageContext) -> Any:
-        answer = json.loads(ctx.artifacts["await_speaker_confirmation"].read_text("utf-8"))
-        names: list[str] = answer.get("participants") or [
-            value["name"] if isinstance(value, dict) else str(value)
-            for value in answer.get("speakers", {}).values()
-        ]
-        title = ctx.job.title or "Fake meeting"
-        people = ", ".join(names) or "unknown"
-        return (
-            f"# {title}\n\n**Participants:** {people}\n\n## Summary\n\n"
-            "Simulated notes from the fake pipeline (MM3_FAKE_PIPELINE=1).\n"
+    registry = BackendRegistry(settings)
+    name = name or registry.default_name
+    try:
+        is_local = registry.get(name).is_local
+    except MM3Error:
+        is_local = True
+    return name, FakeLLMBackend(id=name, is_local=is_local)
+
+
+class FakeGenerate(GenerateStage):
+    """The real generation stage with :class:`~meetingmaster3.llm.fake.FakeLLMBackend`."""
+
+    default_model = "fake-model"
+
+    def __init__(self, seconds: float | None = None) -> None:
+        super().__init__(None, fake_backend)
+        self.seconds = stage_seconds() if seconds is None else seconds
+
+    def run(self, ctx: StageContext) -> Path:
+        simulate(ctx, self.seconds, self.display_name)
+        return super().run(ctx)
+
+
+class FakeWrite(WriteStage):
+    """The real write stage when a vault is configured; otherwise it only records what it
+    would have written."""
+
+    def __init__(self, seconds: float | None = None) -> None:
+        super().__init__()
+        self.seconds = stage_seconds() if seconds is None else seconds
+
+    def run(self, ctx: StageContext) -> Path:
+        simulate(ctx, self.seconds, self.display_name)
+        if ctx.settings.vault.path is not None:
+            return super().run(ctx)
+        return ctx.write_json(
+            "written.json",
+            {"fake": True, "note_path": None, "draft": str(ctx.artifacts["generate"])},
         )
 
 
-class FakeWrite(FakeStage):
-    name, display_name, uses_gpu = "write", "Writing to vault", False
-    artifact_name = "written.json"
-
-    def produce(self, ctx: StageContext) -> Any:
-        return {"fake": True, "note_path": None, "draft": str(ctx.artifacts["generate"])}
-
-
-FAKE_STAGES: tuple[type[FakeStage] | type[FakeSpeakerSuggest], ...] = (
+FakeClass = type[FakeStage] | type[FakeSpeakerSuggest] | type[FakeGenerate] | type[FakeWrite]
+FAKE_STAGES: tuple[FakeClass, ...] = (
     FakeTranscribe,
     FakeAlign,
     FakeDiarize,
@@ -187,7 +214,7 @@ FAKE_STAGES: tuple[type[FakeStage] | type[FakeSpeakerSuggest], ...] = (
 
 
 def fake_factories(seconds: float | None = None) -> dict[str, Callable[[Settings], Stage]]:
-    def make(cls: type[FakeStage] | type[FakeSpeakerSuggest]) -> Callable[[Settings], Stage]:
+    def make(cls: FakeClass) -> Callable[[Settings], Stage]:
         return lambda settings: cls(seconds)
 
     return {cls.name: make(cls) for cls in FAKE_STAGES}

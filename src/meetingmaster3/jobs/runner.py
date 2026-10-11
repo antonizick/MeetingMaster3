@@ -208,7 +208,7 @@ class JobRunner:
             d = rec.to_dict()
             stage = names.get(rec.stage)
             d["display_name"] = stage.display_name if stage else rec.stage
-            d["uses_gpu"] = bool(stage and stage.uses_gpu)
+            d["uses_gpu"] = bool(stage and stage_uses_gpu(stage, job.settings))
             ev = latest.get(rec.stage) if rec.status is StageStatus.RUNNING else None
             d["fraction"] = 1.0 if rec.status is StageStatus.COMPLETED else None
             d["message"] = rec.detail.get("message", "")
@@ -269,9 +269,17 @@ class JobRunner:
         self._publish_job(job, "Cancelled")
         return job
 
-    def resume(self, job_id: str, overrides: dict[str, Any] | None = None) -> JobRecord:
+    def resume(
+        self,
+        job_id: str,
+        overrides: dict[str, Any] | None = None,
+        *,
+        from_stage: str | None = None,
+    ) -> JobRecord:
         """Queue a failed, cancelled or interrupted job again; ``overrides`` are merged into
-        its options (e.g. a smaller model after an out-of-memory failure)."""
+        its options (e.g. a smaller model after an out-of-memory failure). ``from_stage`` also
+        re-runs that stage and every later one, even if they completed (e.g. ``generate`` with
+        another template)."""
         job = self.jobs.get(job_id)
         if job.status not in RESUMABLE:
             raise MM3Error(
@@ -280,6 +288,13 @@ class JobRunner:
                 "Only failed, cancelled or interrupted jobs can be resumed.",
                 status_code=409,
             )
+        if from_stage is not None:
+            rows = {r.stage: r for r in self.stages.for_job(job_id)}
+            if from_stage not in rows:
+                raise MM3Error(
+                    "E_STAGE_UNKNOWN", f"This job has no stage {from_stage!r}.", "", status_code=422
+                )
+            self.stages.reset_from(job_id, rows[from_stage].position)
         fields: dict[str, Any] = _clear_errors()
         if overrides:
             fields["settings"] = self._merge_options(job, overrides)
@@ -287,6 +302,24 @@ class JobRunner:
         self._publish_job(job, "Queued to resume")
         self._queue.put_nowait(job_id)
         return job
+
+    def update_options(self, job_id: str, overrides: dict[str, Any]) -> JobRecord:
+        """Change the options of a queued or waiting job; they apply to the stages still to
+        run (e.g. the template before ``generate``)."""
+        job = self.jobs.get(job_id)
+        if job.status not in {JobStatus.QUEUED, JobStatus.WAITING_FOR_INPUT}:
+            raise MM3Error(
+                "E_JOB_STATE",
+                f"The options of a {job.status.value} job cannot be changed.",
+                "Wait for the job to pause or finish, or resume it with new options.",
+                status_code=409,
+            )
+        return self.jobs.update(job_id, settings=self._merge_options(job, overrides))
+
+    def waiting_stage(self, job_id: str) -> str | None:
+        """The stage a ``waiting_for_input`` job is waiting in."""
+        waiting = [r for r in self.stages.for_job(job_id) if r.status is StageStatus.WAITING]
+        return waiting[0].stage if waiting else None
 
     def submit_input(self, job_id: str, data: dict[str, Any]) -> JobRecord:
         """Answer the question a ``waiting_for_input`` job is waiting on, and queue it."""
@@ -476,13 +509,14 @@ class JobRunner:
                 current = stage.name
                 if token.cancelled:
                     raise JobCancelled(job_id)
-                if stage.uses_gpu and not gpu_held:
+                uses_gpu = stage_uses_gpu(stage, job.settings)
+                if uses_gpu and not gpu_held:
                     self._publish_stage(
                         job_id, stage.name, StageStatus.PENDING, None, "Waiting for the GPU"
                     )
                     await self._acquire_gpu(token)
                     gpu_held = True
-                elif not stage.uses_gpu and gpu_held:
+                elif not uses_gpu and gpu_held:
                     self._gpu.release()
                     gpu_held = False
                 artifacts[stage.name] = await self._run_stage(job_id, stage, artifacts, token)
@@ -683,6 +717,16 @@ class JobRunner:
             except Exception:
                 log.exception("Audio retention pruning failed")
             await asyncio.sleep(interval)
+
+
+def stage_uses_gpu(stage: Stage, options: dict[str, Any]) -> bool:
+    """Whether ``stage`` needs the GPU for a job with these options. A stage can decide per
+    job with ``gpu_for(options)`` (the generate stage, when the job's backend is a local Ollama
+    sharing the GPU); otherwise its ``uses_gpu`` attribute applies."""
+    decide = getattr(stage, "gpu_for", None)
+    if callable(decide):
+        return bool(decide(options))
+    return bool(stage.uses_gpu)
 
 
 def _json(data: Any) -> str:

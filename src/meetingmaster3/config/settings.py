@@ -86,6 +86,20 @@ class LLMSettings(BaseModel):
     backends: dict[str, BackendConfig] = Field(default_factory=dict)
 
 
+class GenerationSettings(BaseModel):
+    """Note generation (Phase 09; templates in docs/dev-guide/template-format.md)."""
+
+    default_template: str = Field(default="executive-summary", pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")
+    write_companion: bool = True
+    """Write the companion transcript next to the note (Q2). Without it, a note cannot be
+    re-opened for regeneration or speaker renaming."""
+    max_context: int = Field(default=16384, ge=2048, le=1_048_576)
+    """Largest context window (tokens) planned for a *local* model. Models advertise windows
+    (e.g. 40k) that an 8 GB GPU cannot hold next to the weights; longer meetings use map-reduce."""
+    install_templates: bool = True
+    """Copy the built-in templates into the vault's templates folder on first use."""
+
+
 class AudioSettings(BaseModel):
     max_upload_mb: int = Field(default=2048, ge=1)  # R7
     opus_bitrate_kbps: int = Field(default=24, ge=6, le=128)  # retained audio (R8)
@@ -126,6 +140,7 @@ class Settings(BaseSettings):
     transcription: TranscriptionSettings = Field(default_factory=TranscriptionSettings)
     hardware: HardwareSettings = Field(default_factory=HardwareSettings)
     llm: LLMSettings = Field(default_factory=LLMSettings)
+    generation: GenerationSettings = Field(default_factory=GenerationSettings)
     audio: AudioSettings = Field(default_factory=AudioSettings)
     jobs: JobsSettings = Field(default_factory=JobsSettings)
     privacy: PrivacySettings = Field(default_factory=PrivacySettings)
