@@ -10,13 +10,14 @@ from __future__ import annotations
 
 import datetime as dt
 import math
-import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
 from meetingmaster3.domain.meeting import MeetingMeta
 from meetingmaster3.domain.transcript import Transcript, group_turns
 from meetingmaster3.llm.budget import Turn
+from meetingmaster3.templates import cues as cues_mod
+from meetingmaster3.templates.cues import Cue
 from meetingmaster3.templates.schema import Template, TemplateSection
 
 GLOBAL_RULES = """\
@@ -174,29 +175,11 @@ def section_instructions(template: Template, section: TemplateSection) -> str:
     )
 
 
-_SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
-_TASK_CUE_RE = re.compile(
-    r"\b(i'll|i will|i'm going to|i am going to|i can (?:do|take|have|send|look)|"
-    r"we'll|we will|can you|could you|would you|will you|please|"
-    r"we should|we need to|someone should|somebody should|needs? to|has to|have to|"
-    r"let's make sure|action item|follow up|take (?:it|that) offline)\b",
-    re.I,
-)
-MAX_TASK_CUES = 60
-
-
-def task_cues(turns: Sequence[Turn], *, hours: bool = False) -> list[str]:
-    """Sentences that sound like commitments, requests or "we should" (heuristic, in order).
-
-    Given to the model as candidates for task sections: small models otherwise miss tasks in
-    long transcripts, and "we should" lines are the ones that become **Unassigned** tasks."""
-    out: list[str] = []
-    for t in turns:
-        for sentence in _SENTENCE_RE.split(t.text):
-            if _TASK_CUE_RE.search(sentence):
-                stamp = f"[{clock(t.start, hours=hours)}] " if t.start is not None else ""
-                out.append(f"{stamp}{t.speaker}: {sentence.strip()}")
-    return out[:MAX_TASK_CUES]
+def task_cues(turns: Sequence[Turn], *, hours: bool = False) -> list[Cue]:
+    """Candidate task sentences (see :mod:`meetingmaster3.templates.cues`) with timestamps."""
+    return cues_mod.task_cues(
+        turns, lambda t: f"[{clock(t.start, hours=hours)}]" if t.start is not None else ""
+    )
 
 
 def section_prompt(
@@ -207,7 +190,7 @@ def section_prompt(
     instructions: str | None = None,
     previous: str | None = None,
     feedback: str | None = None,
-    cues: Sequence[str] = (),
+    cues: Sequence[Cue] = (),
 ) -> str:
     """The user message for one section. ``cues`` (task sections only) are candidate lines
     from :func:`task_cues`."""
@@ -218,9 +201,12 @@ def section_prompt(
     if cues and section.format == "tasks":
         parts.append(
             "To help you, these transcript sentences sound like commitments, requests or "
-            '"we should". Check each one against the transcript: some are tasks (with an '
-            "owner, or Unassigned), some are not tasks at all. Tasks can also appear elsewhere."
-            "\n<candidates>\n" + "\n".join(cues) + "\n</candidates>"
+            "suggestions. Check each one against the transcript. A commitment makes its speaker "
+            "the owner; a request makes the person asked the owner if they agreed; a suggestion "
+            "is an **Unassigned** task unless someone later took it on; someone who declines is "
+            "never the owner. Some are not tasks at "
+            "all, and tasks can also appear elsewhere."
+            "\n<candidates>\n" + "\n".join(c.render() for c in cues) + "\n</candidates>"
         )
     if instructions and instructions.strip():
         parts.append(f"Additional instructions from the user:\n{instructions.strip()}")

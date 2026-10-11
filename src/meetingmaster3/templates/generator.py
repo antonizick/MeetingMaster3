@@ -29,6 +29,7 @@ from meetingmaster3.llm.budget import (
 )
 from meetingmaster3.llm.consent import enforce_consent
 from meetingmaster3.templates import assembler
+from meetingmaster3.templates.cues import Cue, guard_owners
 from meetingmaster3.templates.mapreduce import (
     EXTRACTION_SYSTEM,
     ChunkExtraction,
@@ -79,7 +80,7 @@ class PreparedContext:
     num_ctx: int
     chunks: int = 0
     meeting_day: dt.date | None = None
-    cues: tuple[str, ...] = ()
+    cues: tuple[Cue, ...] = ()
 
 
 @dataclass
@@ -150,7 +151,7 @@ class NoteGenerator:
         return result.text, result.finish_reason
 
     def _sections_overhead(
-        self, sections: list[TemplateSection], cues: tuple[str, ...] = ()
+        self, sections: list[TemplateSection], cues: tuple[Cue, ...] = ()
     ) -> tuple[int, int]:
         """(tokens of the longest section tail, largest output reserve)."""
         tail = max(
@@ -258,6 +259,7 @@ class NoteGenerator:
             num_ctx,
             len(chunks),
             meeting_day=day,
+            cues=cues,
         )
 
     async def _extract(
@@ -330,6 +332,10 @@ class NoteGenerator:
             body = clean_section(
                 text, title=section.title, fmt=section.format, meeting_day=prepared.meeting_day
             )
+            if section.format == "tasks" and prepared.cues:
+                body, unassigned = guard_owners(body, prepared.cues)
+                for line in unassigned:
+                    log.info("Owner guard: unassigned a task its owner only suggested: %s", line)
             if body != EMPTY_BODY:
                 if finish == "length":
                     self._warn(

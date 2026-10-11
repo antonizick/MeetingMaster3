@@ -6,7 +6,7 @@ description: A neutral, compact record of what was said and agreed, without inte
 tags: [general, minimal]
 favorite: false
 sections:
-  - {id: key-points, title: Key Points, kind: extraction, format: bullets}
+  - {id: key-points, title: Key Points, kind: extraction, format: bullets, max_tokens: 1200}
   - {id: decisions, title: Decisions Made, kind: extraction, format: bullets}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks}
   - {id: ai-recommendations, title: AI Recommendations, kind: narrative, max_tokens: 400}
