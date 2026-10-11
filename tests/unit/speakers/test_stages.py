@@ -313,3 +313,32 @@ def test_answer_normalisation() -> None:
             "S1": {"name": "Bo", "person_id": pid, "enroll": False},
         }
     }
+
+
+def test_default_embedder_reports_missing_engine_or_model(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from meetingmaster3.jobs.stage import CancelToken
+    from meetingmaster3.speakers.stages import default_embedder
+    from meetingmaster3.transcription import models
+
+    ctx = StageContext(
+        job=None,  # type: ignore[arg-type]
+        stage="speaker_suggest",
+        job_dir=tmp_path,
+        settings=Settings(),
+        options={},
+        artifacts={},
+        attempt=1,
+        token=CancelToken(),
+        _progress=lambda *a: None,
+    )
+    monkeypatch.setattr(models, "missing_engine_modules", lambda: ["torch"])
+    with pytest.raises(MM3Error) as err:
+        default_embedder(ctx)
+    assert err.value.code == "E_ENGINE_MISSING" and "uv sync --extra ml" in err.value.hint
+    monkeypatch.setattr(models, "missing_engine_modules", lambda: [])
+    monkeypatch.setenv("MM3_MODELS_DIR", str(tmp_path / "models"))
+    with pytest.raises(MM3Error) as err:
+        default_embedder(ctx)
+    assert err.value.code == "E_MODEL_MISSING" and "mm3 models download" in err.value.hint
