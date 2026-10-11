@@ -42,6 +42,12 @@ class TranscriptionSettings(BaseModel):
     diarize: bool = True
 
 
+class HardwareSettings(BaseModel):
+    """``auto`` detects the GPU; any other value declares the hardware profile."""
+
+    profile: Literal["auto", "cpu", "vram8", "vram16", "vram24plus"] = "auto"
+
+
 class LLMSettings(BaseModel):
     """Placeholder; populated in Phase 08."""
 
@@ -69,6 +75,7 @@ class Settings(BaseSettings):
     server: ServerSettings = Field(default_factory=ServerSettings)
     vault: VaultSettings = Field(default_factory=VaultSettings)
     transcription: TranscriptionSettings = Field(default_factory=TranscriptionSettings)
+    hardware: HardwareSettings = Field(default_factory=HardwareSettings)
     llm: LLMSettings = Field(default_factory=LLMSettings)
     privacy: PrivacySettings = Field(default_factory=PrivacySettings)
     secrets: SecretsSettings = Field(default_factory=SecretsSettings)

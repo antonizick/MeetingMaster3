@@ -68,7 +68,19 @@ to see where files live. Every setting is documented in
 [`docs/user-guide/configuration.md`](docs/user-guide/configuration.md).
 
 ## Hardware guidance
-_Coming in Phase 05 (recommendations) and Phase 15 (measured performance)._
+MeetingMaster3 detects your GPU and recommends settings; run `uv run mm3 doctor` to see them for your
+machine. Values below are **estimates** from the specification, to be replaced by measured numbers
+(Phase 15). Details: [`docs/user-guide/hardware.md`](docs/user-guide/hardware.md).
+
+| Profile | Whisper model | Diarization | Speed (x real time) | Local LLM (Ollama) |
+|---|---|---|---|---|
+| CPU only | small / medium, int8 | optional | 0.5-2 (estimated) | 3-4B, or a cloud backend |
+| 8 GB VRAM | large-v3-turbo, int8_float16 | yes | 15-30 (estimated) | 7-9B at Q4_K_M |
+| 16 GB VRAM | large-v3, float16 | yes | 30-50 (estimated) | 12-14B at Q4_K_M |
+| 24 GB+ VRAM | large-v3, float16 | yes | 40-70 (estimated) | about 30B at Q4_K_M |
+
+On 8 GB, transcription and the LLM take turns on the GPU. Override auto-detection with
+`hardware.profile` in `config.yaml`.
 
 ## FAQ
 _Coming in Phase 16._

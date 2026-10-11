@@ -6,7 +6,7 @@ Pages are added as the features land. Planned index:
 |---|---|
 | [`installation.md`](installation.md) (native with uv) | 02 (written) |
 | [`configuration.md`](configuration.md) (every setting and `MM3_*` variable) | 02 (written), extended by later phases |
-| `hardware.md` (profiles, model recommendations) | 05 |
+| [`hardware.md`](hardware.md) (profiles, model recommendations, `mm3 doctor`) | 05 (written) |
 | `models-and-tokens.md` (Hugging Face token, pyannote terms, Ollama models) | 06 |
 | `speakers-and-voiceprints.md` | 07 |
 | `llm-backends.md` (Ollama, Bedrock, OpenRouter) | 08 |

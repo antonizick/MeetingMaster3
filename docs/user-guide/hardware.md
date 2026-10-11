@@ -1,0 +1,57 @@
+# Hardware and model recommendations
+
+MeetingMaster3 detects your GPU and picks sensible transcription settings and local-LLM suggestions
+for it. Detection needs no ML packages: it uses `nvidia-smi`, then `torch.cuda` if torch happens to
+be installed, then falls back to the CPU. AMD (ROCm) and Apple GPUs are not supported and are
+treated as CPU-only.
+
+## Check your machine
+```bash
+uv run mm3 doctor
+```
+Prints the detected hardware, the profile, the recommended settings, any warnings, and environment
+checks (ffmpeg and ffprobe, Python, ML extras, Hugging Face token, Ollama, vault, data directories).
+It exits non-zero only for blocking problems (missing ffmpeg, wrong Python, an unwritable vault or
+data directory). The same data is available at `GET /api/hardware`; `POST /api/hardware/refresh`
+re-runs detection (for example after you close another GPU program).
+
+## Profiles
+The profile is chosen from total VRAM. Thresholds sit a little below the nominal size because cards
+report slightly less (an "8 GB" card shows 8192 MiB).
+
+| Profile | Total VRAM | Whisper model | Compute type | Batch | Diarization | Speed (x real time) |
+|---|---|---|---|---|---|---|
+| `cpu` | under about 7 GB or no GPU | small (or medium) | int8 | 4 | optional | 0.5-2 |
+| `vram8` | about 7-14 GB | large-v3-turbo (or medium, small) | int8_float16 | 8 | yes | 15-30 |
+| `vram16` | about 14-22 GB | large-v3 (or large-v3-turbo) | float16 | 16 | yes | 30-50 |
+| `vram24plus` | about 22 GB and up | large-v3 (or large-v3-turbo) | float16 | 24 | yes | 40-70 |
+
+All speeds are **estimates** from the specification until real measurements replace them (Phases 06
+and 15). They are targets, not promises: a laptop GPU such as the RTX 2070 Max-Q with diarization on
+may be slower. Estimated time for a meeting is `duration / speed`, shown as a range.
+
+### Overriding the profile
+Set `hardware.profile` in `config.yaml` (or `MM3_HARDWARE__PROFILE`) to `cpu`, `vram8`, `vram16` or
+`vram24plus`. The default `auto` uses detection. Declaring a profile larger than the real GPU produces
+a warning, because out-of-memory failures are likely.
+
+## Local LLM (Ollama) suggestions
+| Profile | Suggested models | Context that fits |
+|---|---|---|
+| `cpu` | 3-4B at Q4_K_M, or use a cloud backend | short prompts only |
+| `vram8` | 7-9B at Q4_K_M (Llama 3.1 8B, Qwen 2.5 7B, Gemma 2 9B) | about 8k-16k tokens |
+| `vram16` | 12-14B at Q4_K_M, or 8B at Q8_0 | about 16k-32k tokens |
+| `vram24plus` | about 30B at Q4_K_M, or 14B at Q8_0 | 32k+ tokens |
+
+**VRAM handoff.** On 8 GB, transcription and the LLM never use the GPU at the same time. The app
+unloads the transcription models before the note-writing step (and asks Ollama to unload before
+transcription starts), so the LLM step begins after transcription ends.
+
+## Warnings
+Each warning has a severity (`info`, `warning`, `critical`). Examples: `large-v3` with `float16` on
+8 GB (critical, likely out of memory), a 14B model on 8 GB (critical, spills to the CPU), another
+program using most of the VRAM, or a large Whisper model on a CPU-only machine.
+
+## Where the numbers live
+`src/meetingmaster3/hardware/recommendations.yaml`. Each profile's values are tagged
+`status: estimated` or `status: measured`.

@@ -31,8 +31,9 @@ variables in your shell or process manager (see `.env.example`).
 | `vault.path` | `MM3_VAULT__PATH` | unset | Your Obsidian vault root. |
 | `vault.output_subfolder` | `MM3_VAULT__OUTPUT_SUBFOLDER` | `Meetings/{yyyy}/` | Where notes are written inside the vault. |
 | `vault.templates_subfolder` | `MM3_VAULT__TEMPLATES_SUBFOLDER` | `MeetingMaster3/templates/` | User templates inside the vault. |
-| `transcription.model` | `MM3_TRANSCRIPTION__MODEL` | `auto` | Placeholder until Phase 05/06. |
+| `transcription.model` | `MM3_TRANSCRIPTION__MODEL` | `auto` | `auto` uses the hardware recommendation (Phase 05); wired into the pipeline in Phase 06. |
 | `transcription.diarize` | `MM3_TRANSCRIPTION__DIARIZE` | `true` | Placeholder until Phase 06. |
+| `hardware.profile` | `MM3_HARDWARE__PROFILE` | `auto` | `auto`, `cpu`, `vram8`, `vram16` or `vram24plus`. Declares the hardware profile instead of detecting it; see [`hardware.md`](hardware.md). |
 | `llm.default_backend` | `MM3_LLM__DEFAULT_BACKEND` | `ollama` | Placeholder until Phase 08. |
 | `llm.backends` | `MM3_LLM__BACKENDS` | `{}` | Per-backend options; filled in by Phase 08. |
 | `privacy.audio_retention` | `MM3_PRIVACY__AUDIO_RETENTION` | `days` | `forever`, `days` or `delete_after_write` (ADR-0006). Enforced from Phase 04. |

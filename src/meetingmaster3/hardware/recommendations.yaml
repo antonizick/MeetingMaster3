@@ -1,0 +1,88 @@
+# Data-driven hardware recommendations (Phase 05). Edit values here, not in code.
+# `status: estimated` values come from the specification (section 7); Phase 06 and Phase 15 replace
+# them with `status: measured` numbers from the reference machine (RTX 2070 Max-Q, 8 GB).
+# rtf = real-time factor: audio seconds processed per wall-clock second (higher is faster).
+version: 1
+
+profiles:
+  cpu:
+    transcription:
+      model: small
+      alternatives: [medium]
+      compute_type: int8
+      batch_size: 4
+      diarize: optional
+      rtf: [0.5, 2.0]
+      status: estimated
+      notes: Slow but functional. Diarization on CPU is slower still; consider turning it off.
+    llm:
+      status: estimated
+      summary: A small 3-4B model (or a cloud backend) is the practical choice without a GPU.
+      models:
+        - {family: "Llama 3.2 3B / Qwen 2.5 3B", size_b: 3, quant: Q4_K_M, context: "8k", quality: basic, speed: slow on CPU}
+      context_note: Keep prompts short; CPU generation is slow with long contexts.
+      vram_handoff: Not applicable (no GPU).
+  vram8:
+    transcription:
+      model: large-v3-turbo
+      alternatives: [medium, small]
+      compute_type: int8_float16
+      batch_size: 8
+      diarize: true
+      rtf: [15, 30]
+      status: estimated
+      notes: Balanced. Falls back to a smaller batch, then a smaller model, on out-of-memory.
+    llm:
+      status: estimated
+      summary: 7-8B models at Q4_K_M fit in 8 GB with a modest context window.
+      models:
+        - {family: "Llama 3.1 8B / Qwen 2.5 7B", size_b: 8, quant: Q4_K_M, context: "8k-16k", quality: good, speed: fast}
+        - {family: "Gemma 2 9B", size_b: 9, quant: Q4_K_M, context: "8k", quality: good, speed: moderate}
+      context_note: About 8k-16k tokens of context fits; long meetings are summarised in chunks.
+      vram_handoff: Transcription and the LLM never share the GPU at the same time on 8 GB; models are unloaded between stages (spec R5).
+  vram16:
+    transcription:
+      model: large-v3
+      alternatives: [large-v3-turbo]
+      compute_type: float16
+      batch_size: 16
+      diarize: true
+      rtf: [30, 50]
+      status: estimated
+      notes: Comfortable.
+    llm:
+      status: estimated
+      summary: 12-14B models at Q4_K_M, with room for longer contexts.
+      models:
+        - {family: "Qwen 2.5 14B / Mistral Nemo 12B", size_b: 14, quant: Q4_K_M, context: "16k-32k", quality: very good, speed: moderate}
+        - {family: "Llama 3.1 8B", size_b: 8, quant: Q8_0, context: "32k", quality: good, speed: fast}
+      context_note: 16k-32k tokens of context fits.
+      vram_handoff: Models still run one at a time, but both can often stay loaded.
+  vram24plus:
+    transcription:
+      model: large-v3
+      alternatives: [large-v3-turbo]
+      compute_type: float16
+      batch_size: 24
+      diarize: true
+      rtf: [40, 70]
+      status: estimated
+      notes: Best quality and speed.
+    llm:
+      status: estimated
+      summary: About 30B models at Q4_K_M, or a 14B at higher precision.
+      models:
+        - {family: "Qwen 2.5 32B / Qwen3 30B", size_b: 32, quant: Q4_K_M, context: "32k", quality: excellent, speed: moderate}
+        - {family: "Qwen 2.5 14B", size_b: 14, quant: Q8_0, context: "32k+", quality: very good, speed: fast}
+      context_note: 32k+ tokens of context fits.
+      vram_handoff: Transcription and the LLM can share the card.
+
+# Approximate VRAM needs (MiB) used by the risk warnings.
+vram_needs_mb:
+  whisper:
+    large-v3: {float16: 9500, int8_float16: 6500, int8: 6000}
+    large-v3-turbo: {float16: 5500, int8_float16: 4000, int8: 3500}
+    medium: {float16: 4500, int8_float16: 3000, int8: 2800}
+    small: {float16: 2000, int8_float16: 1500, int8: 1300}
+  diarization: 1500
+  llm_q4_per_b_params: 650   # roughly 0.65 GB per billion parameters at Q4_K_M, plus context
