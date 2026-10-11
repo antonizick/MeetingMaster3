@@ -1,0 +1,31 @@
+# Phase 10: Web UI: Core Flow
+
+**Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 09 · **Branch:** `phase-10-web-ui-core`
+
+## Read first
+`CLAUDE.md`, `prompts/_shared-instructions.md`, and `docs/SPECIFICATION.md` §3 (core flow steps 1–5 and 8), §10, §15.1 (A2), §15.3 (S2, S3, S6). ADR-0002. The API surfaces from Phases 04–09 (read the routers).
+
+## Goal
+A clean, fast, accessible local web UI that covers the happy path from the browser: vault setup → upload → hardware confirm → live progress → Name Speakers → choose template → Write to Vault. Phase 11 builds the review workspace; this phase links to a basic read-only preview of the result.
+
+## Tasks
+1. **Frontend foundation:** vendor **HTMX** and **Alpine.js** (pinned versions, with the license files in `static/vendor/<lib>/` and recorded in THIRD_PARTY_NOTICES). No CDN, no build step. `app.css` uses CSS custom properties for a light and dark theme (respecting `prefers-color-scheme`); keep it small, responsive (≥ 360 px) and keyboard-navigable. The CSRF token is wired into HTMX via `hx-headers` on `<body>`. Use a strict CSP: no inline scripts; Alpine's CSP build if necessary. Use a base layout with nav (New meeting, Recent, Templates, Settings), a toast/notification region, and an error page that renders `MM3Error` code, message and hint.
+2. **First-run / vault setup:** if no vault is configured, show a setup screen with a vault path input, server-side validation (exists, is a directory, writable, looks like a vault because `.obsidian/` exists, with a warning rather than a block if missing) and the output subfolder pattern with a live preview of the resulting path. Install the starter templates (Phase 09). Unwritable or missing paths show a blocking error with remediation steps (spec §3).
+3. **New meeting (upload):** drag-and-drop plus a file picker, with an upload progress bar (XHR/fetch progress); title and date are pre-filled from `parse_filename` (Phase 03) and editable; participants and tags (optional); location. Template selection (favourites first; default Executive Summary). Backend and model selection, with a **local / cloud: <provider> badge**; selecting a cloud backend opens a consent dialog (S6) unless consent is remembered. Options: diarization on or off, min and max speakers.
+4. **Hardware confirmation:** a panel showing the detected hardware, profile, recommended transcription settings, ETA for the uploaded file's duration, and risk warnings (Phase 05), with "Accept" and "Advanced" (override model, compute type, batch size).
+5. **Job progress:** an SSE-driven stage list (Transcribing → Aligning → Diarizing → Speaker suggestions → Generating notes → Writing) with a per-stage bar, message, elapsed time and ETA. Cancel button. On failure, show the error and its hint plus actions: **Retry**, and **Retry with smaller model** for `E_OOM`. Prompt for the non-English decision (Phase 06) when it arrives. Reconnects survive page reloads, because the SSE replay brings the view back to the current state.
+6. **Name Speakers:** one card per speaker with talk time, 2–3 sample snippet play buttons (seeking an `<audio>` element over a range endpoint `GET /api/jobs/{id}/audio` that supports HTTP Range), suggested names with confidence, a free-text name with autocomplete from known people, "same person as…" merge, and an "Remember this voice" checkbox (only when voiceprints are enabled; a tooltip explains the privacy implications). Submitting resumes the job.
+7. **Completion:** after Write, a success page with the vault paths, an `obsidian://open?path=…` link (URL-encoded) and a "Review & edit" button (target of Phase 11; until then a read-only rendered preview, sanitised per S3).
+8. **Recent meetings:** a list from `recent_meetings` and the jobs table (title, date, status, template), with resume for interrupted jobs and delete.
+9. **Accessibility:** semantic HTML, labels, focus states, `aria-live` for progress updates, colour contrast at AA.
+
+## Tests
+Route tests (TestClient) for each page and partial; CSRF on every form; consent enforcement from the UI path; Range requests on the audio endpoint; sanitised preview (an XSS payload in the transcript is rendered inert). Add **Playwright** (Python, `e2e` marker) with a happy-path smoke test using `MM3_FAKE_PIPELINE=1`: upload → speakers → write → note exists in a temp vault.
+
+## Acceptance criteria
+- With the fake pipeline, the full flow works in Chrome and Firefox; Nick can click through it.
+- With the real pipeline on the reference machine, a fixture clip goes from upload to a note in the vault from the browser.
+- No external network requests from the browser; verify in DevTools or Playwright request logging.
+
+## Phase-specific docs
+`docs/user-guide/getting-started.md` (the happy path, with screenshots saved under `docs/assets/`); README Quickstart; THIRD_PARTY_NOTICES (vendored JS); SECURITY (CSP and CSRF details). Then the standard close-out checklist.

@@ -1,0 +1,80 @@
+# MeetingMaster3: Implementation Plan
+
+**Spec:** [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) (v1.1). **Decisions:** [`docs/DECISIONS.md`](docs/DECISIONS.md). **Agent rules:** [`CLAUDE.md`](CLAUDE.md). **Shared phase instructions:** [`prompts/_shared-instructions.md`](prompts/_shared-instructions.md)
+**Last updated:** 2026-10-11 (Phase 00, planning)
+
+> ⚠️ **Mandatory:** every agent that works on this project keeps this file accurate. Set your phase to `In progress` when you start. At the end, set it to `Complete` or `Blocked` and add a Phase Log entry. See `CLAUDE.md`.
+
+## How to run a phase
+Open Claude Code in `/home/nick/Work/MeetingMaster3` and type one of:
+- `/phase`: run the next eligible phase. It checks dependencies, tells you if you're on the wrong model, resumes an `In progress` phase, and asks about any open questions it needs.
+- `/phase 03`: run a specific phase.
+- `/phase status`: show progress and what's next, without doing any work.
+
+The command lives in `.claude/commands/phase.md`. Under the hood it reads `CLAUDE.md`, this file and `prompts/_shared-instructions.md`, then executes `prompts/phase-NN-*.md`. You never need to paste a prompt. Review the agent's close-out summary, then merge the phase branch when satisfied.
+
+Phases run in order. Phases whose dependencies are all complete may run in parallel, for example 05 ∥ 08 and 12 ∥ 13.
+
+**Status values:** ⬜ Not started · 🔄 In progress · ⛔ Blocked · ✅ Complete. Always write the icon **and** the word, so the column is easy to scan and still searchable.
+
+## Phases
+
+| Phase | Phase Name | Phase Purpose | AI Model to Use | Depends on | Status | Prompt to Initiate This Phase |
+|---|---|---|---|---|---|---|
+| 00 | Planning & spec refinement | Review the PrePlan, resolve decisions, write the spec v1.1, this plan and the phase prompts | Opus 5.5 | none | ✅ Complete | n/a (this session) |
+| 01 | Repository foundation & governance | Create a GitHub-ready repo: LICENSE, NOTICE, README, SECURITY, CONTRIBUTING, CoC, CHANGELOG, .gitignore, .github templates, docs skeleton | Sonnet 5.5 | 00 | ⬜ Not started | [phase-01-repo-foundation.md](prompts/phase-01-repo-foundation.md) |
+| 02 | Python scaffold, config & CI | uv/Python 3.12 project, FastAPI app factory, `mm3` CLI, pydantic+YAML config, XDG paths, security middleware, lint/type/test CI | Sonnet 5.5 | 01 | ⬜ Not started | [phase-02-python-scaffold.md](prompts/phase-02-python-scaffold.md) |
+| 03 | Data model & Markdown round-trip | Domain models, note and companion-transcript writer/parser, section markers, frontmatter, naming, archive, vault path safety, diffs | Opus 5.5 | 02 | ⬜ Not started | [phase-03-data-model-markdown.md](prompts/phase-03-data-model-markdown.md) |
+| 04 | Job orchestration & audio ingest | SQLite storage, job queue (single GPU worker), stage pipeline, checkpoints and resume, cancel, SSE progress, upload and ffmpeg normalisation | Opus 5.5 | 03 | ⬜ Not started | [phase-04-jobs-orchestration.md](prompts/phase-04-jobs-orchestration.md) |
+| 05 | Hardware detection & recommendations | GPU/VRAM detection, hardware profiles, transcription and LLM model recommender, `mm3 doctor` | Sonnet 5.5 | 02 | ⬜ Not started | [phase-05-hardware-awareness.md](prompts/phase-05-hardware-awareness.md) |
+| 06 | Transcription & diarization pipeline | WhisperX transcribe, align and diarize as job stages; HF token; OOM retry; language check; non-diarized fallback; VRAM release | Opus 5.5 | 04, 05 | ⬜ Not started | [phase-06-transcription-pipeline.md](prompts/phase-06-transcription-pipeline.md) |
+| 07 | Speaker mapping & voiceprint store | Speaker embeddings, local voiceprint store, match suggestions, confirm/rename API, mapping cascade, privacy controls | Opus 5.5 | 06 | ⬜ Not started | [phase-07-speakers-voiceprints.md](prompts/phase-07-speakers-voiceprints.md) |
+| 08 | LLM backend abstraction | Common backend interface; Ollama, Bedrock, OpenAI-compatible/OpenRouter; registry; connection tests; context budgeting; egress flag | Sonnet 5.5 | 02 | ⬜ Not started | [phase-08-llm-backends.md](prompts/phase-08-llm-backends.md) |
+| 09 | Template engine & note generation | Template schema and loader, 5 starter templates, prompt assembler, map-reduce, section generation, end-to-end transcript → vault note | Opus 5.5 | 03, 07, 08 | ⬜ Not started | [phase-09-templates-generation.md](prompts/phase-09-templates-generation.md) |
+| 10 | Web UI: core flow | HTMX/Alpine shell, vault setup, upload, hardware confirm, live job progress, Name Speakers screen, Write to Vault | Sonnet 5.5 | 09 | ⬜ Not started | [phase-10-web-ui-core.md](prompts/phase-10-web-ui-core.md) |
+| 11 | Review workspace & regeneration | Side-by-side audio player and synced transcript with Markdown editor; per-section regeneration with diffs and archive; re-open existing notes | Opus 5.5 | 10 | ⬜ Not started | [phase-11-review-regeneration.md](prompts/phase-11-review-regeneration.md) |
+| 12 | Settings, template library & feedback | Settings UI (backends, keys, HF token, hardware, vault, retention), config round-trip, template library management, ratings | Sonnet 5.5 | 10 | ⬜ Not started | [phase-12-settings-library-feedback.md](prompts/phase-12-settings-library-feedback.md) |
+| 13 | Expanded template library | Author the remaining 17 templates (22 total), with validation and prompt-assembly golden tests | Sonnet 5.5 | 09 | ⬜ Not started | [phase-13-template-library.md](prompts/phase-13-template-library.md) |
+| 14 | Docker & deployment | Multi-stage GPU and CPU images, compose with volumes and GPU reservation, host Ollama connectivity, non-root user, size budget, install docs | Sonnet 5.5 | 11, 12 | ⬜ Not started | [phase-14-docker-deployment.md](prompts/phase-14-docker-deployment.md) |
+| 15 | Hardening, security review & QA | Threat model, security review and fixes, dependency and licence audit, E2E tests, measured performance on 8 GB, accessibility pass | Opus 5.5 | 13, 14 | ⬜ Not started | [phase-15-hardening-qa.md](prompts/phase-15-hardening-qa.md) |
+| 16 | Release v0.1.0 & GitHub publication | Final docs, screenshots, CHANGELOG, version and tag, release notes, GitHub repo creation (with confirmation), MVP sign-off | Sonnet 5.5 | 15 | ⬜ Not started | [phase-16-release.md](prompts/phase-16-release.md) |
+
+### Model rationale
+- **Opus 5.5** (`/model claude-opus-5-5`) handles phases with subtle correctness or design risk: the round-trip parser, job state machine, ML pipeline and VRAM handling, voiceprint matching, prompt engineering, the interactive review workspace, and security review.
+- **Sonnet 5.5** (`/model claude-sonnet-5-5`) handles well-trodden engineering with clear specs: scaffolding, adapters, CRUD UI, template authoring, Docker and docs. It's faster and cheaper, with ample capability for this work.
+
+### Dependency graph
+```
+00 → 01 → 02 ─┬→ 03 → 04 ─┐
+              ├→ 05 ───────┴→ 06 → 07 ─┐
+              └→ 08 ───────────────────┴→ 09 ─┬→ 10 ─┬→ 11 ─┐
+                                              │      └→ 12 ─┴→ 14 ─┐
+                                              └→ 13 ────────────────┴→ 15 → 16
+```
+
+### MVP definition of done (checked in Phase 16)
+- [ ] Upload audio → diarized transcript → named speakers → structured note written to the Obsidian vault, all on the 8 GB reference machine with Ollama, fully offline after model download.
+- [ ] Side-by-side review, edit, per-section regeneration with diff and archive, and re-open of an existing note.
+- [ ] 22 templates; library management; Bedrock and OpenRouter work with BYOK.
+- [ ] Docker Compose deployment (GPU and CPU) documented and verified.
+- [ ] Repo is GitHub-ready: README, LICENSE, NOTICE, THIRD_PARTY_NOTICES, SECURITY, CONTRIBUTING, CoC, CHANGELOG, .gitignore, .dockerignore, CI green.
+- [ ] All docs in this table and the spec are accurate.
+
+## Open questions (owner input needed; see SPECIFICATION §15.5)
+| # | Question | Proposed default | Needed by |
+|---|---|---|---|
+| Q1 | Audio retention after writing to the vault | **Decided 2026-10-11:** keep as Opus for 90 days, then auto-delete; per-meeting pin; opt-in copy to vault (ADR-0006) | Phase 04 |
+| Q2 | Companion transcript optional? | **Decided 2026-10-11:** always on by default; can be disabled with a warning | Phase 09 |
+| Q3 | GitHub owner, repo name, visibility | **Deferred:** Nick provides these during Phase 16 | Phase 16 |
+| Q4 | Test audio source | **Decided 2026-10-11:** a CC clip plus Nick's own shareable recordings. Short clips are committed as `*.fixture.*`; long ones stay out of git | Phase 06 |
+| Q5 | Personal machine details in `CLAUDE.md` before publishing | **Deferred to Phase 16:** move them to an untracked `CLAUDE.local.md` | Phase 16 |
+
+## Phase Log
+Newest entries at the bottom. Format: `### YYYY-MM-DD: Phase NN: <title> (<status>)`, then bullets: built, deviations, follow-ups, tests.
+
+### 2026-10-11: Phase 00: Planning & spec refinement (Complete)
+- Reviewed `Meeting Master 3 PrePlan.md` and `Meeting Master 3 Design pre-notes.md`. Wrote `docs/SPECIFICATION.md` v1.1 (the original text reformatted, plus the §15 amendments and appendices).
+- Owner decisions: Apache-2.0; HTMX + Alpine; 22 templates in two stages; Ollama, Bedrock and OpenAI-compatible backends. Recorded as ADR-0001…0004; ADR-0005 is proposed.
+- Created `CLAUDE.md`, this plan, `prompts/_shared-instructions.md`, phase prompts 01–16 and the Obsidian project note.
+- `git init` (branch `main`); nothing committed yet.
+- Follow-up (same day): every owner question needed before Phase 16 is resolved. Q1 is audio retention: Opus for 90 days with pin (ADR-0006, spec R8). Added the `/phase` command and status icons. This project is the reference implementation of the `phased-project` skill (`~/.claude/skills/phased-project/`).

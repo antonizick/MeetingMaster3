@@ -1,0 +1,34 @@
+# Phase 11: Review Workspace, Regeneration & Re-open
+
+**Model:** Opus 5.5 (`/model claude-opus-5-5`) · **Depends on:** 10 · **Branch:** `phase-11-review-regeneration`
+
+## Read first
+`CLAUDE.md`, `prompts/_shared-instructions.md`, and `docs/SPECIFICATION.md` §2 (JTBD 2 and 4), §3 (flow steps 6–8, re-open, partial regeneration, edge cases), §5, §9, §13 (round-trip fragility), §15.2 (R11, R12). `docs/dev-guide/note-format.md` (Phase 03).
+
+## Goal
+The side-by-side workspace where the user turns a draft into a final note: audio player plus a synced, timestamped transcript on the left, an editable structured Markdown note on the right, per-section regeneration with diffs and archive, and the ability to re-open any existing MM3 note from the vault.
+
+## Tasks
+1. **Workspace layout** (`/meetings/{mm3_id}`): a two-pane layout with a resizable splitter (it stacks on narrow screens). The left pane is the transcript, the right is the note. The header shows the title, template, backend, a save status and actions (Save to vault, Switch template, Rename speakers).
+2. **Audio and transcript sync** (vanilla JS or Alpine component, `static/js/transcript.js`):
+   - An `<audio>` element with the Range endpoint, plus play/pause, ±5 s, speed (0.75–2×), and keyboard shortcuts (space, j/k/l; documented and not triggered while typing).
+   - Transcript turns rendered with speaker colours and timestamps. Clicking a timestamp or word seeks the audio. The current segment is highlighted with auto-scroll (pausable when the user scrolls manually). Use a binary search over segment start times on `timeupdate`.
+   - Search within the transcript.
+   - `[mm:ss]` references inside the note are clickable and seek the audio.
+   - Missing audio (retention deleted it) shows a graceful notice; the transcript stays usable.
+3. **Note editor:** vendor **CodeMirror 6** (a prebuilt bundle with Markdown language support; record its version and license) or a lighter alternative, justified in an ADR. Edit the full note as Markdown, with section-marker lines visually de-emphasised but **protected**: warn when an edit would delete or alter a marker. Add a rendered preview toggle (sanitised). Autosave the draft to app data (debounced); **Save to vault** writes atomically through Phase 03 and detects external modification: if the file's mtime or hash changed since load, show a diff and ask (keep mine, take theirs, or open both).
+4. **Per-section regeneration:** each section has a "Regenerate" control with optional instructions ("make it shorter", "focus on budget"). The server calls `regenerate_section` (Phase 09) and returns the new body plus a diff. The UI shows a **unified and side-by-side diff toggle** (Phase 03's structured diff rendered server-side as HTML; no extra JS library required) with buttons Accept, Accept & archive previous (R12), and Discard. Only the marked section changes; text outside markers stays byte-identical (assert this in tests). On a marker error (R11), show the error and offer "Append as new section" or Cancel.
+5. **Switch template:** regenerate the whole note with another template. The previous note is archived (R12, whole-note archive) and user content outside the markers is preserved by appending it under a "Preserved notes" heading. Show a diff before writing.
+6. **Rename speakers after the fact:** reuse the Phase 07 cascade. Update the companion transcript, the frontmatter and in-note speaker names (only inside MM3-generated sections; do not rewrite user text outside markers), and show a preview of the changes.
+7. **Re-open existing notes (spec §9):** a file picker scoped to the vault (server-side directory browser that lists only `.md` files with `mm3-id` frontmatter, confined to the vault root) plus the Recent list. The parser extracts sections and loads the companion transcript via `mm3-transcript`. **Degradation:** if the companion is missing, open in note-only mode (regeneration disabled, with the explanation "transcript not found", and options to locate the file or re-transcribe from audio if the audio still exists). Notes with no MM3 markers at all can be opened read-only with an explanation.
+8. **Feedback hook:** leave a placeholder slot per section and per note for Phase 12's ratings.
+
+## Tests
+JS-free server tests for regeneration (only the target section changes; archive file created at the R12 path; the marker-error path); external-modification detection; the re-open parser across fixtures (normal, missing companion, damaged markers, user edits between sections); the vault picker cannot escape the root. Playwright e2e: open a fixture meeting, click a timestamp and check that `audio.currentTime` changed, regenerate a section with FakeLLM, accept with archive, save, and verify the file on disk.
+
+## Acceptance criteria
+- On the reference machine, a real processed meeting can be reviewed, edited, partially regenerated, saved and later re-opened from the vault with the transcript in sync with the audio.
+- Personal edits outside markers survive regeneration and template switches, as shown by e2e tests.
+
+## Phase-specific docs
+`docs/user-guide/reviewing-and-editing.md` (workspace, shortcuts, regeneration, archives, re-open, what happens if markers are damaged); THIRD_PARTY_NOTICES (CodeMirror); ADR for the editor choice. Then the standard close-out checklist.
