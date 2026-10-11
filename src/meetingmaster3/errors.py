@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from typing import TYPE_CHECKING
+
 from markupsafe import escape
+
+if TYPE_CHECKING:  # pure modules (domain, markdown, vault) import MM3Error without FastAPI
+    from fastapi import FastAPI, Request
+    from fastapi.responses import Response
 
 
 class MM3Error(Exception):
@@ -30,6 +34,8 @@ def _wants_html(request: Request) -> bool:
 
 
 async def mm3_error_handler(request: Request, exc: Exception) -> Response:
+    from fastapi.responses import HTMLResponse, JSONResponse
+
     if not isinstance(exc, MM3Error):
         raise exc
     if _wants_html(request):
