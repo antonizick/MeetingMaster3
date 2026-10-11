@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, NoReturn
@@ -533,6 +534,7 @@ def process(
     from meetingmaster3.vault.paths import resolve_vault_root
 
     configure_logging()
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # one line per LLM call is noise here
     settings = _library_settings(vault)
     paths = resolve_paths()
 
