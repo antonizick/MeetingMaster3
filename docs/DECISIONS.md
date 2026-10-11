@@ -285,9 +285,14 @@ weights (`qwen3:8b` advertises 40 960 tokens), so a one-hour meeting (about 12k 
 2. *Map:* `chunk_transcript` on speaker-turn boundaries with one overlap turn; budget per chunk =
    70 % of the window − extraction prompt − 1 500 output tokens. Each chunk returns `{summary, points,
    decisions, actions, questions}` with `[mm:ss]` times and speakers, at temperature 0.1 with JSON
-   mode. Bad JSON is repaired locally (code fences, prose around the object, trailing commas,
-   reasoning blocks, lenient shapes); otherwise asked once more with the parser error; a chunk that
-   still fails is skipped with a user-visible warning (all chunks failing is an error).
+   mode. Decisions, actions and questions come first in the schema and points last, capped at the
+   10 most important (at most 20 words each), because the first live run showed qwen3:8b copying
+   ~30 transcript sentences as points until the 1 500-token limit cut the JSON on every chunk. Bad
+   JSON is repaired locally (code fences, prose around the object, trailing commas, reasoning
+   blocks, lenient shapes, and an answer cut off by the limit: the unfinished tail is dropped and
+   the brackets closed); otherwise asked once more with the parser error (or, after a cut-off,
+   for a shorter answer); a chunk that still fails is skipped with a user-visible warning (all
+   chunks failing is an error).
 3. *Merge:* concatenate in time order; near-duplicates (normalised equality, containment, or ≥ 80 %
    word overlap) are combined, keeping the earliest timestamp and the clearly more detailed wording;
    the same task for two different named owners is kept twice.

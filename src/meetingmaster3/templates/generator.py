@@ -269,7 +269,7 @@ class NoteGenerator:
             chunk.index + 1, parts, assembler.format_turns(chunk.turns, hours=hours)
         )
         messages = [Message("user", prompt)]
-        text, _ = await self._call(
+        text, finish = await self._call(
             EXTRACTION_SYSTEM,
             messages,
             temperature=EXTRACTION_TEMPERATURE,
@@ -283,7 +283,7 @@ class NoteGenerator:
             log.info("Chunk %d: unusable extraction (%s); asking again", chunk.index, exc)
             messages += [
                 Message("assistant", text[:4000]),
-                Message("user", repair_prompt(str(exc))),
+                Message("user", repair_prompt(str(exc), truncated=finish == "length")),
             ]
         text, _ = await self._call(
             EXTRACTION_SYSTEM,

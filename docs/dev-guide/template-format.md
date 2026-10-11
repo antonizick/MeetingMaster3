@@ -179,9 +179,10 @@ If the system message, the transcript, the longest section prompt and the output
 70 % of the model's context window, MM3 switches to map-reduce:
 1. **Map:** the transcript is cut into chunks on speaker-turn boundaries
    (`llm.budget.chunk_transcript`), and each chunk is turned into a JSON extraction: a summary plus
-   points, decisions, actions and questions, each with a `[mm:ss]` timestamp and a speaker. Bad
-   JSON is repaired (code fences, surrounding prose, trailing commas) and, if still invalid,
-   requested once more with the parser error; a chunk that still fails is skipped with a warning.
+   decisions, actions, questions and (last, at most 10) key points, each with a `[mm:ss]`
+   timestamp and a speaker. Bad JSON is repaired (code fences, surrounding prose, trailing commas,
+   an answer cut off by the output limit) and, if still invalid, requested once more with the
+   parser error (or shorter); a chunk that still fails is skipped with a warning.
 2. **Merge:** the extractions are concatenated in time order and near-duplicates (the same
    decision, action or question restated in two chunks, e.g. in the overlap turn) are removed.
 3. **Reduce:** every section is generated from the merged notes instead of the raw transcript.

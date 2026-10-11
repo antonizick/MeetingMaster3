@@ -26,9 +26,6 @@ with one JSON object and nothing else."""
 EXTRACTION_SCHEMA = """\
 {
   "summary": "2-4 sentences: what this part of the meeting covered and concluded",
-  "points": [
-    {"text": "a substantive fact, update, figure or position", "speaker": "Name",
-     "time": "mm:ss"}],
   "decisions": [
     {"text": "a decision that was actually made", "rationale": "reason given, or empty",
      "by": "Name, or empty", "time": "mm:ss"}],
@@ -37,8 +34,12 @@ EXTRACTION_SCHEMA = """\
      "due": "deadline as stated, or not stated", "time": "mm:ss"}],
   "questions": [
     {"text": "a question or issue left unresolved", "raised_by": "Name, or empty",
-     "time": "mm:ss"}]
+     "time": "mm:ss"}],
+  "points": [
+    {"text": "a substantive fact, update, figure or position, in your own words",
+     "speaker": "Name", "time": "mm:ss"}]
 }"""
+MAX_POINTS = 10
 
 
 def extraction_prompt(part: int, parts: int, transcript_text: str) -> str:
@@ -48,11 +49,19 @@ def extraction_prompt(part: int, parts: int, transcript_text: str) -> str:
         + f".\n\n<transcript>\n{transcript_text}\n</transcript>\n\n"
         "Extract the notes as JSON with exactly this shape (use empty lists when there is "
         f"nothing; times come from the transcript):\n{EXTRACTION_SCHEMA}\n\n"
-        "Include every action item and every decision. Reply with the JSON object only."
+        "Include every decision, action item and open question. For points, keep only the "
+        f"{MAX_POINTS} most important ones, each at most 20 words in your own words (do not copy "
+        "sentences). Keep every text short. Reply with the JSON object only."
     )
 
 
-def repair_prompt(error: str) -> str:
+def repair_prompt(error: str, *, truncated: bool = False) -> str:
+    if truncated:
+        return (
+            "Your reply was cut off because it was too long. Reply again with the same JSON "
+            f"shape but much shorter: at most {MAX_POINTS // 2} points, every text under 15 "
+            "words, and nothing before or after the object."
+        )
     return (
         f"Your reply could not be parsed as the requested JSON ({error}). Reply again with only "
         "the JSON object, with the same keys, and nothing before or after it."
@@ -158,7 +167,47 @@ def _candidates(text: str) -> list[str]:
     start, end = text.find("{"), text.rfind("}")
     if start != -1 and end > start:
         out.append(text[start : end + 1])
+    salvaged = close_truncated(text)
+    if salvaged is not None:
+        out.append(salvaged)
     return out
+
+
+def close_truncated(text: str, max_tries: int = 60) -> str | None:
+    """Salvage a JSON object cut off by the output limit: drop the unfinished tail after the
+    last complete ``}``/``]`` and close the open brackets. ``None`` if nothing parses."""
+    start = text.find("{")
+    if start == -1:
+        return None
+    body = text[start:]
+    cuts = [i + 1 for i, ch in enumerate(body) if ch in "}]"]
+    for cut in reversed(cuts[-max_tries:]):
+        piece = body[:cut]
+        stack: list[str] = []
+        in_string = escaped = False
+        for ch in piece:
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif ch == "\\":
+                    escaped = True
+                elif ch == '"':
+                    in_string = False
+            elif ch == '"':
+                in_string = True
+            elif ch in "{[":
+                stack.append("}" if ch == "{" else "]")
+            elif ch in "}]" and stack:
+                stack.pop()
+        if in_string:
+            continue
+        candidate = piece.rstrip().rstrip(",") + "".join(reversed(stack))
+        try:
+            json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        return candidate
+    return None
 
 
 def parse_extraction(text: str) -> ChunkExtraction:

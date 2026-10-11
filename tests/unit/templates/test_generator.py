@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+from dataclasses import replace
+from typing import Any
 
 import pytest
 
@@ -20,6 +22,7 @@ from meetingmaster3.templates.loader import load_library
 from meetingmaster3.templates.mapreduce import (
     ChunkExtraction,
     ExtractionError,
+    close_truncated,
     merge,
     parse_extraction,
     render_notes,
@@ -354,3 +357,35 @@ def test_render_notes_truncates_minor_material_first() -> None:
     small, cut = render_notes(merge([chunk]), max_tokens=400)
     assert cut and "Keep me" in small and "- Ann: Do it (due: Friday)" in small
     assert len(small) < len(full)
+
+
+def test_truncated_json_is_salvaged() -> None:
+    cut = (
+        '{"summary": "s", "decisions": [{"text": "Ship it"}], "actions": [{"task": "Do it",'
+        ' "owner": "Ann"}], "questions": [], "points": [{"text": "one"}, {"text": "tw'
+    )
+    got = parse_extraction(cut)
+    assert got.decisions[0].text == "Ship it" and got.actions[0].owner == "Ann"
+    assert [p.text for p in got.points] == ["one"]
+    assert close_truncated('{"a": "unterminated') is None
+    assert close_truncated("no json") is None
+    assert close_truncated('{"a": ["x\\"]", "y"], "b": "q') == '{"a": ["x\\"]", "y"]}'
+
+
+async def test_cut_off_extraction_asks_for_a_shorter_answer() -> None:
+    def respond(req: GenerateRequest) -> str:
+        if not req.json_mode:
+            return "ok"
+        return "{nope" if len(req.messages) == 1 else '{"summary": "short"}'
+
+    backend = FakeLLMBackend(window=4096, responder=respond)
+    original = backend.generate
+
+    async def cut_off(req: GenerateRequest) -> Any:
+        result = await original(req)
+        return replace(result, finish_reason="length") if req.json_mode else result
+
+    backend.generate = cut_off  # type: ignore[method-assign]
+    await generator(backend).generate(meta(), transcript(repeat=60))
+    retry = next(c for c in backend.calls if c.json_mode and len(c.messages) == 3)
+    assert "cut off because it was too long" in retry.messages[2].content
