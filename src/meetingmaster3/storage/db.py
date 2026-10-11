@@ -35,6 +35,8 @@ class Database:
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys = ON")
         self._conn.execute("PRAGMA busy_timeout = 30000")
+        # Deleted rows are overwritten with zeros, so deleting a voiceprint really erases it.
+        self._conn.execute("PRAGMA secure_delete = ON")
         if self.path is not None:
             self._conn.execute("PRAGMA journal_mode = WAL")
             self._conn.execute("PRAGMA synchronous = NORMAL")
@@ -75,6 +77,12 @@ class Database:
                 self._conn.execute("ROLLBACK")
                 raise
             self._conn.execute("COMMIT")
+
+    def checkpoint(self) -> None:
+        """Copy the WAL into the database file and truncate it (after deleting sensitive rows,
+        so no copy of them stays in ``mm3.db-wal``)."""
+        with self._lock:
+            self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
 
     def close(self) -> None:
         with self._lock:

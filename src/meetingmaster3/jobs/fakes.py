@@ -9,12 +9,16 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Callable
+import random
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from meetingmaster3.domain.transcript import Segment, Transcript
 from meetingmaster3.jobs.stage import BaseStage, Stage, StageContext
+from meetingmaster3.speakers.embeddings import Interval
+from meetingmaster3.speakers.stages import SpeakerSuggestStage
+from meetingmaster3.speakers.vectors import Vector, normalize
 
 if TYPE_CHECKING:
     from meetingmaster3.config.settings import Settings
@@ -38,6 +42,14 @@ def stage_seconds() -> float:
         return 2.0
 
 
+def simulate(ctx: StageContext, seconds: float, verb: str) -> None:
+    """Sleep ``seconds`` in ``STEPS`` cancellable steps, reporting progress."""
+    for i in range(1, STEPS + 1):
+        ctx.check_cancelled()
+        ctx.sleep(seconds / STEPS)
+        ctx.progress(i / STEPS, f"{verb} ({i * 100 // STEPS}%)")
+
+
 class FakeStage(BaseStage):
     """Sleeps ``seconds`` in ``STEPS`` cancellable steps, then writes ``artifact_name``."""
 
@@ -48,10 +60,7 @@ class FakeStage(BaseStage):
         self.seconds = stage_seconds() if seconds is None else seconds
 
     def simulate(self, ctx: StageContext, verb: str) -> None:
-        for i in range(1, STEPS + 1):
-            ctx.check_cancelled()
-            ctx.sleep(self.seconds / STEPS)
-            ctx.progress(i / STEPS, f"{verb} ({i * 100 // STEPS}%)")
+        simulate(ctx, self.seconds, verb)
 
     def produce(self, ctx: StageContext) -> Any:
         return {"fake": True, "stage": self.name}
@@ -107,18 +116,38 @@ class FakeDiarize(FakeStage):
         return json.loads(fake_transcript(ctx.job.duration_seconds).model_dump_json())
 
 
-class FakeSpeakerSuggest(FakeStage):
-    name, display_name, uses_gpu = "speaker_suggest", "Speaker suggestions", True
-    artifact_name = "speakers.json"
+class FakeEmbedder:
+    """Deterministic pseudo-embeddings: the same time window always gives the same unit vector,
+    so the fake pipeline's speakers are recognised on a second run (voiceprints enabled)."""
 
-    def produce(self, ctx: StageContext) -> Any:
-        t = Transcript.model_validate_json(ctx.artifacts["diarize"].read_text(encoding="utf-8"))
-        return {
-            "speakers": [
-                {"label": label, "suggestions": [], "talk_seconds": None}
-                for label in t.speaker_labels
-            ]
-        }
+    model_id = "fake/embedding"
+    dim = 32
+
+    def embed(self, audio: Path, segments: Sequence[Interval]) -> list[Vector | None]:
+        out: list[Vector | None] = []
+        for seg in segments:
+            rng = random.Random(f"{seg.start:.2f}-{seg.end:.2f}")  # noqa: S311 - not crypto
+            out.append(normalize([rng.gauss(0.0, 1.0) for _ in range(self.dim)]))
+        return out
+
+    def close(self) -> None:
+        pass
+
+
+class FakeSpeakerSuggest(SpeakerSuggestStage):
+    """The real suggestion stage with :class:`FakeEmbedder` and simulated work."""
+
+    def __init__(self, seconds: float | None = None) -> None:
+        super().__init__(lambda ctx: FakeEmbedder())
+        self.seconds = stage_seconds() if seconds is None else seconds
+
+    def run(self, ctx: StageContext) -> Path:
+        simulate(ctx, self.seconds, self.display_name)
+        return super().run(ctx)
+
+    @staticmethod
+    def free_gpu() -> None:
+        pass
 
 
 class FakeGenerate(FakeStage):
@@ -127,9 +156,10 @@ class FakeGenerate(FakeStage):
 
     def produce(self, ctx: StageContext) -> Any:
         answer = json.loads(ctx.artifacts["await_speaker_confirmation"].read_text("utf-8"))
-        names = []
-        for value in answer.get("speakers", {}).values():
-            names.append(value["name"] if isinstance(value, dict) else str(value))
+        names: list[str] = answer.get("participants") or [
+            value["name"] if isinstance(value, dict) else str(value)
+            for value in answer.get("speakers", {}).values()
+        ]
         title = ctx.job.title or "Fake meeting"
         people = ", ".join(names) or "unknown"
         return (
@@ -146,7 +176,7 @@ class FakeWrite(FakeStage):
         return {"fake": True, "note_path": None, "draft": str(ctx.artifacts["generate"])}
 
 
-FAKE_STAGES: tuple[type[FakeStage], ...] = (
+FAKE_STAGES: tuple[type[FakeStage] | type[FakeSpeakerSuggest], ...] = (
     FakeTranscribe,
     FakeAlign,
     FakeDiarize,
@@ -157,7 +187,7 @@ FAKE_STAGES: tuple[type[FakeStage], ...] = (
 
 
 def fake_factories(seconds: float | None = None) -> dict[str, Callable[[Settings], Stage]]:
-    def make(cls: type[FakeStage]) -> Callable[[Settings], Stage]:
+    def make(cls: type[FakeStage] | type[FakeSpeakerSuggest]) -> Callable[[Settings], Stage]:
         return lambda settings: cls(seconds)
 
     return {cls.name: make(cls) for cls in FAKE_STAGES}

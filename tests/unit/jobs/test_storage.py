@@ -52,7 +52,7 @@ def test_later_migrations_apply_in_order_with_callables() -> None:
     calls: list[int] = []
     steps = [
         *MIGRATIONS,
-        Migration(len(MIGRATIONS) + 1, "voiceprints", sql="CREATE TABLE voiceprints (id TEXT);"),
+        Migration(len(MIGRATIONS) + 1, "extra", sql="CREATE TABLE extra_table (id TEXT);"),
         Migration(
             len(MIGRATIONS) + 2, "data move", func=lambda c: calls.append(current_version(c))
         ),
@@ -60,7 +60,7 @@ def test_later_migrations_apply_in_order_with_callables() -> None:
     assert migrate(conn, steps[: len(MIGRATIONS)]) == len(MIGRATIONS)
     assert migrate(conn, steps) == len(steps)
     assert calls == [len(MIGRATIONS) + 1]
-    conn.execute("INSERT INTO voiceprints VALUES ('x')")
+    conn.execute("INSERT INTO extra_table VALUES ('x')")
 
 
 def test_failed_migration_rolls_back() -> None:

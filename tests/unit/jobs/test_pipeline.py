@@ -35,7 +35,8 @@ def test_canonical_order_and_placeholders(monkeypatch: pytest.MonkeyPatch) -> No
     assert not fake_pipeline_enabled()
     p = build_pipeline("meeting", Settings())
     assert p.names == CANONICAL == [s[0] for s in MEETING_STAGES]
-    assert isinstance(p.stage("speaker_suggest"), UnavailableStage)
+    assert isinstance(p.stage("generate"), UnavailableStage)
+    assert type(p.stage("speaker_suggest")).__name__ == "SpeakerSuggestStage"
     assert p.stage("transcribe").uses_gpu and not p.stage("generate").uses_gpu
     assert all(isinstance(s, Stage) for s in p.stages)
     with pytest.raises(KeyError):

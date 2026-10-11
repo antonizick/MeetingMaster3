@@ -75,8 +75,33 @@ CREATE INDEX recent_meetings_last_opened ON recent_meetings (last_opened);
 CREATE INDEX recent_meetings_mm3_id ON recent_meetings (mm3_id);
 """
 
+_V2_VOICEPRINTS = """
+CREATE TABLE voiceprints (
+    person_id     TEXT PRIMARY KEY,
+    display_name  TEXT NOT NULL,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL,
+    n_samples     INTEGER NOT NULL DEFAULT 0,
+    total_seconds REAL NOT NULL DEFAULT 0
+);
+
+CREATE TABLE voiceprint_embeddings (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    person_id     TEXT NOT NULL REFERENCES voiceprints (person_id) ON DELETE CASCADE,
+    embedding     BLOB NOT NULL,
+    model_id      TEXT NOT NULL,
+    source_job_id TEXT,
+    seconds       REAL NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL
+);
+CREATE INDEX voiceprint_embeddings_model ON voiceprint_embeddings (model_id, person_id);
+CREATE UNIQUE INDEX voiceprint_embeddings_source
+    ON voiceprint_embeddings (person_id, model_id, source_job_id);
+"""
+
 MIGRATIONS: list[Migration] = [
     Migration(1, "jobs, job stages and recent meetings", sql=_V1_JOBS),
+    Migration(2, "voiceprints (opt-in speaker recognition)", sql=_V2_VOICEPRINTS),
 ]
 
 

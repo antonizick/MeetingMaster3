@@ -14,11 +14,13 @@ import pytest
 
 from meetingmaster3.config.paths import AppPaths
 from meetingmaster3.config.settings import Settings
+from meetingmaster3.jobs.fakes import fake_transcript
 from meetingmaster3.jobs.files import job_dir, new_job_id
 from meetingmaster3.jobs.models import JobOptions, JobStatus
-from meetingmaster3.jobs.pipeline import Pipeline, SpeakerConfirmationStage
+from meetingmaster3.jobs.pipeline import Pipeline
 from meetingmaster3.jobs.runner import JobRunner
 from meetingmaster3.jobs.stage import BaseStage, Stage, StageContext
+from meetingmaster3.speakers.stages import SpeakerConfirmationStage
 from meetingmaster3.storage.db import Database
 
 requires_ffmpeg = pytest.mark.skipif(
@@ -54,7 +56,9 @@ class Log:
 class RecStage(BaseStage):
     """Sleeps ``seconds`` cancellably, logs the run and writes ``<name>.json``.
 
-    ``fail`` = number of initial attempts that raise; ``block`` = an event the stage waits on.
+    ``fail`` = number of initial attempts that raise; ``block`` = an event the stage waits on;
+    ``transcript`` = write the fake pipeline's diarized transcript instead (a ``diarize`` stand-in
+    that the real speaker stages can read).
     """
 
     def __init__(
@@ -67,8 +71,9 @@ class RecStage(BaseStage):
         fail: int = 0,
         retries: int = 0,
         block: threading.Event | None = None,
+        transcript: bool = False,
     ) -> None:
-        self.name, self.uses_gpu = name, gpu
+        self.name, self.uses_gpu, self.transcript = name, gpu, transcript
         super().__init__()
         self.log, self.seconds, self.fail, self.retries, self.block = (
             log,
@@ -98,6 +103,8 @@ class RecStage(BaseStage):
             self.log.add(self.name + "!", ctx.job_id, start, time.monotonic())
             raise RuntimeError(f"{self.name} boom {self.calls}")
         self.log.add(self.name, ctx.job_id, start, time.monotonic())
+        if self.transcript:
+            return ctx.write_json("transcript.final.json", fake_transcript(5.0).model_dump())
         return ctx.write_json(f"{self.name}.json", {"stage": self.name, "opts": ctx.options})
 
     def should_retry(self, ctx: StageContext, exc: Exception) -> bool:
@@ -120,7 +127,7 @@ def standard_stages(log: Log, **gpu_seconds: float) -> list[Stage]:
     return [
         RecStage("ingest", log),
         RecStage("transcribe", log, gpu=True, seconds=s),
-        RecStage("diarize", log, gpu=True, seconds=s),
+        RecStage("diarize", log, gpu=True, seconds=s, transcript=True),
         SpeakerConfirmationStage(),
         RecStage("generate", log),
         RecStage("write", log),

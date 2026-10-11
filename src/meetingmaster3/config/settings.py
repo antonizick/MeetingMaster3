@@ -102,6 +102,14 @@ class PrivacySettings(BaseModel):
     voiceprints_enabled: bool = False
 
 
+class SpeakerSettings(BaseModel):
+    """Voiceprint matching (Phase 07, ADR-0015). Only used when privacy.voiceprints_enabled."""
+
+    match_threshold: float = Field(default=0.6, ge=0.0, le=1.0)  # cosine similarity
+    match_margin: float = Field(default=0.1, ge=0.0, le=1.0)  # over the second-best person
+    max_embeddings_per_person: int = Field(default=20, ge=1, le=200)  # newest kept per model
+
+
 class SecretsSettings(BaseModel):
     hf_token: SecretStr | None = None
     openrouter_api_key: SecretStr | None = None
@@ -121,6 +129,7 @@ class Settings(BaseSettings):
     audio: AudioSettings = Field(default_factory=AudioSettings)
     jobs: JobsSettings = Field(default_factory=JobsSettings)
     privacy: PrivacySettings = Field(default_factory=PrivacySettings)
+    speakers: SpeakerSettings = Field(default_factory=SpeakerSettings)
     secrets: SecretsSettings = Field(default_factory=SecretsSettings)
 
     @classmethod

@@ -45,7 +45,9 @@ async def test_happy_path_pauses_for_input_then_finishes(tmp_path: Path) -> None
         assert job.written_at is not None and job.current_stage is None
         folder = job_dir(runner.jobs_root, job_id)
         answer = json.loads((folder / "input.await_speaker_confirmation.json").read_text())
-        assert answer == SPEAKERS
+        assert answer == {
+            "speakers": {"SPEAKER_00": {"name": "Alice", "person_id": None, "enroll": False}}
+        }  # normalised by the confirmation stage (Phase 07)
     finally:
         await runner.stop()
 
@@ -75,7 +77,7 @@ async def test_resume_after_crash_skips_completed_stages(tmp_path: Path) -> None
     log = Log()
     block = threading.Event()
     crashing = standard_stages(log)
-    crashing[2] = RecStage("diarize", log, gpu=True, block=block)
+    crashing[2] = RecStage("diarize", log, gpu=True, block=block, transcript=True)
     paths_db = tmp_path / "data" / "mm3.db"
     first = make_runner(tmp_path, crashing)
     await first.start(prune=False)
