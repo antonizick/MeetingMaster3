@@ -206,25 +206,41 @@ def _similar(a: str, b: str) -> bool:
     return len(wa & wb) / min(len(wa), len(wb)) >= 0.8
 
 
+_PLACEHOLDERS = frozenset({"unassigned", "not stated"})
+
+
+def _combine[T: BaseModel](old: T, new: T, key: str) -> T:
+    """One item from two restatements: the wording of the clearly more detailed one, the
+    earliest timestamp, and any field (owner, due date...) that only one of them has. A named
+    owner beats "Unassigned"."""
+    longer = len(str(getattr(new, key))) >= 1.2 * len(str(getattr(old, key)))
+    base, other = (new, old) if longer else (old, new)
+    data = base.model_dump()
+    for field_name, value in other.model_dump().items():
+        current = str(data.get(field_name) or "")
+        empty = not current or _norm(current) in _PLACEHOLDERS
+        if empty and value and _norm(str(value)) not in _PLACEHOLDERS:
+            data[field_name] = value
+    if getattr(old, "time", ""):
+        data["time"] = old.time  # type: ignore[attr-defined]
+    return type(old).model_validate(data)
+
+
 def _dedupe[T: BaseModel](items: list[T], key: str, owner_key: str | None = None) -> list[T]:
     kept: list[T] = []
     for item in items:
         text = str(getattr(item, key))
         if not text.strip():
             continue
-        duplicate = False
         for i, other in enumerate(kept):
             if owner_key is not None:
                 o1, o2 = _norm(str(getattr(item, owner_key))), _norm(str(getattr(other, owner_key)))
                 if o1 and o2 and o1 != o2 and "unassigned" not in (o1, o2):
-                    continue
+                    continue  # the same task for two different people
             if _similar(text, str(getattr(other, key))):
-                duplicate = True
-                # Keep the more informative version (longer text, a named owner).
-                if len(text) > len(str(getattr(other, key))):
-                    kept[i] = item
+                kept[i] = _combine(other, item, key)
                 break
-        if not duplicate:
+        else:
             kept.append(item)
     return kept
 

@@ -217,7 +217,7 @@ class GenerateStage(BaseStage):
             CONSENT_KIND,
             {
                 "backend": name,
-                "kind": backend.kind,
+                "backend_kind": backend.kind,
                 "badge": f"cloud: {backend.kind}",
                 "message": f"Generating the notes sends the transcript to '{name}' "
                 f"({backend.kind}), a cloud service. Continue?",

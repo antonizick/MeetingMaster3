@@ -74,6 +74,15 @@ async def test_json_mode_and_params() -> None:
 
 
 @respx.mock
+async def test_think_flag_is_sent_only_when_set() -> None:
+    route = respx.post(f"{BASE}/api/chat").respond(json={"message": {"content": "ok"}})
+    await backend().generate(GenerateRequest(model="m", prompt="x"))
+    await backend().generate(GenerateRequest(model="m", prompt="x", think=False))
+    first, second = (json.loads(c.request.content) for c in route.calls)
+    assert "think" not in first and second["think"] is False
+
+
+@respx.mock
 async def test_stream_yields_pieces() -> None:
     ndjson = "\n".join(
         json.dumps(e)
