@@ -156,18 +156,32 @@ async def main(argv: list[str] | None = None) -> int:
         jobs = [(t, m, args.max_context) for m in meetings for t in templates]
 
     scores: list[Score] = []
+    modes: list[str] = []
     for template, meeting, window in jobs:
         print(f"- {meeting.name} / {template.id} ...", flush=True)
         text, result, seconds = await run_one(backend, args.model, template, meeting, window)
         (out / f"{meeting.name}.{template.id}.md").write_text(text, encoding="utf-8")
         score = score_note(text, meeting, template)
         scores.append(score)
+        modes.append(result.mode)
         print(f"  {score.summary()}  [{result.mode}, {result.chunks} chunks, "
               f"{result.calls} calls, {seconds:.0f} s]")  # fmt: skip
         for p in score.problems:
             print(f"    ! {p}")
         for kind, ids in score.missing.items():
             print(f"    missing {kind}: {', '.join(ids)}")
+    if args.long:
+        # Acceptance (Phase 09): a meeting of at least 3x the window completes through map-reduce
+        # with a valid note and no invented owners; recall is reported, not required.
+        required = (
+            "markers_valid", "sections_present", "ai_recommendations_last",
+            "no_empty_sections", "no_invented_owners",
+        )  # fmt: skip
+        ok = modes == ["map-reduce"] and all(scores[0].checks.get(k) for k in required)
+        print(
+            f"\nLong meeting {'completed' if ok else 'FAILED'} through {modes[0]}. Notes in {out}"
+        )
+        return 0 if ok else 1
     passed = sum(s.passed for s in scores)
     print(f"\n{passed}/{len(scores)} notes pass every check. Notes saved in {out}")
     return 0 if passed == len(scores) else 1
