@@ -1,14 +1,17 @@
 # Third-Party Notices
 
-MeetingMaster3 is licensed under Apache-2.0 (see `LICENSE`). This file inventories the third-party
-components the project plans to use. It is updated by every phase that adds a dependency or
-vendored asset; the final audit is part of Phase 15.
+MeetingMaster3 is licensed under Apache-2.0 (see `LICENSE`). This file inventories every third-party
+component the project uses. It is updated by every phase that adds a dependency or vendored asset.
 
-> **Status:** pre-alpha. Nothing is redistributed yet; dependencies are installed from PyPI. The
-> "Runtime dependencies (locked)" table below is generated from `uv.lock` by
-> `uv run python scripts/gen_third_party.py`; re-run it whenever dependencies change. The "planned"
-> table lists components not yet added; their versions are filled in when they are pinned, and
-> licences are **re-verified when each dependency is added**.
+> **Audit (Phase 15, 2026-10-12):** all 144 locked packages (core, `ml` and `bedrock` extras) were
+> checked. Every one is under a permissive licence (MIT, BSD, Apache-2.0, PSF, ISC, MPL-2.0 used
+> unmodified) **except** NVIDIA's CUDA/cuDNN wheels (proprietary, GPU only, pulled in by PyTorch and
+> installed from PyPI under NVIDIA's terms). **No GPL, AGPL or LGPL Python dependency.** The only
+> GPL component is Debian's `ffmpeg` build inside the Docker images, run as a separate program
+> (see "Docker images" below). The two dependency tables are generated from `uv.lock`:
+> `uv run --extra ml --extra bedrock python scripts/gen_third_party.py` (add `--check` to verify the
+> file is current and that no dependency needs a licence decision). Nothing is redistributed by this
+> repository yet; dependencies are installed from PyPI.
 
 ## Runtime dependencies (locked)
 
@@ -53,7 +56,7 @@ Generated; do not edit by hand. Core runtime only (no dev tools, no optional `ml
 | websockets | 17.2 | BSD-3-Clause |
 <!-- GENERATED:runtime-deps:end -->
 
-## Optional extras
+## Optional extras (summary)
 
 | Component | Version | License | Use | Redistributed? (Y/N) | Extra |
 |---|---|---|---|---|---|
@@ -76,6 +79,125 @@ Generated; do not edit by hand. Core runtime only (no dev tools, no optional `ml
 | opentelemetry-* | see `uv.lock` | Apache-2.0 | pyannote's telemetry client, **always disabled** by MeetingMaster3 (`PYANNOTE_METRICS_ENABLED=false`) | N | `ml` |
 | Other transitive packages of the `ml` extra | see `uv.lock` | permissive (MIT / BSD / Apache-2.0) | | N | `ml` |
 
+### Optional extras (locked, generated)
+
+Every package the `ml` and `bedrock` extras add to the core runtime. Generated; do not edit by hand.
+
+<!-- GENERATED:extras-deps:start -->
+| Package | Version | License |
+|---|---|---|
+| aiohappyeyeballs | 2.7.1 | Python Software Foundation License |
+| aiohttp | 3.14.5 | Apache-2.0 AND MIT |
+| aiosignal | 1.4.0 | Apache Software License |
+| alembic | 1.20.0 | MIT |
+| asteroid-filterbanks | 0.4.0 | MIT License |
+| attrs | 26.1.0 | MIT |
+| av | 19.0.1 | BSD-3-Clause |
+| boto3 | 1.43.111 | Apache-2.0 |
+| botocore | 1.43.111 | Apache-2.0 |
+| charset-normalizer | 3.5.2 | MIT |
+| cloudpickle | 3.1.2 | BSD License |
+| colorlog | 6.12.0 | MIT License |
+| contourpy | 1.4.0 | BSD-3-Clause |
+| ctranslate2 | 4.8.2 | MIT |
+| cycler | 0.12.1 | BSD License |
+| defusedxml | 0.7.1 | Python Software Foundation License |
+| einops | 0.8.2 | MIT License |
+| faster-whisper | 1.2.1 | MIT License |
+| filelock | 4.1.1 | MIT |
+| flatbuffers | 25.12.19 | Apache Software License |
+| fonttools | 4.66.1 | MIT |
+| frozenlist | 1.8.0 | Apache-2.0 |
+| fsspec | 2026.9.0 | BSD-3-Clause |
+| googleapis-common-protos | 1.75.5 | Apache-2.0 |
+| grpcio | 1.84.0 | Apache-2.0 |
+| hf-xet | 1.7.0 | Apache-2.0 |
+| huggingface-hub | 0.36.2 | Apache Software License |
+| jmespath | 1.1.0 | MIT License |
+| joblib | 1.6.0 | BSD-3-Clause |
+| julius | 0.2.8 | MIT License |
+| kiwisolver | 1.5.1 | BSD License |
+| lightning | 2.6.6 | Apache Software License |
+| lightning-utilities | 0.15.3 | Apache-2.0 |
+| mako | 1.4.3 | MIT |
+| matplotlib | 3.11.2 | Python Software Foundation License |
+| mpmath | 1.3.0 | BSD License |
+| multidict | 7.1.0 | Apache-2.0 |
+| narwhals | 2.27.1 | MIT |
+| networkx | 3.7 | BSD-3-Clause |
+| nltk | 3.10.3 | Apache Software License |
+| numpy | 2.5.4 | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 |
+| nvidia-cublas-cu12 | 12.8.4.1 | Other/Proprietary License |
+| nvidia-cuda-cupti-cu12 | 12.8.90 | Other/Proprietary License |
+| nvidia-cuda-nvrtc-cu12 | 12.8.93 | Other/Proprietary License |
+| nvidia-cuda-runtime-cu12 | 12.8.90 | Other/Proprietary License |
+| nvidia-cudnn-cu12 | 9.10.2.21 | Other/Proprietary License |
+| nvidia-cufft-cu12 | 11.3.3.83 | Other/Proprietary License |
+| nvidia-cufile-cu12 | 1.13.1.3 | Other/Proprietary License |
+| nvidia-curand-cu12 | 10.3.9.90 | Other/Proprietary License |
+| nvidia-cusolver-cu12 | 11.7.3.90 | Other/Proprietary License |
+| nvidia-cusparse-cu12 | 12.5.8.93 | Other/Proprietary License |
+| nvidia-cusparselt-cu12 | 0.7.1 | NVIDIA Proprietary Software |
+| nvidia-nccl-cu12 | 2.27.3 | Other/Proprietary License |
+| nvidia-nvjitlink-cu12 | 12.8.93 | Other/Proprietary License |
+| nvidia-nvtx-cu12 | 12.8.90 | Other/Proprietary License |
+| omegaconf | 2.4.0 | BSD License |
+| onnxruntime | 1.31.0 | MIT License |
+| opentelemetry-exporter-http-transport | 0.66b1 | Apache-2.0 |
+| opentelemetry-exporter-otlp | 1.45.1 | Apache-2.0 |
+| opentelemetry-exporter-otlp-common | 0.66b1 | Apache-2.0 |
+| opentelemetry-exporter-otlp-proto-common | 1.45.1 | Apache-2.0 |
+| opentelemetry-exporter-otlp-proto-grpc | 1.45.1 | Apache-2.0 |
+| opentelemetry-exporter-otlp-proto-http | 1.45.1 | Apache-2.0 |
+| opentelemetry-proto | 1.45.1 | Apache-2.0 |
+| opentelemetry-sdk | 1.45.1 | Apache-2.0 |
+| opentelemetry-semantic-conventions | 0.66b1 | Apache-2.0 |
+| optuna | 5.0.0 | MIT License |
+| packaging | 26.3 | Apache-2.0 OR BSD-2-Clause |
+| pandas | 3.0.6 | BSD License |
+| pillow | 12.3.0 | MIT-CMU |
+| primepy | 1.3 | MIT License |
+| propcache | 0.5.4 | Apache-2.0 |
+| protobuf | 7.36.2 | 3-Clause BSD License |
+| pyannote-audio | 4.0.7 | MIT |
+| pyannote-core | 6.0.1 | MIT |
+| pyannote-database | 6.1.1 | MIT |
+| pyannote-metrics | 4.1 | MIT |
+| pyannote-pipeline | 4.0.0 | MIT |
+| pyannoteai-sdk | 0.4.0 | MIT |
+| pyparsing | 3.3.3 | MIT |
+| python-dateutil | 2.9.0.post0 | BSD License; Apache Software License |
+| pytorch-lightning | 2.6.6 | Apache Software License |
+| pytorch-metric-learning | 2.9.0 | MIT License |
+| regex | 2026.9.29 | Apache-2.0 AND CNRI-Python |
+| requests | 2.34.2 | Apache Software License |
+| s3transfer | 0.19.2 | Apache Software License |
+| safetensors | 0.8.0 | Apache Software License |
+| scikit-learn | 1.9.1 | BSD-3-Clause |
+| scipy | 1.18.1 | BSD License |
+| setuptools | 84.0.0 | MIT |
+| six | 1.17.0 | MIT License |
+| sortedcontainers | 2.4.0 | Apache Software License |
+| sqlalchemy | 2.1.4 | MIT |
+| sympy | 1.14.0 | BSD License |
+| threadpoolctl | 3.7.0 | BSD-3-Clause |
+| tokenizers | 0.22.2 | Apache Software License |
+| torch | 2.8.0 | BSD License |
+| torch-audiomentations | 0.12.0 | MIT License |
+| torch-pitch-shift | 1.2.5 | MIT License |
+| torchaudio | 2.8.0 | BSD License |
+| torchcodec | 0.7.0 | BSD-3-Clause |
+| torchmetrics | 1.9.0 | Apache Software License |
+| torchvision | 0.23.0 | BSD |
+| tqdm | 4.70.1 | MPL-2.0 AND MIT |
+| transformers | 4.57.6 | Apache Software License |
+| triton | 3.4.0 | MIT License |
+| tzdata | 2026.5 | Apache-2.0 (Windows only) |
+| urllib3 | 2.8.0 | MIT |
+| whisperx | 3.8.6 | BSD-2-Clause |
+| yarl | 1.25.1 | Apache-2.0 |
+<!-- GENERATED:extras-deps:end -->
+
 Development only (not distributed): `respx` (BSD-3-Clause), used to mock httpx in tests; `boto3` is also in the dev group so the Bedrock adapter is tested in CI.
 
 ## Vendored browser assets (Phase 10)
@@ -88,25 +210,33 @@ versions in `vendor/VERSIONS.txt`). Served by the app itself; the browser never 
 | htmx.org | 2.0.11 | 0BSD (Zero-Clause BSD) | Server interaction (partials, actions) | Y |
 | @alpinejs/csp | 3.17.4 | MIT | Local UI state, CSP-safe build | Y |
 
-Dev-only: `playwright` 1.63.0 (Apache-2.0) drives the browser smoke test; it downloads no browser unless you run
-`playwright install`.
+Dev-only: `playwright` 1.63.0 (Apache-2.0) drives the browser tests; it downloads no browser unless you run
+`playwright install`. Test-only vendored asset: `tests/e2e/vendor/axe.min.js`, axe-core 4.10.2 (MPL-2.0, licence in
+`tests/e2e/vendor/axe-core.LICENSE`, unmodified), injected only by the accessibility test; never served by the app,
+not in the wheel or the Docker images.
 
-## Planned components (not yet added)
-
-| Component | Version | License | Use | Redistributed? (Y/N) | Status |
-|---|---|---|---|---|---|
+## Programs used at run time
 
 **ffmpeg and ffprobe** (LGPL-2.1+ or GPL-2.0+, depending on the build) are required at runtime since
 Phase 04. MeetingMaster3 runs them as separate programs installed by the user (no linking, nothing
 bundled); the Opus encoder used for retained audio is libopus (BSD-3-Clause) inside the user's ffmpeg.
 
-Docker images (Phase 14, `docker/Dockerfile`) additionally contain, as separate programs and libraries
-installed from their distributors: the `python:3.12-slim-bookworm` base image (Debian packages under their own
-licences, PSF-2.0 for Python), Debian's `ffmpeg` (LGPL/GPL depending on build; the Debian build is GPL-licensed),
-`tini` (MIT), `curl` (curl licence), and the NVIDIA CUDA/cuDNN runtime libraries that PyTorch's `nvidia-*-cu12`
-wheels bring (NVIDIA proprietary licences, redistribution as part of those wheels; GPU image only). The `uv` binary
-(Apache-2.0/MIT) is used only in the build stage. The images are built by the user and not distributed by this
-repository until a release (Phase 16) decides otherwise; the full per-package licence audit is Phase 15.
+### Docker images
+The images (`docker/Dockerfile`, built by the user; not published by this repository) contain, as
+separate programs and libraries installed from their distributors:
+- the `python:3.12-slim-trixie` base image (Debian 13 packages under their own licences, mostly
+  GPL/LGPL system tools such as bash, coreutils and util-linux; PSF-2.0 for Python), `tini` (MIT);
+- Debian's `ffmpeg` and its libraries (`libavcodec61`, ...). **Debian builds ffmpeg with GPL parts
+  enabled, so this build is GPL-2.0-or-later.** MeetingMaster3 only executes it as a subprocess
+  (no linking), so the app's Apache-2.0 licence is unaffected (aggregation);
+- the Python environment from `uv.lock` (tables above), including NVIDIA's CUDA/cuDNN wheels in the
+  GPU image (NVIDIA licences, which permit redistribution as part of those wheels).
+
+**If images are ever published** (for example to GHCR in Phase 16), GPL obligations apply to the
+Debian packages in them: keep the Debian copyright files (`/usr/share/doc/*/copyright`, present in
+the image), and make the corresponding sources available (Debian's source archive for the exact
+versions, or a written offer). `uv` (Apache-2.0/MIT) is used only in the build stage. `curl` and the
+base image's system `pip` are removed from the runtime image since Phase 15.
 
 ## Model weights (never bundled)
 
@@ -130,5 +260,5 @@ by this project. Users download them to their own machine, under the weights' ow
 
 ## Vendored front-end assets
 
-Added in Phase 10 and later (Markdown editor, diff renderer, etc.), each with version and licence
-recorded here. No assets are loaded from a CDN at runtime.
+See "Vendored browser assets (Phase 10)" above: htmx and the Alpine CSP build are the only vendored
+assets (no editor or diff library: ADR-0024). No assets are loaded from a CDN at runtime.

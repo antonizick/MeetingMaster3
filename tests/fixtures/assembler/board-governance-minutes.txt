@@ -71,7 +71,7 @@ Structure:
    - **Moved by:** <Name, or "not stated">
    - **Seconded by:** <Name, or "not stated">
    - **Result:** <carried, defeated, withdrawn, tabled, or "not stated">
-   - **Vote:** <for / against / abstentions as stated, or "not stated">
+   - **Vote:** <the chair's words such as "carried unanimously", or the counts for / against / abstaining as stated, or "not stated">
 
 If no motion was put, write exactly: No motions were put.
 
