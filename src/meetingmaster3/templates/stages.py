@@ -389,6 +389,7 @@ class WriteStage(BaseStage):
                 mm3_id=mm3_id,
                 title=meta.title,
                 date=meta.date.date() if meta.date else None,
+                job_id=ctx.job_id,
             )
         return ctx.write_json(
             WRITTEN_FILE,

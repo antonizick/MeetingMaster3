@@ -352,6 +352,7 @@ class RecentMeeting:
     title: str
     date: dt.date | None
     last_opened: dt.datetime
+    job_id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -361,6 +362,7 @@ class RecentMeeting:
             "title": self.title,
             "date": self.date.isoformat() if self.date else None,
             "last_opened": iso(self.last_opened),
+            "job_id": self.job_id,
         }
 
 
@@ -379,14 +381,16 @@ class RecentMeetingsRepository:
         title: str = "",
         date: dt.date | None = None,
         when: dt.datetime | None = None,
+        job_id: str | None = None,
     ) -> RecentMeeting:
         self.db.execute(
             "INSERT INTO recent_meetings (note_path, transcript_path, mm3_id, title, date,"
-            " last_opened) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (note_path) DO UPDATE SET"
-            " transcript_path = COALESCE(excluded.transcript_path, transcript_path),"
+            " last_opened, job_id) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (note_path) DO UPDATE"
+            " SET transcript_path = COALESCE(excluded.transcript_path, transcript_path),"
             " mm3_id = COALESCE(excluded.mm3_id, mm3_id),"
             " title = CASE WHEN excluded.title != '' THEN excluded.title ELSE title END,"
-            " date = COALESCE(excluded.date, date), last_opened = excluded.last_opened",
+            " date = COALESCE(excluded.date, date), last_opened = excluded.last_opened,"
+            " job_id = COALESCE(excluded.job_id, job_id)",
             (
                 note_path,
                 transcript_path,
@@ -394,6 +398,7 @@ class RecentMeetingsRepository:
                 title,
                 date.isoformat() if date else None,
                 iso(when or utcnow()),
+                job_id,
             ),
         )
         return self.get(note_path)
@@ -410,6 +415,13 @@ class RecentMeetingsRepository:
         )
         return [self._from_row(r) for r in rows]
 
+    def for_meeting(self, mm3_id: str) -> list[RecentMeeting]:
+        """Entries for one meeting id, most recently opened first."""
+        rows = self.db.fetchall(
+            "SELECT * FROM recent_meetings WHERE mm3_id = ? ORDER BY last_opened DESC", (mm3_id,)
+        )
+        return [self._from_row(r) for r in rows]
+
     def remove(self, note_path: str) -> None:
         self.db.execute("DELETE FROM recent_meetings WHERE note_path = ?", (note_path,))
 
@@ -422,4 +434,5 @@ class RecentMeetingsRepository:
             title=row["title"],
             date=_parse_date(row["date"]),
             last_opened=dt.datetime.fromisoformat(row["last_opened"]),
+            job_id=row["job_id"],
         )

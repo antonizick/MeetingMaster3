@@ -133,6 +133,17 @@ def check_vault(path: str, subfolder: str, today: dt.date | None = None) -> Vaul
     return result
 
 
+def vault_relative(vault: Path | str | None, path: str) -> str | None:
+    """``path`` relative to the vault root, or ``None`` if it is not inside the vault."""
+    if vault is None:
+        return None
+    try:
+        root = resolve_vault_root(vault)
+        return Path(path).resolve().relative_to(root).as_posix()
+    except (MM3Error, ValueError, OSError):
+        return None
+
+
 def split_csv(value: str) -> list[str]:
     return [part.strip() for part in value.split(",") if part.strip()]
 

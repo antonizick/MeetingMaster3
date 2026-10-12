@@ -1,0 +1,12 @@
+{% if items %}
+<ul class="plain">
+  {% for item in items %}
+  <li><code>{{ item.rel }}</code>
+    {% if item.same_folder %}<button type="button" class="link-transcript" data-transcript="{{ item.rel }}">Link this transcript</button>
+    {% else %}<span class="muted">is in another folder: move it into <code>{{ folder }}</code>, next to the note, then reload.</span>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>No transcript of this meeting was found anywhere in the vault. If the recording still exists, you can transcribe it again.</p>
+{% endif %}

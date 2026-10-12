@@ -99,9 +99,14 @@ CREATE UNIQUE INDEX voiceprint_embeddings_source
     ON voiceprint_embeddings (person_id, model_id, source_job_id);
 """
 
+_V3_RECENT_JOB = """
+ALTER TABLE recent_meetings ADD COLUMN job_id TEXT;
+"""
+
 MIGRATIONS: list[Migration] = [
     Migration(1, "jobs, job stages and recent meetings", sql=_V1_JOBS),
     Migration(2, "voiceprints (opt-in speaker recognition)", sql=_V2_VOICEPRINTS),
+    Migration(3, "recent meetings remember their job (review audio)", sql=_V3_RECENT_JOB),
 ]
 
 

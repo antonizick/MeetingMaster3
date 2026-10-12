@@ -21,6 +21,7 @@ from meetingmaster3.web.api.templates import router as templates_router
 from meetingmaster3.web.hardware import router as hardware_router
 from meetingmaster3.web.llm import router as llm_router
 from meetingmaster3.web.pages import WEB_DIR, router
+from meetingmaster3.web.review import router as review_router
 from meetingmaster3.web.security import CSRFMiddleware, SecurityHeadersMiddleware
 
 log = logging.getLogger(__name__)
@@ -75,6 +76,7 @@ def create_app(settings: Settings | None = None, paths: AppPaths | None = None) 
     install_error_handlers(app)
     app.mount("/static", StaticFiles(directory=WEB_DIR / "static"), name="static")
     app.include_router(router)
+    app.include_router(review_router)
     app.include_router(hardware_router)
     app.include_router(llm_router)
     app.include_router(jobs_router)

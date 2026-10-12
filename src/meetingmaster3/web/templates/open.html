@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Open a note · MeetingMaster3{% endblock %}
+{% block content %}
+<h1>Open a note</h1>
+<p class="muted">Re-open a meeting note that MeetingMaster3 wrote, to review it, edit it, regenerate sections or rename speakers.</p>
+
+<section aria-labelledby="h-recent" class="card">
+  <h2 id="h-recent">Recent notes</h2>
+  {% if notes %}
+  <ul class="plain">
+    {% for n in notes %}
+    <li>
+      {% if n.review_link %}<a href="{{ n.review_link }}">{{ n.title or n.note_path }}</a>
+      {% else %}<span>{{ n.title or n.note_path }}</span> <span class="badge">moved or deleted</span>{% endif %}
+      <span class="muted">{{ n.date or '' }}</span>
+      {% if n.exists %} · <a href="{{ n.obsidian_link }}">Open in Obsidian</a>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="muted">Notes you write or open appear here.</p>{% endif %}
+</section>
+
+<section aria-labelledby="h-browse" class="card">
+  <h2 id="h-browse">Browse the vault</h2>
+  <p class="hint">Only notes written by MeetingMaster3 are listed (files with an <code>mm3-id</code> property). Transcripts and archived versions are hidden.</p>
+  <div id="picker">{% include "partials/picker.html" %}</div>
+</section>
+{% endblock %}

@@ -189,10 +189,11 @@ def test_flow_from_upload_to_preview(ui: TestClient, tone: Path, vault: Path) ->
     note = next(p for p in notes if not p.name.endswith(".transcript.md"))
     assert "Written to your vault" in panel
     assert f'href="obsidian://open?path={quote(str(note), safe="")}"' in panel
-    assert "Review &amp; edit" in panel and "/preview?path=" in panel
+    assert "Review &amp; edit" in panel and "/meetings/" in panel  # the review workspace
 
     preview = ui.get("/preview", params={"path": str(note)})
     assert preview.status_code == 200 and "Read-only preview" in preview.text
+    assert "Open it in the review workspace" in preview.text
     assert "mm3-id" not in preview.text  # frontmatter is not shown
 
     recent = ui.get("/meetings")

@@ -33,6 +33,7 @@ from meetingmaster3.templates.loader import MANIFEST_NAME, install_builtins
 from meetingmaster3.templates.stages import WRITTEN_FILE, template_library
 from meetingmaster3.vault.io import read_text
 from meetingmaster3.vault.paths import is_inside, resolve_vault_root
+from meetingmaster3.vault.picker import read_identity
 from meetingmaster3.web import views
 from meetingmaster3.web.api.jobs import get_runner
 from meetingmaster3.web.api.speakers import _read as read_json_file
@@ -49,6 +50,7 @@ router = APIRouter()
 NAV = (
     ("new", "/", "New meeting"),
     ("recent", "/meetings", "Recent"),
+    ("open", "/open", "Open a note"),
     ("templates", "/templates", "Templates"),
     ("settings", "/settings", "Settings"),
 )
@@ -214,6 +216,13 @@ async def hardware_panel(
 # -- job page --------------------------------------------------------------------------------------
 
 
+def review_link(written: dict[str, Any]) -> str:
+    """The review workspace for a written job's note (the read-only preview as a fallback)."""
+    if written.get("mm3_id") and written.get("note_relative"):
+        return f"/meetings/{written['mm3_id']}?path={quote(written['note_relative'])}"
+    return f"/preview?path={quote(written['note_path'], safe='')}"
+
+
 def _job_context(request: Request, job_id: str) -> dict[str, Any]:
     runner = get_runner(request)
     job = runner.describe(check_job_id(job_id))
@@ -225,7 +234,7 @@ def _job_context(request: Request, job_id: str) -> dict[str, Any]:
         written = read_json_file(job_dir(runner.jobs_root, job_id) / WRITTEN_FILE)
         if written and written.get("note_path"):
             written["obsidian_link"] = views.obsidian_link(written["note_path"])
-            written["preview_link"] = f"/preview?path={quote(written['note_path'], safe='')}"
+            written["preview_link"] = review_link(written)
     current = next((s for s in job["stages"] if s["status"] in {"running", "waiting"}), None)
     return {
         "job": job,
@@ -407,7 +416,11 @@ async def recent_page(request: Request) -> HTMLResponse:
     for meeting in RecentMeetingsRepository(runner.db).recent(30):
         item = meeting.to_dict()
         item["obsidian_link"] = views.obsidian_link(meeting.note_path)
-        item["preview_link"] = f"/preview?path={quote(meeting.note_path, safe='')}"
+        item["preview_link"] = (
+            f"/open/note?path={quote(rel, safe='')}"
+            if (rel := views.vault_relative(_settings(request).vault.path, meeting.note_path))
+            else f"/preview?path={quote(meeting.note_path, safe='')}"
+        )
         notes.append(item)
     return render(request, "recent.html", {"active": "recent", "jobs": jobs, "notes": notes})
 
@@ -429,7 +442,8 @@ async def recent_delete(request: Request, job_id: str) -> HTMLResponse:
 
 @router.get("/preview", response_class=HTMLResponse)
 async def preview_note(request: Request, path: str) -> HTMLResponse:
-    """A read-only, sanitised rendering of a note in the vault (Phase 11 adds the editor)."""
+    """A read-only, sanitised rendering of a vault note that is not an MM3 note (MM3 notes open
+    in the review workspace, ``/meetings/{mm3_id}``)."""
     root = resolve_vault_root(_settings(request).vault.path)
     note = Path(path)
     if (
@@ -445,11 +459,17 @@ async def preview_note(request: Request, path: str) -> HTMLResponse:
             status_code=404,
         )
     text = await asyncio.to_thread(read_text, note.resolve())
+    info = read_identity(note.resolve())
+    review = None
+    if info is not None and not info.is_transcript and not info.archived:
+        rel = note.resolve().relative_to(root).as_posix()
+        review = f"/open/note?path={quote(rel, safe='')}"
     return render(
         request,
         "preview.html",
         {
             "active": "recent",
+            "review_link": review,
             "name": note.stem,
             "rendered": render_markdown(text),
             "obsidian_link": views.obsidian_link(str(note)),

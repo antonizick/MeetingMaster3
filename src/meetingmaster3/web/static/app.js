@@ -20,6 +20,7 @@
     if (hint) el.append(" ", hint);
     region.replaceChildren(el);
   }
+  window.mm3Toast = toast; // used by the review workspace (static/js/review.js)
 
   // -- HTMX: show failed requests as toasts instead of swapping them in -------------------------
   document.body.addEventListener("htmx:beforeSwap", (evt) => {

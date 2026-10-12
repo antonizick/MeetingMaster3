@@ -1,0 +1,10 @@
+<div class="card attention">
+  <p><strong>New note with the “{{ result.template }}” template</strong> <span class="muted">({{ result.backend }} / {{ result.model }})</span></p>
+  {% if result.preserved %}<p class="alert info">Text you wrote outside the sections is kept at the end, under “Preserved notes”.</p>{% endif %}
+  {% for w in result.warnings %}<p class="alert warn">{{ w }}</p>{% endfor %}
+  {% include "partials/diff.html" %}
+  <div class="row">
+    <button type="button" class="primary" id="switch-apply">Archive the current note and write this one</button>
+    <button type="button" data-close>Discard</button>
+  </div>
+</div>

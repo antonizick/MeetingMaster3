@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · Review · MeetingMaster3{% endblock %}
+{% block main_class %}wide{% endblock %}
+{% block scripts %}
+  <script defer src="{{ url_for('static', path='js/transcript.js') }}"></script>
+  <script defer src="{{ url_for('static', path='js/review.js') }}"></script>
+{% endblock %}
+{% block content %}
+<script type="application/json" id="review-data">{{ data|tojson }}</script>
+<div class="ws" id="workspace">
+  <header class="ws-header">
+    <div class="ws-title">
+      <h1>{{ title }}</h1>
+      <p class="muted ws-meta">
+        {% if meta %}Template <strong>{{ meta.template_id or 'unknown' }}</strong>
+        {% if meta.backend %}· {{ meta.backend }}{% if meta.model %} / {{ meta.model }}{% endif %}{% endif %}
+        {% if meta.date %}· {{ meta.date.strftime('%Y-%m-%d') }}{% endif %} ·{% endif %}
+        <code>{{ ws.relative }}</code>
+      </p>
+    </div>
+    <div class="ws-actions row">
+      {% if not ws.readonly %}
+      <span id="save-status" class="save-status" role="status" aria-live="polite">Saved</span>
+      <button type="button" class="primary" id="btn-save">Save to vault</button>
+      <button type="button" id="btn-preview" aria-pressed="false">Preview</button>
+      <button type="button" id="btn-switch"{% if not ws.can_regenerate %} disabled title="Needs the companion transcript"{% endif %}>Switch template…</button>
+      <button type="button" id="btn-rename"{% if not ws.can_regenerate or not ws.transcript or not ws.transcript.speakers %} disabled title="Needs a transcript with separate speakers"{% endif %}>Rename speakers…</button>
+      {% endif %}
+      <a class="button" href="{{ obsidian_link }}">Open in Obsidian</a>
+      <div class="feedback-slot" data-feedback-scope="note" data-mm3-id="{{ ws.mm3_id }}"></div>
+    </div>
+  </header>
+
+  {% if ws.readonly %}<p class="alert info">{{ ws.readonly_reason }}</p>{% endif %}
+  {% for w in ws.warnings %}<p class="alert warn">{{ w }}</p>{% endfor %}
+
+  {% if draft %}
+  <div class="alert info" id="draft-banner">
+    {% if draft.usable %}
+    <p><strong>You have unsaved edits from <time datetime="{{ draft.saved_at }}">{{ draft.saved_at[:16].replace('T', ' ') }} UTC</time>.</strong>
+      {% if draft.stale %}The note has changed in the vault since then: restoring replaces those changes in the parts you edited.{% endif %}</p>
+    <div class="row"><button type="button" class="primary" id="draft-restore">Restore my edits</button> <button type="button" id="draft-discard">Discard them</button></div>
+    {% else %}
+    <p><strong>An unsaved draft from <time datetime="{{ draft.saved_at }}">{{ draft.saved_at[:16].replace('T', ' ') }} UTC</time> cannot be restored</strong>: the note's sections changed since then.</p>
+    <div class="row"><button type="button" id="draft-discard">Discard it</button></div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if ws.damaged_ids and not ws.readonly %}
+  <div class="alert warn" id="damaged">
+    <p><strong>Some section markers are damaged</strong>, so those sections cannot be regenerated in place. Their text is kept and shown as your own text; nothing is guessed.</p>
+    <ul>{% for e in ws.parsed.marker_errors %}<li>{{ e.message }}</li>{% endfor %}</ul>
+    <div class="row">
+      {% for sid in ws.damaged_ids %}
+      <button type="button" class="append-btn" data-section-id="{{ sid }}"{% if not ws.can_regenerate %} disabled{% endif %}>Append a fresh “{{ sid }}” section…</button>
+      {% endfor %}
+    </div>
+    <div id="append-result"></div>
+  </div>
+  {% endif %}
+
+  <div class="ws-panes" id="panes">
+    <section class="pane pane-transcript" aria-labelledby="h-transcript">
+      <h2 id="h-transcript" class="sr-only">Transcript</h2>
+      <div class="player" id="player">
+        {% if audio_url %}
+        <audio id="audio" preload="metadata" src="{{ audio_url }}"></audio>
+        <div class="player-controls">
+          <button type="button" id="pl-back" title="Back 5 seconds (J)">−5 s</button>
+          <button type="button" id="pl-play" class="primary" aria-label="Play" title="Play or pause (Space or K)">▶</button>
+          <button type="button" id="pl-fwd" title="Forward 5 seconds (L)">+5 s</button>
+          <input type="range" id="pl-seek" min="0" max="0" step="0.1" value="0" aria-label="Position in the recording">
+          <span id="pl-time" class="pl-time">0:00 / 0:00</span>
+          <label class="pl-speed">Speed
+            <select id="pl-speed">
+              <option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option>
+              <option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option>
+            </select>
+          </label>
+        </div>
+        <p class="hint">Keys: <kbd>Space</kbd> or <kbd>K</kbd> play/pause · <kbd>J</kbd> back 5 s · <kbd>L</kbd> forward 5 s (not while typing). Click a word or time to jump there.</p>
+        {% else %}
+        <p class="alert info" id="no-audio">{{ ws.audio_message }}</p>
+        {% endif %}
+      </div>
+
+      {% if ws.transcript %}
+      <div class="tr-tools">
+        <input type="search" id="tr-search" placeholder="Search the transcript" aria-label="Search the transcript">
+        <span id="tr-count" class="muted" aria-live="polite"></span>
+        <button type="button" id="tr-prev" aria-label="Previous match">↑</button>
+        <button type="button" id="tr-next" aria-label="Next match">↓</button>
+        <label class="check"><input type="checkbox" id="tr-follow" checked> Follow</label>
+      </div>
+      <div class="transcript" id="transcript" tabindex="0" aria-label="Transcript">
+        {% for turn in ws.transcript.turns %}
+        <div class="turn spk-{{ turn.colour if turn.colour is not none else 'x' }}">
+          <div class="turn-head"><button type="button" class="ts" data-t="{{ turn.start }}">{{ turn.start|clock }}</button> <strong>{{ turn.name }}</strong></div>
+          <p>{% for seg in turn.segments %}<span class="seg" data-i="{{ seg.index }}" data-t="{{ seg.start }}">{% if seg.words %}{% for w in seg.words %}<span class="w" data-t="{{ w.start }}">{{ w.text }}</span> {% endfor %}{% else %}{{ seg.text }} {% endif %}</span>{% endfor %}</p>
+        </div>
+        {% else %}
+        <p class="muted">The transcript is empty.</p>
+        {% endfor %}
+      </div>
+      {% elif not ws.readonly %}
+      <div class="alert warn" id="note-only">
+        <p><strong>Transcript not found.</strong> This note's companion transcript{% if meta and meta.transcript_ref %} (<code>{{ meta.transcript_ref }}</code>){% endif %} is missing, so the note opens without it: regeneration, template switching and renaming are off until it is back.</p>
+        <div class="row">
+          <button type="button" hx-get="/ui/review/{{ ws.mm3_id }}/locate?path={{ ws.relative|urlencode }}" hx-target="#locate-result">Locate the transcript</button>
+          {% if ws.audio == 'ok' %}<button type="button" id="btn-reprocess">Transcribe the recording again</button>{% endif %}
+        </div>
+        <div id="locate-result"></div>
+      </div>
+      {% endif %}
+    </section>
+
+    <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize the panes" aria-valuemin="20" aria-valuemax="80" aria-valuenow="45" tabindex="0"></div>
+
+    <section class="pane pane-note" aria-labelledby="h-note">
+      <h2 id="h-note" class="sr-only">Note</h2>
+      {% if ws.readonly %}
+      <article class="note">{{ rendered }}</article>
+      {% else %}
+      <div id="editor" class="editor">
+        {% if ws.doc.frontmatter %}
+        <details class="fm">
+          <summary>Properties</summary>
+          <p class="hint">Obsidian properties (YAML). Keep <code>mm3-id</code>: it links the note to its transcript and recording.</p>
+          <textarea class="part" data-kind="frontmatter" spellcheck="false" aria-label="Properties (YAML)">{{ "\n" }}{{ ws.doc.frontmatter }}</textarea>
+        </details>
+        {% endif %}
+        {% for section in ws.doc.sections %}
+        <textarea class="part text" data-kind="text" data-index="{{ loop.index0 }}" rows="1" aria-label="Your text before {{ section.title }}" placeholder="Your own notes (outside the MeetingMaster3 sections)">{{ "\n" }}{{ ws.doc.texts[loop.index0] }}</textarea>
+        <section class="nsec" data-section-id="{{ section.id }}" aria-label="Section {{ section.title }}">
+          <div class="marker" title="Section marker: protected, cannot be edited here"><code>&lt;!-- mm3:section:{{ section.id }} --&gt;</code></div>
+          <div class="nsec-tools">
+            <span class="nsec-title">{{ section.title }}</span>
+            <button type="button" class="regen-btn" data-section-id="{{ section.id }}" data-title="{{ section.title }}"{% if not ws.can_regenerate %} disabled title="Needs the companion transcript"{% endif %}>Regenerate…</button>
+            <div class="feedback-slot" data-feedback-scope="section" data-section-id="{{ section.id }}"></div>
+          </div>
+          <textarea class="part sec" data-kind="section" data-id="{{ section.id }}" aria-label="Section {{ section.title }} (Markdown)">{{ "\n" }}{{ section.inner }}</textarea>
+          <p class="marker-warn alert error" hidden></p>
+          <div class="regen-result" data-section-id="{{ section.id }}"></div>
+          <div class="marker"><code>&lt;!-- /mm3:section:{{ section.id }} --&gt;</code></div>
+        </section>
+        {% endfor %}
+        <textarea class="part text" data-kind="text" data-index="{{ ws.doc.sections|length }}" rows="1" aria-label="Your text after the last section" placeholder="Your own notes (outside the MeetingMaster3 sections)">{{ "\n" }}{{ ws.doc.texts[-1] }}</textarea>
+        <p class="marker-warn alert warn" id="text-marker-warn" hidden>An edit outside the sections adds, removes or changes a section marker line. Saving will ask you to confirm.</p>
+      </div>
+      <div id="preview" class="note" hidden></div>
+      {% endif %}
+    </section>
+  </div>
+
+  {% if not ws.readonly %}
+  <dialog id="dlg-regen" aria-labelledby="dlg-regen-title">
+    <form id="form-regen">
+      <h2 id="dlg-regen-title">Regenerate “<span data-fill="title"></span>”</h2>
+      <label for="regen-instructions">Instructions (optional)</label>
+      <textarea id="regen-instructions" name="instructions" rows="3" maxlength="4000" placeholder="e.g. Make it shorter. Focus on the budget."></textarea>
+      <details>
+        <summary>Model</summary>
+        <div class="grid">
+          <label class="field">Backend
+            <select name="backend" class="backend-select">
+              {% for b in backends %}<option value="{{ b.name }}" data-consent="{{ 'yes' if b.requires_consent else 'no' }}"{% if b.name == note_backend %} selected{% endif %}>{{ b.name }}{% if b.badge %} ({{ b.badge }}){% endif %}</option>{% endfor %}
+            </select>
+          </label>
+          <label class="field">Model <input type="text" name="model" value="{{ note_model }}" placeholder="The backend's default"></label>
+        </div>
+      </details>
+      <label class="check consent" hidden><input type="checkbox" name="cloud_consent"> Send this meeting's transcript to <strong class="consent-name"></strong>, a cloud service, for this request.</label>
+      <p class="hint">This can take a minute with a local model. The current text stays until you accept.</p>
+      <div class="row"><button type="submit" class="primary">Regenerate</button> <button type="button" data-close>Cancel</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-switch" class="wide-dialog" aria-labelledby="dlg-switch-title">
+    <form id="form-switch">
+      <h2 id="dlg-switch-title">Switch template</h2>
+      <p class="hint">The whole note is written again with another template. Your current note is archived first, and anything you wrote outside the sections is kept under “Preserved notes”. You see the result before anything is written.</p>
+      <label class="field">Template
+        <select name="template">
+          {% for t in templates_list %}<option value="{{ t.id }}"{% if meta and t.id == meta.template_id %} selected{% endif %}>{{ t.name }}</option>{% endfor %}
+        </select>
+      </label>
+      <details>
+        <summary>Model</summary>
+        <div class="grid">
+          <label class="field">Backend
+            <select name="backend" class="backend-select">
+              {% for b in backends %}<option value="{{ b.name }}" data-consent="{{ 'yes' if b.requires_consent else 'no' }}"{% if b.name == note_backend %} selected{% endif %}>{{ b.name }}{% if b.badge %} ({{ b.badge }}){% endif %}</option>{% endfor %}
+            </select>
+          </label>
+          <label class="field">Model <input type="text" name="model" value="{{ note_model }}" placeholder="The backend's default"></label>
+        </div>
+      </details>
+      <label class="check consent" hidden><input type="checkbox" name="cloud_consent"> Send this meeting's transcript to <strong class="consent-name"></strong>, a cloud service, for this request.</label>
+      <div class="row"><button type="submit" class="primary">Preview the new note</button> <button type="button" data-close>Cancel</button></div>
+    </form>
+    <div id="switch-result"></div>
+  </dialog>
+
+  <dialog id="dlg-rename" class="wide-dialog" aria-labelledby="dlg-rename-title">
+    <form id="form-rename">
+      <h2 id="dlg-rename-title">Rename speakers</h2>
+      <p class="hint">Updates the transcript, the note's participants and the names inside the MeetingMaster3 sections. Your own text outside the sections is not changed. Leave a name empty to go back to “Speaker N”.</p>
+      {% if ws.transcript %}
+      {% for s in ws.transcript.speakers %}
+      <label class="field spk-field spk-{{ s.colour }}">{{ s.label }}{% if s.placeholder %} <span class="muted">(not named)</span>{% endif %}
+        <input type="text" name="name__{{ s.label }}" value="{{ '' if s.placeholder else s.name }}" placeholder="{{ s.name }}" maxlength="80">
+      </label>
+      {% endfor %}
+      {% endif %}
+      <div class="row"><button type="submit" class="primary">Preview the changes</button> <button type="button" data-close>Cancel</button></div>
+    </form>
+    <div id="rename-result"></div>
+  </dialog>
+
+  <dialog id="dlg-conflict" class="wide-dialog" aria-labelledby="dlg-conflict-title">
+    <h2 id="dlg-conflict-title">The note changed in the vault</h2>
+    <p>Someone (Obsidian, sync or another tab) changed this note after you opened it. Compare both versions below. To merge by hand, keep editing and then keep yours.</p>
+    <div id="conflict-diff"></div>
+    <div class="row">
+      <button type="button" class="primary" id="conflict-mine">Keep mine (overwrite the vault file)</button>
+      <button type="button" id="conflict-theirs">Take theirs (discard my edits)</button>
+      <button type="button" data-close>Keep editing</button>
+    </div>
+  </dialog>
+
+  <dialog id="dlg-markers" aria-labelledby="dlg-markers-title">
+    <h2 id="dlg-markers-title">Section markers changed</h2>
+    <p id="markers-message"></p>
+    <p class="hint">Sections with damaged markers can no longer be regenerated. Their text is kept.</p>
+    <div class="row"><button type="button" class="danger" id="markers-save">Save anyway</button> <button type="button" data-close>Cancel</button></div>
+  </dialog>
+  {% endif %}
+</div>
+{% endblock %}

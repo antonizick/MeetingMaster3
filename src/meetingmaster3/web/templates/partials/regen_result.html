@@ -1,0 +1,14 @@
+<div class="regen-box card attention" data-section-id="{{ preview.section_id }}">
+  <p><strong>{% if append %}A fresh{% else %}New version of{% endif %} “{{ preview.title }}”</strong>
+    <span class="muted">({{ preview.backend }} / {{ preview.model }})</span></p>
+  {% include "partials/diff.html" %}
+  <div class="row">
+    {% if append %}
+    <button type="button" class="primary" data-regen="append">Append as a new section</button>
+    {% else %}
+    <button type="button" class="primary" data-regen="accept">Accept</button>
+    <button type="button" data-regen="accept-archive">Accept &amp; archive previous</button>
+    {% endif %}
+    <button type="button" data-regen="discard">Discard</button>
+  </div>
+</div>

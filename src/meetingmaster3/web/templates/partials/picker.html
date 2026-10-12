@@ -1,0 +1,21 @@
+<nav aria-label="Folder" class="picker-path">
+  <span class="muted">Vault</span>{% if listing.folder %} / <code>{{ listing.folder }}</code>{% endif %}
+</nav>
+<ul class="plain picker" aria-live="polite">
+  {% if listing.parent is not none %}
+  <li><button type="button" class="link" hx-get="/ui/open/browse?dir={{ listing.parent|urlencode }}" hx-target="#picker">↑ Up one folder</button></li>
+  {% endif %}
+  {% for e in listing.entries %}
+  <li>
+    {% if e.kind == 'dir' %}
+    <button type="button" class="link" hx-get="/ui/open/browse?dir={{ e.path|urlencode }}" hx-target="#picker"><span aria-hidden="true">📁</span> {{ e.name }}</button>
+    {% else %}
+    <a href="/open/note?path={{ e.path|urlencode }}"><span aria-hidden="true">📝</span> {{ e.title }}</a>
+    <span class="muted">{{ e.date or '' }} · {{ e.name }}</span>
+    {% endif %}
+  </li>
+  {% else %}
+  <li class="muted">No sub-folders or MeetingMaster3 notes here.</li>
+  {% endfor %}
+</ul>
+{% if listing.truncated %}<p class="alert warn">This folder has too many files to list them all; only the first ones were checked.</p>{% endif %}

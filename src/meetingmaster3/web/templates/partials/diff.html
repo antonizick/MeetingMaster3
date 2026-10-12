@@ -1,0 +1,24 @@
+<div class="diff" data-mode="split">
+  <div class="diff-tabs row" role="group" aria-label="Diff view">
+    <button type="button" data-diff-mode="split" aria-pressed="true">Side by side</button>
+    <button type="button" data-diff-mode="unified" aria-pressed="false">Unified</button>
+    <span class="muted">{{ stats.added }} added · {{ stats.removed }} removed · {{ stats.changed }} changed</span>
+  </div>
+  <div class="diff-split table-wrap">
+    <table class="diff-table">
+      <thead><tr><th scope="col" colspan="2">{{ old_label|capitalize }}</th><th scope="col" colspan="2">{{ new_label|capitalize }}</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+      <tr class="d-{{ r.kind }}">
+        <td class="ln">{{ r.left_no or '' }}</td><td class="dl">{% if r.kind in ('delete', 'replace') %}<span class="sr-only">Removed: </span>{% endif %}{{ r.left if r.left is not none else '' }}</td>
+        <td class="ln">{{ r.right_no or '' }}</td><td class="dr">{% if r.kind in ('insert', 'replace') %}<span class="sr-only">Added: </span>{% endif %}{{ r.right if r.right is not none else '' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">No changes.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <pre class="diff-unified" hidden>{% for line in unified %}{% if line.startswith('+++') or line.startswith('---') %}<span class="u-file">{{ line }}</span>{% elif line.startswith('@@') %}<span class="u-hunk">{{ line }}</span>{% elif line.startswith('+') %}<span class="u-add">{{ line }}</span>{% elif line.startswith('-') %}<span class="u-del">{{ line }}</span>{% else %}<span>{{ line }}</span>{% endif %}
+{% else %}No changes.{% endfor %}</pre>
+</div>

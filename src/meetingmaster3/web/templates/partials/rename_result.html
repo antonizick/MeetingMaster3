@@ -1,0 +1,25 @@
+<div class="card attention">
+  {% if not plan.changes %}
+  <p>No names change.</p>
+  {% else %}
+  <ul>
+    {% for c in plan.changes %}<li><code>{{ c.label }}</code>: {{ c.old }} → <strong>{{ c.new }}</strong></li>{% endfor %}
+  </ul>
+  <ul class="hint">
+    <li>Transcript <code>{{ companion_rel }}</code>: {{ companion_changes }} line{{ '' if companion_changes == 1 else 's' }} change.</li>
+    <li>Note properties: <code>mm3-speakers</code> and <code>participants</code>{% if plan.header_updated %}, and the Participants line under the title{% endif %}.</li>
+    {% for title, n in plan.section_hits.items() %}<li>“{{ title }}”: {{ n }} name{{ '' if n == 1 else 's' }} replaced.</li>{% endfor %}
+    {% if not plan.section_hits %}<li>No names appear inside the generated sections.</li>{% endif %}
+  </ul>
+  <details><summary>Changed lines in the note</summary>
+    <div class="table-wrap"><table class="diff-table"><tbody>
+      {% for r in note_rows %}<tr class="d-{{ r.kind }}"><td class="dl">{{ r.left if r.left is not none else '' }}</td><td class="dr">{{ r.right if r.right is not none else '' }}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </details>
+  <p class="hint">Voice recognition is not updated by a rename: the voice samples of this meeting were deleted when its speakers were first confirmed.</p>
+  {% endif %}
+  <div class="row">
+    {% if plan.changes %}<button type="button" class="primary" id="rename-apply">Apply the new names</button>{% endif %}
+    <button type="button" data-close>Close</button>
+  </div>
+</div>
