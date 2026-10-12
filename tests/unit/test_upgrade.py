@@ -205,6 +205,8 @@ def test_cli_dry_run_and_apply(vault: Path, note: Path, monkeypatch: pytest.Monk
 
 @pytest.fixture
 def fake_llm(ui: TestClient, monkeypatch: pytest.MonkeyPatch) -> FakeLLMBackend:
+    """A scripted model through the app's registry (the real path, not MM3_FAKE_PIPELINE)."""
+    monkeypatch.delenv("MM3_FAKE_PIPELINE")
     fake = FakeLLMBackend(id="ollama", responder=respond)
     registry = ui.app.state.llm_registry  # type: ignore[attr-defined]
     monkeypatch.setattr(registry, "get", lambda name=None: fake)

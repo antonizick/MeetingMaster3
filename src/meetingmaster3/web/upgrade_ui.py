@@ -17,6 +17,7 @@ from fastapi.responses import HTMLResponse
 
 from meetingmaster3.config.settings import Settings
 from meetingmaster3.errors import MM3Error
+from meetingmaster3.jobs.pipeline import fake_pipeline_enabled
 from meetingmaster3.markdown.sections import render_section
 from meetingmaster3.review.upgrade import (
     ModelChoice,
@@ -58,12 +59,23 @@ def _root(settings: Settings) -> Path | None:
         return None
 
 
+async def _model(request: Request) -> ModelChoice:
+    """The default backend and model; the offline fake model when the server runs with
+    ``MM3_FAKE_PIPELINE=1`` (like the review workspace)."""
+    settings = _settings(request)
+    if fake_pipeline_enabled():
+        from meetingmaster3.jobs.fakes import fake_backend
+
+        name, backend = fake_backend(settings, None)
+        cfg = settings.llm.backends.get(name)
+        cloud = not backend.is_local and not (cfg is not None and cfg.consent_remembered)
+        return ModelChoice(name, "fake-model", backend, cloud)
+    return await choose_model(request.app.state.llm_registry, settings, None, None)
+
+
 async def _choice(request: Request) -> tuple[ModelChoice | None, str]:
     try:
-        return (
-            await choose_model(request.app.state.llm_registry, _settings(request), None, None),
-            "",
-        )
+        return await _model(request), ""
     except MM3Error as exc:
         return None, f"{exc.message} {exc.hint}".strip()
 
@@ -152,7 +164,7 @@ async def upgrade_preview(
     plan = plan_note(root, note, library, settings, text)
     context: dict[str, Any] = {"plan": plan, "link": _link(plan.rel), "sections": []}
     if plan.needs_model:
-        choice = await choose_model(request.app.state.llm_registry, settings, None, None)
+        choice = await _model(request)
         warnings: list[str] = []
         sections = await generate_sections(
             plan,
@@ -187,7 +199,7 @@ async def upgrade_start(request: Request, cloud_consent: str = Form("")) -> HTML
     plan = await asyncio.to_thread(plan_vault, root, library, settings)
     choice = None
     if any(n.needs_model for n in plan.todo):
-        choice = await choose_model(request.app.state.llm_registry, settings, None, None)
+        choice = await _model(request)
         if choice.cloud and not cloud_consent:
             raise MM3Error(
                 "E_CONSENT_REQUIRED",
