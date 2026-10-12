@@ -16,6 +16,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   voice"), a completion page with an `obsidian://` link, a sanitised read-only note preview, and the
   Recent list (resume, delete). Vendored HTMX 2.0.11 and the CSP build of Alpine.js 3.17.4; no CDN and
   no build step. Playwright browser smoke test (`e2e` marker).
+- Settings, template library and feedback (Phase 12): a tabbed Settings screen (vault, transcription with a
+  Hugging Face token test and background model downloads, notes and jobs, language-model backends with
+  add/edit/remove, write-only API keys, connection tests, model lists, revocable cloud consent and the
+  recommendations panel, privacy with a retention preview and voiceprint management including the two-step
+  wipe, diagnostics with copy-path and export of all app data) that validates as a whole and writes
+  `config.yaml`; a template library screen (favourite stored in the template's frontmatter, preview, in-app
+  editor with line-numbered validation, duplicate, create, delete with archive, reset built-in with archive,
+  tag and text filter); local feedback ratings on notes and sections (migration 3, JSON/CSV export, no
+  telemetry); a Download menu per meeting (note, transcript, plain text, zip with the audio) and
+  `GET /api/export/all`; the optional copy of the retained audio into the vault (`privacy.copy_audio_to_vault`,
+  `vault.attachments_subfolder`, `mm3-audio` link). Playwright smoke test for settings and templates.
 - `markdown-it-py` is now a direct dependency (note preview); `playwright` is a dev dependency.
 
 ### Security

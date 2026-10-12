@@ -90,6 +90,12 @@ Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, ins
 | `templates/generator.py`, `mapreduce.py`, `postprocess.py` | `NoteGenerator` (consent, fit check, per-section calls, map-reduce, checkpoints, `regenerate_section`); chunk extraction, JSON repair, merge; output clean-up and deadline dates. |
 | `templates/stages.py`, `regenerate.py` | The `generate` and `write` stages; preview of one section's regeneration for a vault note. |
 | `web/api/templates.py` | `GET /api/templates`, `POST /api/templates/install`, `POST /api/jobs/{id}/generate`, `POST /api/notes/regenerate-section`. |
+| `config/editing.py` | UI settings edits: validate a dotted-path patch per section, apply it only if all of it is valid, write `config.yaml` (Phase 12). |
+| `web/settings_ui.py`, `settings_fields.py`, `model_downloads.py` | The tabbed Settings screen (`/settings/<tab>`): declarative field list and form parsing, write-only secrets, backend add/edit/test, retention preview, voiceprint management with the two-step wipe, diagnostics, background model downloads. `transcription/hf_check.py` tests the Hugging Face token. |
+| `templates/manage.py`, `web/templates_ui.py` | Template library management (favourite = one frontmatter line, duplicate, create, validated save, delete with archive, reset built-in); the `/templates` screens. |
+| `feedback/store.py`, `context.py`, `web/api/feedback.py`, `web/feedback_ui.py` | Local ratings (migration 3, table `feedback`), the CSV/JSON export, and the rating widget (`partials/feedback.html`, embedded with the `fb` variable from `feedback_context`). |
+| `exporting.py`, `web/api/export.py` | Meeting export (note, transcript, plain text, zip with audio) and "export all app data" (no secrets, audio or voiceprints). |
+| `jobs/vault_audio.py` | The optional copy of the retained audio into the vault with an `mm3-audio` link (R8), run by the runner after a job is written. |
 
 All other packages are empty placeholders with a docstring, filled in by later phases.
 

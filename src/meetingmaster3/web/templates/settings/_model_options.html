@@ -1,0 +1,2 @@
+<datalist id="{{ datalist }}">{% for m in models %}<option value="{{ m.id }}">{{ m.name }}</option>{% endfor %}</datalist>
+{% if error %}<span class="hint error-text">Could not list models: {{ error }}</span>{% elif models %}<span class="hint">{{ models|length }} models available; start typing to pick one.</span>{% else %}<span class="hint">No models reported.</span>{% endif %}

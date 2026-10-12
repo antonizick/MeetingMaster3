@@ -1,0 +1,1 @@
+<span class="{{ 'ok' if ok else 'error-text' }}" role="status">{{ '✓' if ok else '✗' }} {{ message }}{% if user %} (signed in as {{ user }}){% endif %}{% if hint %} <span class="muted">{{ hint }}</span>{% endif %}</span>

@@ -84,6 +84,18 @@
     <a class="button" href="{{ written.preview_link }}">Review &amp; edit</a>
     <a class="button" href="/">New meeting</a>
   </div>
+  <details class="download-menu">
+    <summary>Download</summary>
+    <ul class="plain">
+      <li><a href="/api/jobs/{{ job.id }}/export?kind=note" download>The note (.md)</a></li>
+      {% if written.transcript_relative %}
+      <li><a href="/api/jobs/{{ job.id }}/export?kind=transcript" download>The transcript (.md)</a></li>
+      <li><a href="/api/jobs/{{ job.id }}/export?kind=txt" download>The transcript as plain text (.txt)</a></li>
+      {% endif %}
+      <li><a href="/api/jobs/{{ job.id }}/export?kind=zip" download>Everything in one zip{% if job.audio.available %} (with the audio){% endif %}</a></li>
+    </ul>
+  </details>
+  {% if written.feedback and written.feedback.mm3_id %}{% set fb = written.feedback %}{% include "partials/feedback.html" %}{% endif %}
 </section>
 {% endif %}
 

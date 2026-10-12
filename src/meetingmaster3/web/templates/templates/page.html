@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Templates · MeetingMaster3{% endblock %}
+{% block content %}
+<h1>Templates</h1>
+<p>A template decides which sections a note has and how each is written. They are plain Markdown files in your vault (<code>{{ folder }}</code>), so you can also edit them in Obsidian; changes show up here when you reload.</p>
+<div class="row">
+  <form class="row" hx-post="/templates/new">
+    <label for="new-name" class="sr-only">Name of the new template</label>
+    <input id="new-name" name="name" type="text" required maxlength="100" placeholder="Name of a new template" autocomplete="off">
+    <button type="submit" class="primary">Create template</button>
+  </form>
+</div>
+<form class="row filters" hx-get="/templates/list" hx-target="#library" hx-swap="innerHTML" hx-trigger="input delay:250ms from:#q, change from:#tag">
+  <label for="q" class="sr-only">Search templates</label>
+  <input id="q" name="q" type="search" placeholder="Search templates" value="{{ q }}" autocomplete="off">
+  <label for="tag" class="sr-only">Filter by tag</label>
+  <select id="tag" name="tag"><option value="">All tags</option>{% for t in tags %}<option value="{{ t }}"{% if t == tag %} selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+  <noscript><button type="submit">Filter</button></noscript>
+</form>
+<div id="library" aria-live="polite">{% include "templates/_library.html" %}</div>
+{% endblock %}

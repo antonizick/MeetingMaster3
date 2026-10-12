@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ template.name if template else file }} · Templates · MeetingMaster3{% endblock %}
+{% block content %}
+<p><a href="/templates">← All templates</a></p>
+{% if template %}
+<h1>{{ template.name }}</h1>
+<p>{{ template.description }}</p>
+<h2>Instructions to the model</h2>
+<pre class="prompt">{{ template.system_prompt }}</pre>
+<h2>Sections ({{ sections|length }})</h2>
+<ol class="stack">
+  {% for s in sections %}
+  <li class="card">
+    <h3>{{ s.title }}</h3>
+    <p class="muted">{{ s.kind }}{% if s.format != 'markdown' %}, {{ s.format }}{% endif %} · temperature {{ s.temperature }} · up to {{ s.max_tokens }} tokens</p>
+    <pre class="prompt">{{ s.prompt }}</pre>
+  </li>
+  {% endfor %}
+</ol>
+<p class="hint">These are the prompts as written; at run time the meeting’s facts and transcript are added around them.</p>
+<div class="row"><a class="button primary" href="/templates/{{ file|urlencode }}/edit">Edit</a></div>
+{% else %}
+<h1>{{ file }}</h1>
+<div class="alert error" role="alert"><ul>{% for i in issues %}<li>{% if i.line %}Line {{ i.line }}: {% endif %}{{ i.message }}</li>{% endfor %}</ul></div>
+{% endif %}
+{% endblock %}

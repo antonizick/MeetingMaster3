@@ -10,10 +10,10 @@ Pages are added as the features land. Planned index:
 | [`transcription.md`](transcription.md) (engine install, models, Hugging Face token and diarization setup, offline mode, language check, out-of-memory) | 06 (written) |
 | [`speakers.md`](speakers.md) (naming speakers, opt-in voice recognition, accuracy caveats, deleting voiceprints) | 07 (written) |
 | [`llm-backends.md`](llm-backends.md) (Ollama, Bedrock, OpenRouter) | 08 (written) |
-| [`templates.md`](templates.md) (built-in templates, choosing a model, customising templates, cloud consent, regeneration) | 09 (written), 13 |
+| [`templates.md`](templates.md) (built-in templates, choosing a model, customising templates, the template library, cloud consent, regeneration) | 09 (written), 12, 13 |
 | [`getting-started.md`](getting-started.md) (upload to vault note) | 10 (written) |
 | `review-and-regeneration.md` | 11 |
-| `settings.md` | 12 |
+| [`settings.md`](settings.md) (the Settings screen, secrets, retention, voiceprints, ratings and export) | 12 (written) |
 | `docker.md` | 14 |
 | `troubleshooting.md` and `faq.md` | 15, 16 |
 
