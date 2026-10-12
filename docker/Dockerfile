@@ -64,7 +64,8 @@ RUN apt-get update \
  && groupadd --gid ${MM3_GID} mm3 \
  && useradd --uid ${MM3_UID} --gid ${MM3_GID} --no-create-home --home-dir /tmp --shell /usr/sbin/nologin mm3 \
  && mkdir -p /config /data /models /vault \
- && chown ${MM3_UID}:${MM3_GID} /config /data /models /vault
+ && chown ${MM3_UID}:${MM3_GID} /config /data /models /vault \
+ && chmod 700 /config /data /models
 ENV PATH=/opt/venv/bin:$PATH \
     PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 \
     HOME=/tmp \

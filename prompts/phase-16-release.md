@@ -5,6 +5,15 @@
 ## Read first
 `CLAUDE.md`, `prompts/_shared-instructions.md`, `IMPLEMENTATION_PLAN.md` (the MVP definition of done and all Phase Log entries), and `docs/SPECIFICATION.md` §1, §12 and §15.4. Open question Q3 (GitHub owner, name and visibility).
 
+**Phase 15 notes:** the "Deferred to the roadmap" bullets in the Phase 15 Phase Log entry are the input for
+`docs/ROADMAP.md`. Before tagging, repeat the scans listed in `docs/dev-guide/setup.md` (gitleaks over the full
+history, `scripts/pip_audit_ml.sh`, trivy on both images, `uv run --extra ml --extra bedrock python
+scripts/gen_third_party.py --check`). **Publishing images (GHCR) carries GPL obligations** for the Debian packages in
+them, ffmpeg included (THIRD_PARTY_NOTICES "Docker images"); decide with Nick how sources are offered. Items only
+Nick can verify (MVP checklist): a live Bedrock and OpenRouter run with his keys, and a Firefox click-through (only
+Chromium is automated). The quality baseline is `tests/eval/baseline.json` (`tests/eval/baseline.py` flags
+regressions); measured numbers are in `docs/PERFORMANCE.md`; the README already has a "Known limitations" section.
+
 ## Goal
 Ship MeetingMaster3 **v0.1.0**: documentation complete and accurate, the repository clean and GitHub-ready, a tagged release, and, **only with Nick's explicit confirmation**, the repository published to GitHub.
 
