@@ -95,8 +95,9 @@ Optional voice recognition (`privacy.voiceprints_enabled: true`, off by default)
 you choose and suggests their names in later meetings; `uv run mm3 voiceprints list|delete|wipe`
 manages what is stored. Guide: [`docs/user-guide/speakers.md`](docs/user-guide/speakers.md).
 
-**Notes and templates.** Five built-in templates (Executive Summary, Technical Deep-Dive, Decision
-Log, Action-Focused, Just the Facts) are copied into your vault's `MeetingMaster3/templates/` folder,
+**Notes and templates.** 22 built-in templates (Executive Summary, Decision Log, Action-Focused,
+Job Interview Notes, Board Minutes, Stand-up, Retrospective and more; see the
+[catalogue](docs/user-guide/template-catalogue.md)) are copied into your vault's `MeetingMaster3/templates/` folder,
 where you can edit them or add your own. Action items are Obsidian checkboxes with an owner only when
 someone actually took the task on; long meetings are summarised in parts so nothing is skipped. Cloud
 models are used only after you confirm. Guide: [`docs/user-guide/templates.md`](docs/user-guide/templates.md).

@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 from meetingmaster3.templates.loader import builtin_files
-from meetingmaster3.templates.schema import Template, parse_template_file
+from meetingmaster3.templates.schema import Template, TemplateSection, parse_template_file
 
 TARGET = Path(__file__).parents[1] / "docs" / "user-guide" / "template-catalogue.md"
 DEFAULT_ID = "executive-summary"
@@ -45,15 +45,15 @@ def load_templates() -> list[Template]:
     return sorted(templates, key=lambda t: t.name.casefold())
 
 
-def section_line(template: Template, section_id: str) -> str:
-    section = template.section(section_id)
-    assert section is not None
+def section_line(section: TemplateSection) -> str:
     note = " (checkbox tasks)" if section.format == "tasks" else ""
     return f"{section.title}{note}"
 
 
 def render(templates: list[Template]) -> str:
-    rows = "\n".join(f"| [{t.name}](#{anchor(t)}) | `{t.id}` | {t.description} |" for t in templates)
+    rows = "\n".join(
+        f"| [{t.name}](#{anchor(t)}) | `{t.id}` | {t.description} |" for t in templates
+    )
     parts = [INTRO.format(count=len(templates), default=DEFAULT_ID, rows=rows)]
     for t in templates:
         parts.append(f"## {t.name}\n")
@@ -62,7 +62,7 @@ def render(templates: list[Template]) -> str:
         if t.tags:
             parts.append(f"**Library tags:** {', '.join(t.tags)}\n")
         parts.append("**Sections, in order:**\n")
-        parts.extend(f"{i}. {section_line(t, s.id)}" for i, s in enumerate(t.sections, 1))
+        parts.extend(f"{i}. {section_line(s)}" for i, s in enumerate(t.sections, 1))
         if not t.params.ai_recommendations:
             parts.append(
                 "\nThis template deliberately has no **AI Recommendations** section: "

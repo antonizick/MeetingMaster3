@@ -8,6 +8,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Expanded template library (Phase 13): the remaining 17 built-in templates, so 22 ship in total:
+  General Discussion Summary, Strategic Meeting Summary, Detailed Meeting Minutes, Job Interview Notes
+  (job-relevant evidence only, advisory recommendation), Project Team Sync, Brainstorming & Ideation,
+  Sales & Client Call, Agile Stand-up, One-on-One & Coaching, Board & Governance Minutes (motions and
+  votes exactly as stated; no AI Recommendations), Workshop & Training Recap, Retrospective & Lessons
+  Learned, Q&A Extraction, Speaker-Attributed Notes, Chronological Timeline, Risks, Issues &
+  Mitigations, and Key Takeaways & Next Steps. Each has a golden prompt snapshot; invariant tests cover
+  every template and the guardrails of the sensitive ones.
+- `docs/user-guide/template-catalogue.md`, generated from the template files by
+  `scripts/gen_template_catalogue.py` (checked in CI and by a unit test).
+- Five synthetic eval meetings for the type-specific templates (interview, stand-up, retrospective,
+  board meeting, sales call); the eval checker can require keywords in a section and forbid words
+  anywhere in a note.
 - Web UI, core flow (Phase 10): first-run vault setup with live validation and a preview of the output
   path, upload with drag and drop and progress, hardware confirmation with an ETA and advanced
   overrides, template and model pickers with a local/cloud badge and a cloud consent dialog, live job

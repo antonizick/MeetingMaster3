@@ -186,3 +186,29 @@ If the system message, the transcript, the longest section prompt and the output
 2. **Merge:** the extractions are concatenated in time order and near-duplicates (the same
    decision, action or question restated in two chunks, e.g. in the overlap turn) are removed.
 3. **Reduce:** every section is generated from the merged notes instead of the raw transcript.
+
+## 10. The built-in library (Phase 13)
+22 templates ship in `starter_templates/` (spec §15.1 A3, Appendix A). Conventions they follow, which
+new built-ins should too:
+* The file name is the `id` (`test_builtin_templates_are_valid` checks it), kebab-case.
+* Reuse the common section ids (§3.1) where the section means the same thing; type-specific ids
+  (`candidate-strengths`, `motions-and-votes`, `went-well`, `risks`) are fine beside them.
+* A section called `action-items` has `format: tasks` and its prompt keeps the `**Unassigned:**`
+  structure line and the owner rule (§8).
+* `ai-recommendations` is last. The only built-in with `params.ai_recommendations: false` is
+  `board-governance-minutes`: a formal record must not carry generated commentary
+  (`AI_RECOMMENDATIONS_EXCEPTIONS` in `tests/unit/templates/test_schema.py`).
+* Sensitive types carry their rules in `_system` and are guarded by
+  `test_sensitive_templates_keep_their_guardrails`: `job-interview-notes` (job-relevant evidence
+  only, no protected characteristics, advisory recommendation), `one-on-one-coaching` (respectful,
+  non-judgmental tone), `board-governance-minutes` (formal style, motions and votes exactly as
+  stated, never an inferred outcome).
+* Golden prompt snapshots are in `tests/fixtures/assembler/<id>.txt`
+  (`MM3_UPDATE_GOLDEN=1 uv run pytest tests/unit/templates/test_assembler.py`).
+* `docs/user-guide/template-catalogue.md` is generated: after changing a template run
+  `uv run python scripts/gen_template_catalogue.py` (CI runs it with `--check`, and
+  `tests/unit/templates/test_catalogue.py` fails when it is stale).
+* Type-specific eval meetings declare `templates: [id]` in their YAML and may list
+  `expected.sections` (keywords that must appear in a section) and `expected.forbidden` (words that
+  must not appear anywhere in the note). Run one with
+  `uv run python -m tests.eval.run_eval --model qwen3:8b --meetings <name> --templates <id>`.

@@ -444,3 +444,28 @@ vault) and sets the note's `mm3-audio` property through the note round-trip (`pa
 A failure is logged and never fails the job. The copy is not removed by retention (it is the user's file); the UI warns about vault size and sync.
 **Status.** Accepted (2026-10-11, Phase 12).
 
+## ADR-0023: Stage-2 template library: shared section ids, one exception to AI Recommendations, type-aware eval
+**Context.** Phase 13 adds the 17 remaining templates (spec A3). They have to stay consistent so
+regeneration, ratings and the library UI treat them alike, and several handle sensitive material
+(hiring, coaching, formal minutes).
+**Decision.**
+1. Templates reuse the common section ids and share the task-section structure, owner rule and "nothing
+   here" sentences taught in Phase 09; type-specific ids are added where a section has no common
+   equivalent. Prompts are written once per template; there is no inheritance or include mechanism
+   (templates stay plain, editable Markdown files, ADR-0016/0017).
+2. Exactly one built-in, `board-governance-minutes`, sets `params.ai_recommendations: false`: a legal
+   record must not carry generated commentary. The exception is listed in the test that enforces the
+   rule, so a new exception has to be added on purpose.
+3. Guardrails for sensitive templates live in their `_system` blocks and are asserted by tests (the
+   phrases that carry them), and checked on live output by the eval: `expected.forbidden` fails an
+   interview note that mentions family status; `expected.sections` fails board minutes that guess a
+   vote count.
+4. The eval gains type-specific meetings (`templates:` in the YAML): a meeting only runs against the
+   templates it is meant for, so adding templates does not multiply the run time. Meetings without the
+   key still run against every template.
+5. The template catalogue is generated from the files by a script and checked in CI, so it cannot drift.
+**Consequences.** Small local models were checked on the five type-specific meetings and on the
+other twelve templates with the general launch meeting (see the Phase 13 log). A prompt fix found by
+the eval (copy the chair's own words for a vote result) is in the board template. Per-template quality
+on real meetings is still Nick's judgement; templates can be edited in the vault without a release.
+
