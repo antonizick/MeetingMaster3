@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{# Meeting pages: no logo, the space is for the meeting (Phase 15a). #}
+{% block brand_logo %}{% endblock %}
 {% block title %}{{ name }} · MeetingMaster3{% endblock %}
 {% block content %}
 <p class="row"><a href="/open">← Open a note</a> <a class="button" href="{{ obsidian_link }}">Open in Obsidian</a></p>

@@ -215,6 +215,14 @@ Dev-only: `playwright` 1.63.0 (Apache-2.0) drives the browser tests; it download
 `tests/e2e/vendor/axe-core.LICENSE`, unmodified), injected only by the accessibility test; never served by the app,
 not in the wheel or the Docker images.
 
+## Project logo (Phase 15a)
+
+`src/meetingmaster3/web/static/brand/logo*.{webp,png}` is a crop of a photo-composite of the
+author. **It is not covered by the Apache-2.0 licence: © 2026 Nick Antonizick, all rights
+reserved** (see `NOTICE`, ADR-0032). Forks and redistributions must replace it. The original image
+is not in the repository; `scripts/make_logo.py` rebuilds the logo from a source passed as an
+argument.
+
 ## Programs used at run time
 
 **ffmpeg and ffprobe** (LGPL-2.1+ or GPL-2.0+, depending on the build) are required at runtime since
@@ -261,4 +269,5 @@ by this project. Users download them to their own machine, under the weights' ow
 ## Vendored front-end assets
 
 See "Vendored browser assets (Phase 10)" above: htmx and the Alpine CSP build are the only vendored
-assets (no editor or diff library: ADR-0024). No assets are loaded from a CDN at runtime.
+third-party assets (no editor or diff library: ADR-0024); the logo is the project's own (see
+"Project logo"). No assets are loaded from a CDN at runtime.

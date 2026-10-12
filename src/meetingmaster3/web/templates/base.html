@@ -13,7 +13,7 @@
 <body hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
-    <a class="brand" href="/">MeetingMaster3</a>
+    <a class="brand" href="/">{% block brand_logo %}<picture><source type="image/webp" srcset="{{ url_for('static', path='brand/logo.webp') }} 1x, {{ url_for('static', path='brand/logo@2x.webp') }} 2x"><img class="brand-logo" src="{{ url_for('static', path='brand/logo.png') }}" srcset="{{ url_for('static', path='brand/logo@2x.png') }} 2x" alt="" width="32" height="40"></picture>{% endblock %}<span>MeetingMaster3</span></a>
     <nav aria-label="Main">
       <ul>
         {% for key, href, label in nav %}

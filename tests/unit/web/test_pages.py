@@ -670,3 +670,40 @@ def test_parse_filename_fills_a_month_day_date_and_the_form_has_the_hint(ui: Tes
     page = ui.get("/").text
     assert 'id="date-hint"' in page and 'x-show="dateFromName"' in page
     assert "From the file name" in page and 'aria-describedby="date-hint"' in page
+
+
+LOGO = "/static/brand/logo.png"
+
+
+@pytest.mark.parametrize(
+    "url",
+    ["/", "/meetings", "/open", "/templates", "/settings", "/templates/executive-summary.md/edit"],
+)
+def test_navigation_pages_show_the_logo(ui: TestClient, url: str) -> None:
+    html = ui.get(url).text
+    assert LOGO in html and 'alt=""' in html and "brand/logo@2x.webp 2x" in html
+
+
+def test_setup_and_error_pages_show_the_logo(client: TestClient, ui: TestClient) -> None:
+    assert LOGO in client.get("/setup").text
+    missing = ui.get("/jobs/00000000-0000-0000-0000-000000000000", headers={"Accept": "text/html"})
+    assert missing.status_code == 404 and LOGO in missing.text
+
+
+@pytest.mark.parametrize("page", ["job.html", "speakers.html", "review.html", "preview.html"])
+def test_meeting_pages_do_not_load_the_logo(page: str) -> None:
+    template = jinja.env.get_template(page)
+    block = template.blocks["brand_logo"]
+    assert "".join(block(template.new_context({}))) == ""
+
+
+def test_logo_files_carry_no_metadata() -> None:
+    from pathlib import Path
+
+    brand = Path(__file__).parents[3] / "src" / "meetingmaster3" / "web" / "static" / "brand"
+    names = sorted(p.name for p in brand.iterdir())
+    assert names == ["logo.png", "logo.webp", "logo@2x.png", "logo@2x.webp"]
+    for p in brand.iterdir():
+        data = p.read_bytes()
+        for marker in (b"Exif", b"GIMP", b"iCCP", b"ICCP", b"tEXt", b"XMP"):
+            assert marker not in data, (p.name, marker)

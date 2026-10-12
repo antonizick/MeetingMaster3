@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{# Meeting pages: no logo, the space is for the meeting (Phase 15a). #}
+{% block brand_logo %}{% endblock %}
 {% block title %}{{ tab_title }}{% endblock %}
 {% block content %}
 <div id="job-panel" data-job-id="{{ job.id }}" data-final="{{ 'true' if final else 'false' }}"

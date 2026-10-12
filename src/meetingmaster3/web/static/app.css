@@ -57,7 +57,10 @@ h2 { font-size: 1.15rem; margin: 0 0 0.5rem; }
 .ok { color: var(--ok); }
 
 .site-header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.5rem; padding: 0.6rem 1rem; background: var(--surface); border-bottom: 1px solid var(--border); }
-.brand { font-weight: 700; text-decoration: none; color: var(--text); }
+.brand { font-weight: 700; text-decoration: none; color: var(--text); display: inline-flex; align-items: center; gap: 0.6rem; }
+.brand picture { display: block; flex: none; }
+.brand-logo { display: block; width: 32px; height: 40px; border-radius: 6px; box-shadow: 0 0 0 1px var(--border); }
+@media (max-width: 30rem) { .brand-logo { width: 26px; height: 32px; } }
 .site-header ul { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; list-style: none; margin: 0; padding: 0; }
 .site-header nav a { text-decoration: none; padding: 0.25rem 0; border-bottom: 2px solid transparent; }
 .site-header nav a[aria-current="page"] { border-bottom-color: var(--accent); font-weight: 600; }
