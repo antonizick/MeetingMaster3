@@ -15,6 +15,9 @@ JOB_ID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}
 #: Audio files a job folder may hold (the upload is ``original.<ext>``).
 WAV_NAME = "audio.wav"
 OPUS_NAME = "audio.opus"
+#: Per-meeting voice embeddings (biometric, S7; ``speakers.stages.EMBEDDINGS_FILE``). Never
+#: exported; deleted at speaker confirmation or with the audio.
+EMBEDDINGS_NAME = "speaker_embeddings.json"
 
 
 def new_job_id() -> str:
@@ -67,6 +70,12 @@ def audio_files(folder: Path) -> list[Path]:
             found.append(folder / name)
     found += [p for p in folder.glob(".*.part") if p.is_file()]
     return found
+
+
+def biometric_files(folder: Path) -> list[Path]:
+    """Voice data derived from the audio that a job folder may still hold (S7)."""
+    path = folder / EMBEDDINGS_NAME
+    return [path] if path.is_file() else []
 
 
 def remove_job_dir(jobs_root: Path, job_id: str) -> None:

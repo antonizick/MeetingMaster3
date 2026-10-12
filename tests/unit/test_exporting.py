@@ -124,6 +124,8 @@ def test_export_all_has_no_secrets_audio_or_voiceprints(ui: TestClient) -> None:
     folder.mkdir(parents=True)
     (folder / "transcript.json").write_text('{"ok": true}')
     (folder / "audio.opus").write_bytes(b"AUDIO")
+    # A job waiting for speaker confirmation still holds its voice embeddings (S7).
+    (folder / "speaker_embeddings.json").write_text('{"speakers": {"S": [0.123456789]}}')
     ui.post("/api/feedback", json={"mm3_id": "m", "rating_kind": "stars", "value": 3})
 
     r = ui.get("/api/export/all")
@@ -135,6 +137,7 @@ def test_export_all_has_no_secrets_audio_or_voiceprints(ui: TestClient) -> None:
     blob = b"".join(z.read(n) for n in names)
     assert b"hf_EXPORTSECRET" not in blob and b"sk-EXPORTSECRET" not in blob
     assert b"Ana Voiceprint" not in blob
+    assert b"0.123456789" not in blob and not any("embeddings" in n for n in names)
     tables = {n.split("/")[-1] for n in names if n.startswith("database/")}
     assert tables == {"jobs.json", "job_stages.json", "recent_meetings.json", "feedback.json"}
     assert json.loads(z.read("database/feedback.json"))[0]["value"] == 3

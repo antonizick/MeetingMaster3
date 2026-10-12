@@ -25,6 +25,7 @@ from meetingmaster3.domain.transcript import (
     clean_name,
 )
 from meetingmaster3.errors import MM3Error
+from meetingmaster3.jobs.files import EMBEDDINGS_NAME
 from meetingmaster3.jobs.stage import (
     AwaitInputStage,
     BaseStage,
@@ -47,7 +48,7 @@ from meetingmaster3.speakers.vectors import weighted_mean
 log = logging.getLogger(__name__)
 
 SPEAKERS_FILE = "speakers.json"
-EMBEDDINGS_FILE = "speaker_embeddings.json"
+EMBEDDINGS_FILE = EMBEDDINGS_NAME
 CONFIRMED_FILE = "speakers.confirmed.json"
 
 EmbedderFactory = Callable[[StageContext], Embedder]

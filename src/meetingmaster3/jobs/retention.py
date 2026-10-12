@@ -19,7 +19,14 @@ from pathlib import Path
 from meetingmaster3.audio.ingest import encode_opus
 from meetingmaster3.config.settings import PrivacySettings, Settings
 from meetingmaster3.errors import MM3Error
-from meetingmaster3.jobs.files import OPUS_NAME, WAV_NAME, audio_files, job_dir, resolve_in_job
+from meetingmaster3.jobs.files import (
+    OPUS_NAME,
+    WAV_NAME,
+    audio_files,
+    biometric_files,
+    job_dir,
+    resolve_in_job,
+)
 from meetingmaster3.jobs.models import ACTIVE, JobStatus, iso, utcnow
 from meetingmaster3.storage.repositories import JobRecord, JobRepository
 
@@ -141,7 +148,7 @@ def prune(
         pruned.append(PruneItem(job.id, job.title, expiry, sorted(p.name for p in files), size))
         if dry_run:
             continue
-        for path in files:
+        for path in files + biometric_files(folder):  # voice embeddings go with the audio
             with contextlib.suppress(FileNotFoundError):
                 path.unlink()
         jobs.update(job.id, audio_path=None, audio_pruned_at=now)

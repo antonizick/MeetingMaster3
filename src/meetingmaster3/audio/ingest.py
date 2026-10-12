@@ -36,6 +36,15 @@ SAMPLE_RATE = 16_000
 PROBE_TIMEOUT = 60.0
 CHUNK = 1024 * 1024
 
+#: Media parsing may only read local files: no network protocols, whatever a crafted file asks
+#: for (S6; Phase 15 threat model, T-MEDIA). Applied to ffprobe and ffmpeg inputs.
+PROTOCOLS = ["-protocol_whitelist", "file"]
+#: Demuxers that make ffmpeg open *other* files or URLs named inside the upload (playlists,
+#: concat lists, image sequences). A recording never needs them, so they are refused.
+INDIRECT_FORMATS = frozenset(
+    {"hls", "applehttp", "concat", "dash", "image2", "imagepipe", "sdp", "tee"}
+)
+
 
 @dataclass(frozen=True)
 class ProbeResult:
@@ -100,9 +109,13 @@ def _run(args: list[str], timeout: float, what: str) -> subprocess.CompletedProc
         ) from exc
 
 
-def _stderr_tail(proc: subprocess.CompletedProcess[bytes]) -> str:
+def _stderr_tail(proc: subprocess.CompletedProcess[bytes], path: Path | None = None) -> str:
+    """ffmpeg's last error line, with the server-side path of ``path`` reduced to its name."""
     text = proc.stderr.decode("utf-8", "replace").strip().splitlines()
-    return text[-1][:300] if text else f"exit code {proc.returncode}"
+    line = text[-1] if text else f"exit code {proc.returncode}"
+    if path is not None:
+        line = line.replace(str(path), path.name)
+    return line[:300]
 
 
 def _not_audio(detail: str) -> MM3Error:
@@ -120,24 +133,27 @@ def probe(path: Path) -> ProbeResult:
     ffprobe = require_tool("ffprobe")
     proc = _run(
         [
-            ffprobe, "-v", "error", "-print_format", "json", "-show_format", "-show_streams",
-            "--", str(path),
+            ffprobe, "-v", "error", *PROTOCOLS, "-print_format", "json", "-show_format",
+            "-show_streams", "--", str(path),
         ],
         PROBE_TIMEOUT,
         "Reading the file's format",
     )  # fmt: skip
     if proc.returncode != 0:
-        raise _not_audio(_stderr_tail(proc))
+        raise _not_audio(_stderr_tail(proc, path))
     try:
         info = json.loads(proc.stdout or b"{}")
     except json.JSONDecodeError as exc:
         raise _not_audio("unreadable ffprobe output") from exc
+    fmt = info.get("format") or {}
+    format_name = str(fmt.get("format_name") or "")
+    if set(format_name.split(",")) & INDIRECT_FORMATS:
+        raise _not_audio(f"a {format_name} playlist or list file, not a recording")
     streams = info.get("streams") or []
     audio = [s for s in streams if s.get("codec_type") == "audio"]
     if not audio:
         raise _not_audio("no audio track")
     a = audio[0]
-    fmt = info.get("format") or {}
     duration = _as_float(a.get("duration")) or _as_float(fmt.get("duration")) or 0.0
     if duration <= 0:
         raise _not_audio("zero or unknown duration")
@@ -146,7 +162,7 @@ def probe(path: Path) -> ProbeResult:
         codec=str(a.get("codec_name") or "unknown"),
         channels=int(a.get("channels") or 0),
         sample_rate=int(_as_float(a.get("sample_rate")) or 0),
-        format_name=str(fmt.get("format_name") or ""),
+        format_name=format_name,
         has_video=any(
             s.get("codec_type") == "video" and not (s.get("disposition") or {}).get("attached_pic")
             for s in streams
@@ -171,7 +187,7 @@ def _transcode(src: Path, dst: Path, codec_args: list[str], timeout: float, what
     tmp = dst.with_name(f".{dst.name}.part")
     args = [
         ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
-        "-i", str(src), "-map", "0:a:0", "-vn", "-sn", "-dn", "-map_metadata", "-1",
+        *PROTOCOLS, "-i", str(src), "-map", "0:a:0", "-vn", "-sn", "-dn", "-map_metadata", "-1",
         *codec_args, "-f", dst.suffix.lstrip(".").replace("opus", "ogg"), str(tmp),
     ]  # fmt: skip
     try:
@@ -179,7 +195,7 @@ def _transcode(src: Path, dst: Path, codec_args: list[str], timeout: float, what
         if proc.returncode != 0:
             raise MM3Error(
                 "E_AUDIO_DECODE",
-                f"{what} failed: {_stderr_tail(proc)}",
+                f"{what} failed: {_stderr_tail(proc, src)}",
                 "The file may be damaged. Try converting it to WAV or MP3 first.",
                 status_code=422,
             )

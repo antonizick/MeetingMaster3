@@ -92,6 +92,7 @@ def test_stale_unfinished_jobs_are_pruned_too(tmp_path: Path) -> None:
     folder = job_dir(root, job_id, create=True)
     (folder / "original.m4a").write_bytes(b"abc")
     (folder / "audio.wav").write_bytes(b"abcd")
+    (folder / "speaker_embeddings.json").write_text("{}")  # never confirmed (S7)
     jobs.create(job_id, stages=["a"], audio_path="original.m4a", status=JobStatus.RUNNING)
     jobs.set_status(job_id, JobStatus.FAILED)
     now = jobs.get(job_id).updated_at
@@ -99,6 +100,7 @@ def test_stale_unfinished_jobs_are_pruned_too(tmp_path: Path) -> None:
     assert retention.prune(jobs, root, settings, now=now + dt.timedelta(days=89)) == []
     items = retention.prune(jobs, root, settings, now=now + dt.timedelta(days=91))
     assert items[0].files == ["audio.wav", "original.m4a"] and items[0].bytes == 7
+    assert not (folder / "speaker_embeddings.json").exists()  # voice data goes with the audio
     # Active jobs are never touched.
     active = new_job_id()
     job_dir(root, active, create=True)

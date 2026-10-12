@@ -9,4 +9,5 @@ paths = [
   '''tests/unit/test_logging\.py''',
   '''tests/unit/test_cli\.py''',
   '''tests/unit/test_settings\.py''',
+  '''tests/unit/llm/test_openai_compat\.py''',
 ]

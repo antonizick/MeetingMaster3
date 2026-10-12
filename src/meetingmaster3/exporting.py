@@ -17,6 +17,7 @@ from typing import Any
 
 from meetingmaster3.config.settings import Settings
 from meetingmaster3.errors import MM3Error
+from meetingmaster3.jobs.files import EMBEDDINGS_NAME
 from meetingmaster3.markdown.transcript_format import (
     TranscriptParseError,
     parse_transcript,
@@ -133,6 +134,7 @@ def export_all(db: Database, settings: Settings, jobs_root: Path) -> bytes:
                         file.is_file()
                         and not file.is_symlink()
                         and file.suffix.lower() in ARTIFACT_SUFFIXES
+                        and file.name != EMBEDDINGS_NAME  # biometric (S7): never exported
                         and file.stat().st_size <= MAX_ARTIFACT_BYTES
                     ):
                         archive.write(file, f"jobs/{folder.name}/{file.relative_to(folder)}")

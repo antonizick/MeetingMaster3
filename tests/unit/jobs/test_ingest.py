@@ -85,6 +85,48 @@ def test_probe_rejects_non_audio(tmp_path: Path) -> None:
 
 
 @requires_ffmpeg
+@pytest.mark.parametrize(
+    "body",
+    [
+        "ffconcat version 1.0\nfile 'tone.wav'\n",  # concat list naming another file
+        "#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXTINF:2,\nhttp://127.0.0.1:9/x.wav\n"
+        "#EXT-X-ENDLIST\n",  # HLS playlist asking for the network
+    ],
+)
+def test_probe_refuses_playlists_and_indirection(tmp_path: Path, body: str) -> None:
+    """A crafted "recording" must not make ffmpeg read other files or the network (T-MEDIA)."""
+    make_tone(tmp_path / "tone.wav", 1.0)
+    upload = tmp_path / "original.mp3"
+    upload.write_text(body)
+    with pytest.raises(MM3Error) as exc:
+        probe(upload)
+    assert exc.value.code == "E_AUDIO_UNSUPPORTED"
+    assert str(tmp_path) not in exc.value.message  # no server paths in user-facing errors
+
+
+def test_media_commands_only_allow_local_files(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[list[str]] = []
+
+    def fake_run(args: list[str], timeout: float, what: str) -> object:
+        seen.append(args)
+        raise MM3Error("E_STOP", "stop")
+
+    monkeypatch.setattr(ingest, "_run", fake_run)
+    monkeypatch.setattr(ingest, "require_tool", lambda name: name)
+    for call in (
+        lambda: probe(Path("x.wav")),
+        lambda: normalise(Path("x.wav"), Path("y.wav")),
+        lambda: encode_opus(Path("x.wav"), Path("y.opus")),
+    ):
+        with pytest.raises(MM3Error):
+            call()
+    for args in seen:
+        i = args.index("-protocol_whitelist")
+        assert args[i + 1] == "file"
+        assert i < args.index("--" if "--" in args else "-i")
+
+
+@requires_ffmpeg
 def test_probe_rejects_video_without_audio(tmp_path: Path) -> None:
     import shutil
     import subprocess
