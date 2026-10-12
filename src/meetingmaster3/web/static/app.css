@@ -219,7 +219,8 @@ kbd { font-family: ui-monospace, monospace; font-size: 0.8em; border: 1px solid 
 .diff-tabs button[aria-pressed="true"] { border-color: var(--accent); font-weight: 600; }
 .diff-table { font-family: ui-monospace, monospace; font-size: 0.82rem; table-layout: fixed; margin: 0.5rem 0; }
 .diff-table td { white-space: pre-wrap; overflow-wrap: anywhere; vertical-align: top; padding: 0.15rem 0.4rem; border-bottom: none; }
-.diff-table td.ln { width: 2.5rem; color: var(--muted); text-align: right; user-select: none; }
+.diff-table col.c-ln { width: 2.75rem; }
+.diff-table td.ln { width: 2.75rem; color: var(--muted); text-align: right; user-select: none; }
 .diff-table tr.d-delete .dl, .diff-table tr.d-replace .dl { background: var(--error-bg); color: var(--error-text); }
 .diff-table tr.d-insert .dr, .diff-table tr.d-replace .dr { background: #dcfce7; color: #14532d; }
 @media (prefers-color-scheme: dark) { .diff-table tr.d-insert .dr, .diff-table tr.d-replace .dr { background: #12351f; color: #bbf7d0; } }
