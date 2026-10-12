@@ -51,12 +51,16 @@ async def mm3_error_handler(request: Request, exc: Exception) -> Response:
 
     if not isinstance(exc, MM3Error):
         raise exc
-    if _wants_html(request):
-        body = (
-            f"<!doctype html><title>Error</title><h1>{escape(exc.code)}</h1>"
-            f"<p>{escape(exc.message)}</p><p>{escape(exc.hint)}</p>"
+    if request.headers.get("hx-request"):  # an HTMX action: a fragment for the toast region
+        fragment = (
+            f'<div class="toast error" role="alert"><strong>{escape(exc.message)}</strong>'
+            f" <span>{escape(exc.hint)}</span> <small>({escape(exc.code)})</small></div>"
         )
-        return HTMLResponse(body, status_code=exc.status_code)
+        return HTMLResponse(fragment, status_code=exc.status_code)
+    if _wants_html(request):
+        from meetingmaster3.web.pages import render  # lazy: this module must not need FastAPI
+
+        return render(request, "error.html", {"error": exc}, status_code=exc.status_code)
     return JSONResponse(exc.to_dict(), status_code=exc.status_code)
 
 

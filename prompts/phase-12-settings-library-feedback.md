@@ -9,6 +9,8 @@
 
 **Phase 09 interfaces:** settings `generation.default_template`, `write_companion` (warn that turning it off disables regeneration and renaming), `max_context`, `think`, `install_templates` are in `docs/user-guide/configuration.md`. The template library is `templates.loader.load_library(vault_root, subfolder)` → `TemplateLibrary` (`entries` with `source` builtin/vault, `valid`, `all_issues` with line numbers, `overrides_builtin`; `listing()` sorts favourites first) and `GET /api/templates`; validation is `templates.schema.parse_template(text)` → `TemplateReport` (`issues` with `line`, `code`, `severity`). Install/reset: `templates.loader.install_builtins(vault_root, subfolder, <data>/templates.installed.json)` never overwrites a user-edited file; "Reset built-in" must archive the user's copy first and then write the shipped file from `templates.loader.builtin_dir()` (and update the manifest hash). The favourite star is the template's `favorite:` frontmatter key: edit that key's line in place so the rest of the file stays byte-identical. Built-ins are only read from the package; user templates live in the vault.
 
+**Phase 10 interfaces:** `/settings` and `/templates` are read-only placeholder pages (`settings.html`, `templates_list.html`) to replace; vault setup (`/setup`, `views.check_vault`) already saves `vault.path`/`output_subfolder` into the live settings and `config.yaml` (reuse it). Pages use `web/pages.py::render`; see ADR-0019 and `docs/user-guide/getting-started.md`.
+
 ## Goal
 Everything the user configures and curates lives in the UI and round-trips cleanly to `config.yaml` and to template files in the vault. Feedback ratings are stored locally for a future improvement loop.
 

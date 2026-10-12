@@ -59,9 +59,18 @@ The full baseline is in [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) section
 | Log redaction | `logging.py` | Registered secret values plus `hf_...`, `sk-...`, AWS key and bearer-token patterns are replaced with `[REDACTED]`. |
 | Repo hygiene | pre-commit, CI | gitleaks, audio-file guard, large-file guard, `pip-audit`. |
 
-Known limitations to revisit in Phase 15: the CSP will need adjusting for Alpine.js (Phase 10; its
-standard build needs `'unsafe-eval'`, so the CSP-safe build is preferred), and CSRF currently accepts the
-header only (no form-field fallback).
+Phase 10 tightened the CSP and settled the CSRF question (see below). Still for Phase 15: review the
+CSP once more with the review workspace (Phase 11) in place.
+
+### Implemented in Phase 10 (web UI, S2/S3)
+| Control | Where | Behaviour |
+|---|---|---|
+| Strict CSP | `web/security.py` | `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; media-src 'self' blob:; connect-src 'self'; ...`. No inline script or style, no `eval`: Alpine.js is the CSP build (`@alpinejs/csp`), HTMX is configured with `allowEval: false`, `allowScriptTags: false`, `selfRequestsOnly: true` and no injected indicator styles (`<meta name="htmx-config">`). `blob:` is only for reading the duration of the chosen file in the browser. |
+| CSRF in the UI | `base.html`, `app.js` | `<body hx-headers>` adds `X-CSRF-Token` to every HTMX request and the upload `XMLHttpRequest` reads it from a meta tag. There are no plain HTML forms that post, so the header-only check stands and no form-field fallback was added. |
+| Sanitised rendering (S3) | `web/render.py` | The preview uses markdown-it with `html: False` (raw HTML is escaped), images disabled, links limited to `http`, `https`, `mailto` and in-page/relative ones (`target=_blank`, `rel=noopener noreferrer`); frontmatter and section-marker comments are hidden. Jinja autoescape is on for everything else, including transcript-derived text. |
+| Preview confinement (S4) | `web/pages.py` | `/preview?path=` opens only an absolute `.md` file that resolves (symlinks included) inside the vault root. |
+| No third-party requests | tests, e2e | The Playwright smoke test fails if the browser requests any host other than the app. |
+| Errors | `errors.py` | HTMX requests get an escaped toast fragment; browsers get the error page; API clients get JSON. |
 
 ### Implemented in Phase 03 (vault filesystem, S4)
 | Control | Where | Behaviour |

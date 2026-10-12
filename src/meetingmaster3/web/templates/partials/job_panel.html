@@ -1,0 +1,118 @@
+<div data-status="{{ job.status }}" data-live="{{ STATUS_LABELS.get(job.status, job.status) }}{% if current %}: {{ current.display_name }}{% endif %}" data-final="{{ 'true' if final else 'false' }}" hidden></div>
+<header class="job-head">
+  <h1>{{ title }}</h1>
+  <p class="muted">{{ job.source_filename }}{% if job.duration_seconds %} · {{ job.duration_seconds|duration }}{% endif %}{% if job.meeting_date %} · {{ job.meeting_date }}{% endif %}</p>
+  <p><span class="badge status-{{ job.status }}">{{ STATUS_LABELS.get(job.status, job.status) }}</span></p>
+</header>
+
+{% if job.warnings %}
+<div class="alert warn" role="status">
+  <p><strong>{{ 'Warning' if job.warnings|length == 1 else 'Warnings' }}</strong></p>
+  <ul>{% for w in job.warnings %}<li>{{ w.message }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+{% if failure %}
+<div class="alert error" role="alert">
+  <p><strong>{{ failure.message or 'The job failed.' }}</strong></p>
+  {% if failure.hint %}<p>{{ failure.hint }}</p>{% endif %}
+  <p class="muted"><code>{{ failure.code }}</code>{% if failure.stage %} · in “{{ failure.stage }}”{% endif %}</p>
+  <div class="row">
+    <button class="primary" hx-post="/ui/jobs/{{ job.id }}/retry" hx-target="#job-panel" hx-swap="innerHTML">Retry</button>
+    {% if failure.code == 'E_OOM' and failure.suggested_overrides %}
+    <form hx-post="/ui/jobs/{{ job.id }}/retry" hx-target="#job-panel" hx-swap="innerHTML">
+      {% for k, v in failure.suggested_overrides.items() %}<input type="hidden" name="o_{{ k }}" value="{{ v }}">{% endfor %}
+      <button type="submit">Retry with smaller model ({{ failure.suggested_overrides.values()|join(', ') }})</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% elif job.status in ('cancelled', 'interrupted') %}
+<div class="alert warn" role="status">
+  <p>{{ 'This job was cancelled.' if job.status == 'cancelled' else 'The server stopped while this job was running.' }}
+    Finished stages are kept; resuming continues where it stopped.</p>
+  <button class="primary" hx-post="/ui/jobs/{{ job.id }}/retry" hx-target="#job-panel" hx-swap="innerHTML">Resume</button>
+</div>
+{% endif %}
+
+{% set wf = job.waiting_for %}
+{% if job.status == 'waiting_for_input' and wf %}
+<section class="card stack attention" aria-labelledby="h-input">
+  {% if wf.kind == 'speaker_confirmation' %}
+    <h2 id="h-input">Who is speaking?</h2>
+    <p>The transcript is ready. Name the speakers so the notes can say who decided and who owns each task.</p>
+    <p><a class="button primary" href="/jobs/{{ job.id }}/speakers">Name speakers</a></p>
+  {% elif wf.kind == 'language' %}
+    <h2 id="h-input">This does not sound like English</h2>
+    <p>{{ wf.message or ('Detected ' ~ wf.language_name ~ '.') }}</p>
+    <div class="row">
+      <button class="primary" hx-post="/ui/jobs/{{ job.id }}/language" hx-vals='{"action": "proceed"}'
+              hx-target="#job-panel" hx-swap="innerHTML">Continue in {{ wf.language_name or wf.detected }}</button>
+      <button hx-post="/ui/jobs/{{ job.id }}/language" hx-vals='{"action": "proceed", "language": "en"}'
+              hx-target="#job-panel" hx-swap="innerHTML">Treat it as English</button>
+      <button class="danger" hx-post="/ui/jobs/{{ job.id }}/language" hx-vals='{"action": "abort"}'
+              hx-target="#job-panel" hx-swap="innerHTML">Stop</button>
+    </div>
+  {% elif wf.kind == 'cloud_consent' %}
+    <h2 id="h-input">Send the transcript to {{ wf.backend }}?</h2>
+    <p><span class="badge cloud">{{ wf.badge }}</span> {{ wf.message }}</p>
+    <div class="row">
+      <button class="primary" hx-post="/ui/jobs/{{ job.id }}/consent" hx-vals='{"choice": "allow"}'
+              hx-target="#job-panel" hx-swap="innerHTML">Allow, send it</button>
+      <button hx-post="/ui/jobs/{{ job.id }}/consent" hx-vals='{"choice": "local"}'
+              hx-target="#job-panel" hx-swap="innerHTML">Use a local model instead</button>
+      <button class="danger" hx-post="/ui/jobs/{{ job.id }}/consent" hx-vals='{"choice": "deny"}'
+              hx-target="#job-panel" hx-swap="innerHTML">Don’t send (stop)</button>
+    </div>
+  {% else %}
+    <h2 id="h-input">Waiting for you</h2>
+    <p>{{ wf.message or 'This job is waiting for an answer.' }}</p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if written %}
+<section class="card stack success" aria-labelledby="h-done">
+  <h2 id="h-done">Written to your vault</h2>
+  <dl class="facts">
+    <dt>Note</dt><dd><code>{{ written.note_relative }}</code></dd>
+    {% if written.transcript_relative %}<dt>Transcript</dt><dd><code>{{ written.transcript_relative }}</code></dd>{% endif %}
+    <dt>Vault</dt><dd><code>{{ written.vault_root }}</code></dd>
+  </dl>
+  <div class="row">
+    <a class="button primary" href="{{ written.obsidian_link }}">Open in Obsidian</a>
+    <a class="button" href="{{ written.preview_link }}">Review &amp; edit</a>
+    <a class="button" href="/">New meeting</a>
+  </div>
+</section>
+{% endif %}
+
+<section aria-labelledby="h-stages">
+  <h2 id="h-stages">Progress</h2>
+  <ol class="stages">
+    {% for s in job.stages %}
+    {% set icon = STAGE_ICONS.get(s.status, ('○', s.status)) %}
+    <li class="stage stage-{{ s.status }}">
+      <span class="stage-icon" aria-hidden="true">{{ icon[0] }}</span>
+      <div class="stage-body">
+        <div class="stage-title">
+          <strong>{{ s.display_name }}</strong><span class="sr-only"> — {{ icon[1] }}</span>
+          <span class="stage-time muted">
+            {% if s.elapsed is not none and s.status in ('running', 'completed', 'failed') %}{{ s.elapsed|duration }}{% endif %}
+            {% if s.status == 'running' and s.eta_seconds %} · about {{ s.eta_seconds|duration }} left{% endif %}
+          </span>
+        </div>
+        {% if s.status == 'running' %}
+          <progress max="100" {% if s.fraction is not none %}value="{{ (s.fraction * 100)|round|int }}"{% endif %}
+                    aria-label="{{ s.display_name }}"></progress>
+        {% endif %}
+        {% if s.message and s.status in ('running', 'pending', 'waiting') %}<p class="muted">{{ s.message }}</p>{% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+  <div class="row">
+    {% if cancellable %}<button class="danger" hx-post="/ui/jobs/{{ job.id }}/cancel" hx-target="#job-panel" hx-swap="innerHTML">Cancel</button>{% endif %}
+    <a href="/meetings">All meetings</a>
+  </div>
+</section>

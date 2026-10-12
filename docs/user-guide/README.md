@@ -11,7 +11,7 @@ Pages are added as the features land. Planned index:
 | [`speakers.md`](speakers.md) (naming speakers, opt-in voice recognition, accuracy caveats, deleting voiceprints) | 07 (written) |
 | [`llm-backends.md`](llm-backends.md) (Ollama, Bedrock, OpenRouter) | 08 (written) |
 | [`templates.md`](templates.md) (built-in templates, choosing a model, customising templates, cloud consent, regeneration) | 09 (written), 13 |
-| `getting-started.md` (upload to vault note) | 10 |
+| [`getting-started.md`](getting-started.md) (upload to vault note) | 10 (written) |
 | `review-and-regeneration.md` | 11 |
 | `settings.md` | 12 |
 | `docker.md` | 14 |

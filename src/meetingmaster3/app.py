@@ -20,7 +20,7 @@ from meetingmaster3.web.api.speakers import speakers_router, voiceprints_router
 from meetingmaster3.web.api.templates import router as templates_router
 from meetingmaster3.web.hardware import router as hardware_router
 from meetingmaster3.web.llm import router as llm_router
-from meetingmaster3.web.routes import WEB_DIR, router
+from meetingmaster3.web.pages import WEB_DIR, router
 from meetingmaster3.web.security import CSRFMiddleware, SecurityHeadersMiddleware
 
 log = logging.getLogger(__name__)

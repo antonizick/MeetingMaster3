@@ -37,7 +37,7 @@ src/meetingmaster3/
 Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, inside
 `transcription/` and `speakers/` only.
 
-## Implemented so far (Phases 02 to 09)
+## Implemented so far (Phases 02 to 10)
 | Module | Responsibility |
 |---|---|
 | `app.py` | `create_app(settings, paths)` factory. Middleware order (outermost first): TrustedHost, security headers, CSRF. The lifespan opens `mm3.db` and starts/stops the `JobRunner`. |
@@ -167,3 +167,17 @@ transcript.named.json + template (vault override > built-in) + MeetingMeta (job 
 ```
 The template format is normative in [`dev-guide/template-format.md`](dev-guide/template-format.md);
 stage details in [`dev-guide/jobs-and-stages.md`](dev-guide/jobs-and-stages.md).
+
+### Web UI (Phase 10)
+```
+browser ── GET pages (Jinja, server-rendered) ──────────────▶ web/pages.py ─▶ views.py (view models)
+   │                                                                │
+   ├─ HTMX: partials (hardware panel, vault check, job panel) ◀────┤  /ui/* actions call JobRunner directly
+   ├─ EventSource /api/jobs/{id}/events ─ "something changed" ─▶ re-fetch /ui/jobs/{id}/panel
+   ├─ XHR multipart ─▶ /api/jobs (upload, progress bar)           └─ /preview ─▶ render.py (markdown-it, no raw HTML)
+   └─ Alpine (CSP build): upload form state, consent dialog, speaker samples; app.js holds all script
+```
+The page is always rendered from `JobRunner.describe`, so a reload or reconnect shows the true state;
+SSE only decides *when* to re-render. Pages: `/setup`, `/` (new meeting), `/jobs/{id}`,
+`/jobs/{id}/speakers`, `/meetings`, `/preview`, `/templates`, `/settings` (read-only until Phase 12).
+Decision record: ADR-0019.

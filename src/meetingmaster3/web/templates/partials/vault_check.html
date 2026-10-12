@@ -1,0 +1,16 @@
+<div id="vault-check" aria-live="polite">
+{% for err in check.errors %}
+  <div class="alert error" role="alert">
+    <p><strong>{{ err.message }}</strong></p>
+    <p>{{ err.hint }}</p>
+  </div>
+{% endfor %}
+{% for w in check.warnings %}
+  <div class="alert warn"><p>{{ w }}</p></div>
+{% endfor %}
+{% if check.ok %}
+  <p class="ok">✓ <code>{{ check.root }}</code> is a writable folder.</p>
+  {% if check.preview %}<p>Notes will be saved like this:<br><code>{{ check.preview }}</code></p>{% endif %}
+{% endif %}
+{% if saved %}<p class="ok">Saved.</p>{% endif %}
+</div>

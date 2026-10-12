@@ -45,8 +45,14 @@ physically erased when deleted. See [`docs/PRIVACY.md`](docs/PRIVACY.md).
 Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Quickstart
-Process a recording headlessly, from audio to a note in your vault (the web UI arrives in Phase 10,
-Docker in Phase 14):
+Start the web UI and follow the on-screen steps (vault setup, upload, name speakers):
+```bash
+uv sync --extra ml && uv run mm3 serve   # then open http://127.0.0.1:8765
+MM3_FAKE_PIPELINE=1 uv run mm3 serve     # try the flow with simulated results, no models needed
+```
+The walk-through with screenshots is in [`docs/user-guide/getting-started.md`](docs/user-guide/getting-started.md).
+
+Or process a recording headlessly, from audio to a note in your vault (Docker arrives in Phase 14):
 ```bash
 uv sync --extra ml                      # transcription engine (see Installation)
 ollama pull qwen3:8b                    # a local LLM that fits an 8 GB GPU

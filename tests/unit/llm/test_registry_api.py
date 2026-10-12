@@ -165,7 +165,7 @@ def test_test_and_models_endpoints(api: TestClient) -> None:
     respx.get("https://openrouter.ai/api/v1/models").respond(
         json={"data": [{"id": "v/m", "context_length": 32000}]}
     )
-    token = api.get("/").cookies["mm3_csrf"]
+    token = api.get("/healthz").cookies["mm3_csrf"]
     r = api.post(
         "/api/llm/backends/or_/test", headers={"X-CSRF-Token": token, "Origin": "http://localhost"}
     )

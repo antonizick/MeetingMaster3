@@ -1,0 +1,2 @@
+htmx.org 2.0.11 (0BSD) — vendored from the npm package, dist/htmx.min.js
+@alpinejs/csp 3.17.4 (MIT) — vendored from the npm package, dist/cdn.min.js (CSP build, no eval)

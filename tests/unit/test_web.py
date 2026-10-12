@@ -33,7 +33,7 @@ def test_configured_host_allowed() -> None:
 
 
 def test_security_headers(client: TestClient) -> None:
-    h = client.get("/").headers
+    h = client.get("/healthz").headers
     assert "default-src 'self'" in h["content-security-policy"]
     assert "frame-ancestors 'none'" in h["content-security-policy"]
     assert h["x-content-type-options"] == "nosniff"
@@ -41,7 +41,7 @@ def test_security_headers(client: TestClient) -> None:
 
 
 def test_csrf_cookie_is_samesite_strict(client: TestClient) -> None:
-    r = client.get("/")
+    r = client.get("/healthz")
     cookie = r.headers["set-cookie"].lower()
     assert "mm3_csrf=" in cookie and "samesite=strict" in cookie
 

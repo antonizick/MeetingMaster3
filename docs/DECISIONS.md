@@ -375,3 +375,26 @@ through the whole flow with `MM3_FAKE_PIPELINE=1`.
    is configured.
 **Status.** Accepted (2026-10-11, Phase 09).
 **Consequences.** Spec amendment R22. The UI (Phase 10) handles a third input kind, `cloud_consent`.
+
+## ADR-0019: Server-rendered UI with HTMX partials, SSE as a trigger, Alpine CSP build
+**Context.** Phase 10 needs a live progress view, forms with a CSRF token, a strict CSP (S2, S3) and no
+build step (ADR-0002). Alpine's standard build evaluates expressions with `eval`, which a strict CSP forbids.
+**Decision.**
+1. Pages and partials are rendered by Jinja on the server; HTMX swaps partials. The job page does not
+   interpret SSE payloads: any `snapshot`/`stage`/`job` event (throttled to 4 per second) re-fetches
+   `/ui/jobs/{id}/panel`, plus a 5 s refresh while a job is running. State therefore always comes from
+   `JobRunner.describe`, and reloads and reconnects need no replay logic. A job waiting for input is not polled,
+   so buttons keep keyboard focus.
+2. UI actions are form-encoded `/ui/...` routes that call the runner and return the refreshed panel (or an
+   `HX-Redirect`); the JSON `/api/...` surface is unchanged. Errors become toasts.
+3. Alpine is the CSP build with method-only bindings; HTMX runs with `allowEval=false`. All script is in
+   `static/app.js`; styles are in `app.css` (progress uses `<progress>`, never inline style).
+4. Notes are previewed with `markdown-it-py` (MIT, already a transitive dependency) with raw HTML disabled
+   rather than adding a separate sanitiser; the CSP is the second layer. Phase 11 reuses `web/render.py`.
+5. Setup writes `vault.path` and `vault.output_subfolder` into the live settings object and `config.yaml`.
+**Alternatives.** Client-side rendering of SSE payloads with Alpine `x-for` (more script, fragile under the CSP
+build, needs replay on reconnect); a JS framework with a build step (rejected by ADR-0002); `nh3` as a
+sanitiser (an extra native dependency for no gain while HTML is escaped).
+**Status.** Accepted (2026-10-11, Phase 10).
+**Consequences.** Firefox is expected to work (standard APIs only) but only Chromium was exercised here.
+

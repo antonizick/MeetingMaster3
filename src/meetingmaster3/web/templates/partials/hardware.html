@@ -1,0 +1,35 @@
+{% set t = rec.transcription %}
+<dl class="facts">
+  <dt>Detected</dt>
+  <dd>{% if info.primary_gpu %}{{ info.primary_gpu.name }}, {{ (info.total_vram_mb / 1024)|round(1) }} GB VRAM{% else %}No supported GPU: the CPU will do the work{% endif %}
+    · {{ info.cpu_name or 'CPU' }} ({{ info.cpu_cores }} cores){% if info.ram_total_mb %}, {{ (info.ram_total_mb / 1024)|round(0)|int }} GB RAM{% endif %}</dd>
+  <dt>Profile</dt>
+  <dd>{{ rec.profile_label }}{% if rec.overridden %} <span class="muted">(set in the configuration)</span>{% endif %}</dd>
+  <dt>Recommended</dt>
+  <dd>Whisper <code>{{ t.model }}</code>, <code>{{ t.compute_type }}</code>, batch size {{ t.batch_size }}</dd>
+  <dt>Time to process</dt>
+  <dd>{% if eta %}<strong>{{ eta }}</strong>{% if duration %} for {{ duration|duration }} of audio{% endif %}
+      <span class="muted">({{ t.status }} for this profile)</span>{% else %}Unknown until the audio length is known.{% endif %}</dd>
+</dl>
+{% for w in rec.warnings %}
+  <div class="alert {{ 'error' if w.severity == 'critical' else ('warn' if w.severity == 'warning' else 'info') }}"
+       {% if w.severity != 'info' %}role="alert"{% endif %}><p>{{ w.message }}</p></div>
+{% endfor %}
+{% if t.notes %}<p class="hint">{{ t.notes }}</p>{% endif %}
+<details>
+  <summary>Advanced: change the transcription settings</summary>
+  <div class="grid">
+    <div class="field"><label for="transcription_model">Transcription model</label>
+      <input id="transcription_model" name="transcription_model" type="text" list="whisper-models"
+             placeholder="{{ t.model }} (recommended)" autocomplete="off" spellcheck="false">
+      <datalist id="whisper-models"><option value="{{ t.model }}">{% for m in t.alternatives %}<option value="{{ m }}">{% endfor %}</datalist></div>
+    <div class="field"><label for="compute_type">Compute type</label>
+      <select id="compute_type" name="compute_type">
+        <option value="">{{ t.compute_type }} (recommended)</option>
+        {% for c in ['float16', 'int8_float16', 'int8', 'float32'] %}<option>{{ c }}</option>{% endfor %}
+      </select></div>
+    <div class="field"><label for="batch_size">Batch size</label>
+      <input id="batch_size" name="batch_size" type="number" min="1" max="64" placeholder="{{ t.batch_size }}"></div>
+  </div>
+  <p class="hint">Leave these empty to use the recommendation. A smaller model or batch size uses less GPU memory.</p>
+</details>

@@ -7,7 +7,22 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Web UI, core flow (Phase 10): first-run vault setup with live validation and a preview of the output
+  path, upload with drag and drop and progress, hardware confirmation with an ETA and advanced
+  overrides, template and model pickers with a local/cloud badge and a cloud consent dialog, live job
+  progress over SSE (cancel, retry, "retry with smaller model", language question, cloud-consent
+  question), the Name Speakers screen (audio samples, suggestions, "same person as", "remember this
+  voice"), a completion page with an `obsidian://` link, a sanitised read-only note preview, and the
+  Recent list (resume, delete). Vendored HTMX 2.0.11 and the CSP build of Alpine.js 3.17.4; no CDN and
+  no build step. Playwright browser smoke test (`e2e` marker).
+- `markdown-it-py` is now a direct dependency (note preview); `playwright` is a dev dependency.
+
 ### Security
+- Strict CSP for the UI (`script-src 'self'`, `style-src 'self'`, no inline script, no `eval`; HTMX runs
+  with `allowEval=false`); every UI action is an HTMX request carrying the CSRF header. The note preview
+  renders Markdown with raw HTML disabled, images off and only http(s)/mailto links, and only opens
+  `.md` files that resolve inside the vault.
 - Note generation enforces cloud-egress consent (S6) before any request: a job using a cloud backend
   without consent pauses with a `cloud_consent` question, and declining sends nothing. Template files
   and model output are treated as untrusted (strict validation; forged section markers are stripped).

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Name speakers · MeetingMaster3{% endblock %}
+{% block content %}
+<h1>Name the speakers</h1>
+<p class="muted">{{ title }} · <a href="/jobs/{{ job.id }}">back to progress</a></p>
+
+{% if not data.waiting %}
+<div class="alert info" role="status">
+  <p>{% if confirmed %}The speakers of this meeting are already confirmed.{% else %}This meeting is not waiting for speaker names right now.{% endif %}</p>
+  {% if confirmed %}<ul>{% for label, e in confirmed.items() %}<li><code>{{ label }}</code> → {{ e.name }}</li>{% endfor %}</ul>{% endif %}
+</div>
+{% elif not data.speakers %}
+<div class="alert info"><p>No separate speakers were found in this recording.</p></div>
+{% endif %}
+
+{% if data.waiting %}
+<audio id="speaker-audio" controls preload="none" src="/api/jobs/{{ job.id }}/audio"
+       aria-label="Meeting audio"></audio>
+<datalist id="people-list">
+  {% for p in people %}<option value="{{ p.name }}" data-person="{{ p.id }}"></option>{% endfor %}
+</datalist>
+
+<form id="speakers-form" class="stack" hx-post="/ui/jobs/{{ job.id }}/speakers" hx-swap="none" x-data="speakers">
+  <p>Play a few seconds of each voice, then type a name. Leave a name empty to keep the placeholder.</p>
+  {% for s in data.speakers %}
+  {% set label = s.label %}
+  <fieldset class="card speaker stack" data-label="{{ label }}">
+    <legend>{{ s.placeholder }} <span class="muted">· {{ s.talk_seconds|duration }} of speech</span></legend>
+    {% if s.low_confidence %}
+      <p class="hint">Short audio, low confidence: this voice has little clean speech, so suggestions may be wrong.</p>
+    {% endif %}
+    <div class="row snippets">
+      {% for sn in s.snippets[:3] %}
+      <button type="button" class="snippet" data-start="{{ sn.start }}" data-end="{{ sn.end }}"
+              x-on:click="play" aria-label="Play {{ s.placeholder }} sample {{ loop.index }}">▶ Sample {{ loop.index }}
+        ({{ sn.start|duration }})</button>
+      {% else %}<span class="muted">No clear sample available.</span>{% endfor %}
+    </div>
+    {% set best = s.candidates|selectattr('suggested')|first %}
+    <div class="field">
+      <label for="name-{{ label }}">Name</label>
+      <input id="name-{{ label }}" name="name__{{ label }}" type="text" list="people-list" autocomplete="off"
+             maxlength="100" placeholder="{{ s.placeholder }}" value="{{ best.name if best else '' }}"
+             x-on:input="nameTyped">
+      <input type="hidden" name="person__{{ label }}" value="{{ best.person_id if best else '' }}">
+    </div>
+    {% if s.candidates %}
+    <div class="row suggestions"><span class="muted">Suggestions:</span>
+      {% for c in s.candidates[:3] %}
+      <button type="button" class="suggest" data-name="{{ c.name }}" data-person="{{ c.person_id }}"
+              x-on:click="useSuggestion">{{ c.name }} <span class="muted">({{ (c.score * 100)|round|int }}%{% if c.suggested %}, likely{% endif %})</span></button>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if data.speakers|length > 1 %}
+    <div class="field">
+      <label for="same-{{ label }}">Same person as…</label>
+      <select id="same-{{ label }}" name="same__{{ label }}">
+        <option value="">— a different person —</option>
+        {% for o in data.speakers if o.label != label %}<option value="{{ o.label }}">{{ o.placeholder }}</option>{% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    {% if voiceprints_enabled %}
+    <label class="check"><input type="checkbox" name="enroll__{{ label }}" value="1"> Remember this voice
+      <span class="info-tip" tabindex="0" role="note" aria-label="Privacy: a voiceprint is a numeric fingerprint of this voice, stored only on this computer, used to suggest the name in future meetings. You can delete it any time.">ⓘ</span></label>
+    {% endif %}
+  </fieldset>
+  {% endfor %}
+
+  <section class="card stack">
+    <h2>Notes template</h2>
+    <label for="template">Write the notes with</label>
+    <select id="template" name="template">
+      {% for t in templates_list %}<option value="{{ t.id }}"{% if t.id == template_id %} selected{% endif %}>{{ t.name }}</option>{% endfor %}
+    </select>
+  </section>
+  <div class="row"><button type="submit" class="primary">Confirm &amp; write notes</button></div>
+</form>
+{% endif %}
+{% endblock %}

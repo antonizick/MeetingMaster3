@@ -78,12 +78,23 @@ Generated; do not edit by hand. Core runtime only (no dev tools, no optional `ml
 
 Development only (not distributed): `respx` (BSD-3-Clause), used to mock httpx in tests; `boto3` is also in the dev group so the Bedrock adapter is tested in CI.
 
+## Vendored browser assets (Phase 10)
+
+Copied unmodified from the npm packages into `src/meetingmaster3/web/static/vendor/` (licence file next to each;
+versions in `vendor/VERSIONS.txt`). Served by the app itself; the browser never contacts a CDN.
+
+| Component | Version | License | Use | Redistributed? (Y/N) |
+|---|---|---|---|---|
+| htmx.org | 2.0.11 | 0BSD (Zero-Clause BSD) | Server interaction (partials, actions) | Y |
+| @alpinejs/csp | 3.17.4 | MIT | Local UI state, CSP-safe build | Y |
+
+Dev-only: `playwright` 1.63.0 (Apache-2.0) drives the browser smoke test; it downloads no browser unless you run
+`playwright install`.
+
 ## Planned components (not yet added)
 
 | Component | Version | License | Use | Redistributed? (Y/N) | Status |
 |---|---|---|---|---|---|
-| HTMX | tbd | BSD-2-Clause | Browser-side server interaction | Y (vendored in `static/vendor/`) | planned |
-| Alpine.js | tbd | MIT | Browser-side local state | Y (vendored in `static/vendor/`) | planned |
 
 **ffmpeg and ffprobe** (LGPL-2.1+ or GPL-2.0+, depending on the build) are required at runtime since
 Phase 04. MeetingMaster3 runs them as separate programs installed by the user (no linking, nothing

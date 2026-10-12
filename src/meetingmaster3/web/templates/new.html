@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}New meeting · MeetingMaster3{% endblock %}
+{% block content %}
+<h1>New meeting</h1>
+<form id="upload-form" class="stack" x-data="uploader" x-on:submit.prevent="submit" novalidate
+      data-max-mb="{{ max_upload_mb }}">
+
+  <section class="card stack" aria-labelledby="h-audio">
+    <h2 id="h-audio">1. Audio</h2>
+    <div class="dropzone" x-bind:class="dropClass" x-on:dragover.prevent="dragOver"
+         x-on:dragleave="dragLeave" x-on:drop.prevent="onDrop">
+      <p><label for="file" class="button">Choose an audio or video file</label> or drop it here</p>
+      <input id="file" name="file" type="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.flac,.ogg,.opus,.mp4,.mkv,.webm"
+             class="sr-only-focusable" x-on:change="onPick">
+      <p class="hint" x-text="fileLabel">No file chosen. Up to {{ max_upload_mb }} MB.</p>
+    </div>
+  </section>
+
+  <section class="card stack" aria-labelledby="h-details">
+    <h2 id="h-details">2. Meeting details</h2>
+    <div class="grid">
+      <div class="field"><label for="title">Title</label>
+        <input id="title" name="title" type="text" maxlength="200" autocomplete="off"></div>
+      <div class="field"><label for="meeting_date">Date</label>
+        <input id="meeting_date" name="meeting_date" type="date"></div>
+      <div class="field"><label for="meeting_time">Start time <span class="muted">(optional)</span></label>
+        <input id="meeting_time" name="meeting_time" type="time"></div>
+      <div class="field"><label for="location">Location <span class="muted">(optional)</span></label>
+        <input id="location" name="location" type="text" maxlength="500" autocomplete="off"></div>
+      <div class="field"><label for="participants">Participants <span class="muted">(optional, comma separated)</span></label>
+        <input id="participants" name="participants" type="text" autocomplete="off"></div>
+      <div class="field"><label for="tags">Tags <span class="muted">(optional, comma separated)</span></label>
+        <input id="tags" name="tags" type="text" autocomplete="off"></div>
+    </div>
+  </section>
+
+  <section class="card stack" aria-labelledby="h-notes">
+    <h2 id="h-notes">3. Notes</h2>
+    <div class="grid">
+      <div class="field"><label for="template">Template</label>
+        <select id="template" name="template" x-on:change="templateChanged">
+          {% for t in templates_list %}
+            {% if t.valid %}
+            <option value="{{ t.id }}" data-description="{{ t.description }}"
+                    {% if t.id == default_template %}selected{% endif %}>{% if t.favorite %}★ {% endif %}{{ t.name }}</option>
+            {% else %}
+            <option disabled>{{ t.name or t.path or 'Invalid template' }} (invalid: {{ t.issues[0] if t.issues else 'see the template guide' }})</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+        <p class="hint" x-text="templateHint"></p>
+      </div>
+      <div class="field"><label for="backend">Language model</label>
+        <div class="row">
+          <select id="backend" name="backend" x-on:change="backendChanged">
+            {% for b in backends %}
+            <option value="{{ b.name }}" data-badge="{{ b.badge }}"
+                    data-consent="{{ 'yes' if b.requires_consent and not b.consent_remembered else 'no' }}"
+                    data-model="{{ b.default_model or '' }}"
+                    {% if b.name == default_backend.name %}selected{% endif %}>{{ b.name }}</option>
+            {% endfor %}
+          </select>
+          <span class="badge" x-bind:class="badgeClass" x-text="badge">{{ default_backend.badge }}</span>
+        </div>
+      </div>
+      <div class="field"><label for="model">Model</label>
+        <input id="model" name="model" type="text" list="model-list" autocomplete="off" spellcheck="false"
+               value="{{ default_backend.default_model or '' }}">
+        <datalist id="model-list"></datalist>
+        <p class="hint" x-text="modelNote"></p>
+      </div>
+    </div>
+    <details>
+      <summary>Extra instructions</summary>
+      <label for="instructions">Added to every section, e.g. “focus on budget decisions”</label>
+      <textarea id="instructions" name="instructions" rows="3" maxlength="4000"></textarea>
+    </details>
+    <input type="hidden" name="cloud_consent" x-bind:value="consentValue">
+  </section>
+
+  <section class="card stack" aria-labelledby="h-speakers">
+    <h2 id="h-speakers">4. Speakers</h2>
+    <label class="check"><input type="checkbox" name="diarize" value="1"
+           {% if diarize_default %}checked{% endif %} x-on:change="diarizeChanged"> Separate the speakers (diarization)</label>
+    <div class="grid">
+      <div class="field"><label for="min_speakers">Fewest speakers <span class="muted">(optional)</span></label>
+        <input id="min_speakers" name="min_speakers" type="number" min="1" max="32"></div>
+      <div class="field"><label for="max_speakers">Most speakers <span class="muted">(optional)</span></label>
+        <input id="max_speakers" name="max_speakers" type="number" min="1" max="32"></div>
+    </div>
+  </section>
+
+  <section class="card stack" aria-labelledby="h-hw">
+    <h2 id="h-hw">5. Hardware</h2>
+    <div id="hardware-panel" class="stack"><p class="hint">Choose a file to see how long it should take on this machine.</p></div>
+  </section>
+
+  <div class="alert error" role="alert" x-show="hasError">
+    <p><strong x-text="error"></strong></p><p x-text="errorHint"></p>
+  </div>
+  <div class="stack" x-show="uploading">
+    <label for="upload-progress">Uploading…</label>
+    <progress id="upload-progress" max="100" x-bind:value="progress"></progress>
+  </div>
+  <div class="row">
+    <button type="submit" class="primary" x-bind:disabled="cannotStart">Accept settings &amp; start</button>
+    <span class="hint" x-text="startHint"></span>
+  </div>
+
+  <dialog x-ref="consent" aria-labelledby="consent-title">
+    <h2 id="consent-title">Send this meeting to the cloud?</h2>
+    <p>The backend <strong x-text="backendName"></strong> runs on a third-party server. If you continue, the
+      <strong>transcript text</strong> of this meeting (not the audio) is sent to it to write the notes.</p>
+    <p>Nothing is sent until you start the meeting. You can pick a local model instead.</p>
+    <div class="row">
+      <button type="button" class="primary" x-on:click="allowCloud">Allow for this meeting</button>
+      <button type="button" x-on:click="refuseCloud">Use a local model</button>
+    </div>
+  </dialog>
+</form>
+{% endblock %}

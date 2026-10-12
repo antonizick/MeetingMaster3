@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Recent meetings · MeetingMaster3{% endblock %}
+{% block content %}
+<h1>Recent meetings</h1>
+<section aria-labelledby="h-jobs">
+  <h2 id="h-jobs">Jobs</h2>
+  {% if jobs %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th scope="col">Meeting</th><th scope="col">Date</th><th scope="col">Template</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody>
+    {% for j in jobs %}
+    <tr id="job-row-{{ j.id }}">
+      <th scope="row"><a href="/jobs/{{ j.id }}">{{ j.label }}</a></th>
+      <td>{{ j.meeting_date or '' }}</td>
+      <td>{{ j.options.get('template') or '' }}</td>
+      <td><span class="badge status-{{ j.status }}">{{ STATUS_LABELS.get(j.status, j.status) }}</span></td>
+      <td class="actions">
+        {% if j.resumable %}<button hx-post="/ui/jobs/{{ j.id }}/resume" hx-swap="none">Resume</button>{% endif %}
+        {% if j.status in ('written', 'failed', 'cancelled', 'interrupted') %}
+        <button class="danger" hx-delete="/ui/jobs/{{ j.id }}" hx-target="#job-row-{{ j.id }}" hx-swap="outerHTML"
+                hx-confirm="Delete this job and its retained audio? Notes already in your vault are not touched.">Delete</button>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}<p class="muted">Nothing yet. <a href="/">Start with a new meeting.</a></p>{% endif %}
+</section>
+
+<section aria-labelledby="h-notes">
+  <h2 id="h-notes">Notes in your vault</h2>
+  {% if notes %}
+  <ul class="plain">
+    {% for n in notes %}
+    <li><a href="{{ n.preview_link }}">{{ n.title or n.note_path }}</a>
+      <span class="muted">{{ n.date or '' }}</span> ·
+      <a href="{{ n.obsidian_link }}">Open in Obsidian</a></li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="muted">Notes you write appear here.</p>{% endif %}
+</section>
+{% endblock %}

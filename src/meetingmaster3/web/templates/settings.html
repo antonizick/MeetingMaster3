@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Settings · MeetingMaster3{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+<p>The full settings screen (backends, keys, hardware, retention) arrives in a later phase. For now:</p>
+<dl class="facts">
+  <dt>Vault</dt><dd><code>{{ vault or 'not set' }}</code> · <a href="/setup">change</a></dd>
+  <dt>Output folder</dt><dd><code>{{ subfolder }}</code></dd>
+  <dt>Default language model</dt><dd><code>{{ default_backend }}</code></dd>
+</dl>
+<p class="muted">Everything else is read from <code>config.yaml</code> and <code>MM3_*</code> environment variables; see the configuration guide.</p>
+{% endblock %}

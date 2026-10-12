@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{{ name }} · MeetingMaster3{% endblock %}
+{% block content %}
+<p class="row"><a href="/meetings">← Recent</a> <a class="button" href="{{ obsidian_link }}">Open in Obsidian</a></p>
+<p class="alert info">Read-only preview. Editing and per-section regeneration arrive with the review workspace.</p>
+<article class="note">{{ rendered }}</article>
+{% endblock %}

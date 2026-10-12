@@ -15,8 +15,9 @@ CSRF_HEADER = "x-csrf-token"
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 CSP = (
-    "default-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; "
-    "object-src 'none'"
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; "
+    "media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; "
+    "form-action 'self'; object-src 'none'"
 )
 
 
