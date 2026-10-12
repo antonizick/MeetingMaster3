@@ -80,7 +80,7 @@ uv run pytest
 `sudo apt install ffmpeg`, macOS: `brew install ffmpeg`); `uv run mm3 doctor` checks it. To try the job
 flow without ML models, run `MM3_FAKE_PIPELINE=1 uv run mm3 serve` (see
 [`docs/dev-guide/jobs-and-stages.md`](docs/dev-guide/jobs-and-stages.md)). Docker Compose arrives in Phase 14. Details:
-[`docs/user-guide/installation.md`](docs/user-guide/installation.md) and
+[`docs/user-guide/install-native.md`](docs/user-guide/installation.md) and
 [`docs/dev-guide/setup.md`](docs/dev-guide/setup.md).
 
 **Transcription engine (optional extra).** Real transcription and speaker diarization need

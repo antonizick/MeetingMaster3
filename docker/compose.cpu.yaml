@@ -1,0 +1,10 @@
+# Override for machines without an NVIDIA GPU:
+#   docker compose -f docker/compose.yaml -f docker/compose.cpu.yaml up -d --build
+services:
+  meetingmaster3:
+    image: meetingmaster3:cpu
+    build:
+      target: runtime-cpu
+    deploy: !reset null
+  ollama:
+    deploy: !reset null

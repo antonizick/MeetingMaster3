@@ -1,0 +1,13 @@
+# Override: run the app on the host's network so it can reach an Ollama that listens on
+# 127.0.0.1 only (the Ollama default). The app must then bind 127.0.0.1 itself, and there is no
+# port mapping, so Docker's port isolation is gone: keep the bind on loopback.
+#   docker compose -f docker/compose.yaml -f docker/compose.host-network.yaml up -d --build
+services:
+  meetingmaster3:
+    network_mode: host
+    ports: !reset []
+    extra_hosts: !reset []
+    environment:
+      MM3_SERVER__HOST: 127.0.0.1
+      MM3_SERVER__PORT: ${MM3_PORT:-8765}
+      MM3_LLM__BACKENDS__OLLAMA__BASE_URL: ${MM3_OLLAMA_URL:-http://127.0.0.1:11434}

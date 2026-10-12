@@ -1,0 +1,47 @@
+name: docker
+
+on:
+  pull_request:
+    paths:
+      - "docker/**"
+      - ".dockerignore"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "src/**"
+      - ".github/workflows/docker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build the CPU image
+        run: docker build -f docker/Dockerfile --target runtime-cpu -t meetingmaster3:cpu .
+      - name: Smoke test (healthz and doctor, no GPU)
+        run: |
+          docker run -d --name mm3 --read-only --tmpfs /tmp -p 127.0.0.1:8765:8765 meetingmaster3:cpu
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8765/healthz && break
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8765/healthz
+          docker exec mm3 mm3 doctor
+          docker logs mm3
+          docker rm -f mm3
+      - name: Verify no model weights or secrets are baked in
+        run: |
+          ! docker run --rm --entrypoint sh meetingmaster3:cpu -c 'find / -xdev \( -name "*.safetensors" -o -name "*.ckpt" -o -name ".env" \) -print | grep .'
+      - name: Build the GPU image (not run: CI has no GPU)
+        run: docker build -f docker/Dockerfile --target runtime-gpu -t meetingmaster3:gpu .
+      - name: Validate compose files
+        run: |
+          export MM3_VAULT_PATH=/tmp
+          docker compose -f docker/compose.yaml config -q
+          docker compose -f docker/compose.yaml -f docker/compose.cpu.yaml config -q
+          docker compose -f docker/compose.yaml -f docker/compose.host-network.yaml config -q
+
+  # Publishing to GHCR is deferred to Phase 16 (release), behind a manual approval.

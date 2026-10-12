@@ -1,8 +1,9 @@
-# Installation (native, development)
+# Installation: native (uv)
 
-MeetingMaster3 is pre-alpha: the web UI is a placeholder, but the job API works (upload, progress,
-cancel, resume) and, with the `ml` extra, transcribes and diarizes for real. Without it, try it with `MM3_FAKE_PIPELINE=1 uv run mm3 serve`, which
-simulates transcription and note generation. Docker Compose arrives in Phase 14.
+This is how MeetingMaster3 is developed. For the Docker path see [install-docker.md](install-docker.md).
+
+MeetingMaster3 runs natively with uv. Without the `ml` extra you can try the whole flow with `MM3_FAKE_PIPELINE=1 uv run mm3 serve`, which
+simulates transcription and note generation.
 
 ## Requirements
 - Linux (developed on Arch-based Omarchy).

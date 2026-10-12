@@ -3,7 +3,7 @@
 Start the app and open <http://127.0.0.1:8765>:
 
 ```bash
-uv sync --extra ml          # the transcription engine (see installation.md)
+uv sync --extra ml          # the transcription engine (see install-native.md)
 uv run mm3 serve
 ```
 Want to click through without models? `MM3_FAKE_PIPELINE=1 uv run mm3 serve` simulates every stage and writes a

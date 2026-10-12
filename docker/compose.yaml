@@ -1,0 +1,79 @@
+# MeetingMaster3: GPU deployment (NVIDIA). Run from the repository root:
+#   export MM3_VAULT_PATH=/path/to/your/obsidian/vault
+#   docker compose -f docker/compose.yaml up -d --build
+# CPU only:            add  -f docker/compose.cpu.yaml
+# Host Ollama (127.0.0.1-only): add  -f docker/compose.host-network.yaml   (see docs/user-guide/install-docker.md)
+# Bundled Ollama:      add  --profile ollama
+name: meetingmaster3
+
+services:
+  meetingmaster3:
+    image: meetingmaster3:gpu
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: runtime-gpu
+      args:
+        MM3_UID: ${MM3_UID:-1000}
+        MM3_GID: ${MM3_GID:-1000}
+    user: "${MM3_UID:-1000}:${MM3_GID:-1000}"
+    # Published on the host's loopback only (SECURITY.md S1). The app inside binds 0.0.0.0
+    # because Docker's bridge cannot reach a container's 127.0.0.1; the port mapping is the guard.
+    ports:
+      - "127.0.0.1:${MM3_PORT:-8765}:8765"
+    environment:
+      MM3_VAULT__PATH: /vault
+      # Backend "ollama" on the host (override with compose.host-network.yaml for a 127.0.0.1-only Ollama)
+      MM3_LLM__BACKENDS__OLLAMA__KIND: ollama
+      MM3_LLM__BACKENDS__OLLAMA__BASE_URL: ${MM3_OLLAMA_URL:-http://host.docker.internal:11434}
+    env_file:
+      - path: ../.env
+        required: false
+    volumes:
+      - ${MM3_VAULT_PATH:?set MM3_VAULT_PATH to your Obsidian vault folder}:/vault
+      - mm3-config:/config
+      - mm3-data:/data
+      - mm3-models:/models
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    read_only: true
+    tmpfs:
+      - /tmp:size=2g,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    init: false   # tini is PID 1 inside the image
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Optional: a private Ollama in Docker (docker compose --profile ollama up). It shares the same
+  # GPU and its 8 GB of VRAM with the transcriber (spec R5); MeetingMaster3 unloads Ollama models
+  # before transcription only when the URL is local, which it is for this service name only if you
+  # set MM3_OLLAMA_URL=http://host.docker.internal:11434 and publish the port, so prefer the host Ollama.
+  ollama:
+    profiles: [ollama]
+    image: ollama/ollama:latest
+    volumes:
+      - mm3-ollama:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  mm3-config:
+  mm3-data:
+  mm3-models:
+  mm3-ollama:
