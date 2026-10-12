@@ -16,6 +16,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from meetingmaster3.domain.note import AI_RECOMMENDATIONS_ID, SECTION_ID_RE
+from meetingmaster3.markdown.frontmatter import compose_untrusted, load_untrusted
 
 SCHEMA_VERSION = 1
 SYSTEM_PROMPT_ID = "_system"
@@ -277,8 +278,8 @@ def parse_template(text: str, *, source: str = "") -> TemplateReport:
     offset = 2  # YAML line 0 is file line 2
     issues: list[TemplateIssue] = []
     try:
-        node = yaml.compose(yaml_text, Loader=yaml.SafeLoader)
-        data = yaml.safe_load(yaml_text)
+        node = compose_untrusted(yaml_text)
+        data = load_untrusted(yaml_text)
     except yaml.YAMLError as exc:
         mark = getattr(exc, "problem_mark", None)
         line = mark.line + offset if mark is not None else 1

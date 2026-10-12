@@ -33,6 +33,73 @@ _YAML12_NON_STRING = re.compile(
 """Scalars that YAML 1.2 readers (Obsidian) treat as non-strings even where PyYAML would not."""
 
 
+#: Most nodes a vault file's YAML may describe once aliases are expanded. Real frontmatter has a
+#: few dozen; a "billion laughs" alias bomb describes billions in a few hundred bytes.
+MAX_EXPANDED_NODES = 10_000
+
+
+class UntrustedLoader(yaml.SafeLoader):
+    """``SafeLoader`` for YAML from vault files (notes, transcripts, templates)."""
+
+
+def _unreadable(problem: str) -> yaml.YAMLError:
+    return yaml.constructor.ConstructorError(None, None, problem, None)
+
+
+def _check_expansion(node: yaml.Node) -> None:
+    """Refuse documents whose aliases expand past :data:`MAX_EXPANDED_NODES`: the parser and the
+    template line mapper walk the expanded tree and would hang (Phase 15 finding, T-VAULT)."""
+    sizes: dict[int, int] = {}
+
+    def size(n: yaml.Node) -> int:
+        key = id(n)
+        if key not in sizes:
+            sizes[key] = 0  # a cycle counts once
+            if isinstance(n, yaml.MappingNode):
+                total = 1 + sum(size(k) + size(v) for k, v in n.value)
+            elif isinstance(n, yaml.SequenceNode):
+                total = 1 + sum(size(item) for item in n.value)
+            else:
+                total = 1
+            sizes[key] = total
+            if total > MAX_EXPANDED_NODES:
+                raise _unreadable("YAML aliases (*name) expand to too many values")
+        return sizes[key]
+
+    size(node)
+
+
+def compose_untrusted(text: str) -> yaml.Node | None:
+    """``yaml.compose`` for vault files: alias expansion is capped and absurd nesting is a
+    ``yaml.YAMLError``."""
+    try:
+        node: yaml.Node | None = yaml.compose(text, Loader=UntrustedLoader)
+        if node is not None:
+            _check_expansion(node)
+    except RecursionError as exc:
+        raise _unreadable("the YAML is nested too deeply") from exc
+    return node
+
+
+def load_untrusted(text: str) -> Any:
+    """``yaml.safe_load`` for vault files. Alias bombs, values PyYAML cannot build
+    (``date: 2026-13-45``) and absurd nesting raise ``yaml.YAMLError`` like any other syntax
+    problem, instead of hanging or raising ``ValueError``/``RecursionError``."""
+    loader = UntrustedLoader(text)
+    try:
+        node = loader.get_single_node()
+        if node is None:
+            return None
+        _check_expansion(node)
+        return loader.construct_document(node)
+    except RecursionError as exc:
+        raise _unreadable("the YAML is nested too deeply") from exc
+    except (ValueError, OverflowError, TypeError) as exc:
+        raise _unreadable(f"unreadable value ({exc})") from exc
+    finally:
+        loader.dispose()
+
+
 class FrontmatterError(MM3Error):
     def __init__(self, message: str):
         super().__init__(
@@ -65,7 +132,7 @@ def split_frontmatter(text: str) -> tuple[ParsedFrontmatter | None, str]:
         return None, text
     yaml_text = text[m.end() : close.start()]
     try:
-        data = yaml.safe_load(yaml_text) if yaml_text.strip() else {}
+        data = load_untrusted(yaml_text) if yaml_text.strip() else {}
     except yaml.YAMLError as exc:
         raise FrontmatterError(str(exc).splitlines()[0]) from exc
     if data is None:
@@ -95,7 +162,7 @@ def _split_chunks(yaml_text: str, data: dict[str, Any]) -> tuple[str, dict[str, 
     if not data:
         return yaml_text, {}
     try:
-        node = yaml.compose(yaml_text, Loader=yaml.SafeLoader)
+        node = compose_untrusted(yaml_text)
     except yaml.YAMLError:  # pragma: no cover - already parsed successfully above
         return "", None
     if not isinstance(node, yaml.MappingNode) or node.flow_style:
@@ -108,7 +175,7 @@ def _split_chunks(yaml_text: str, data: dict[str, Any]) -> tuple[str, dict[str, 
     for key, a, b in zip(data, bounds, bounds[1:], strict=False):
         chunk = yaml_text[a:b]
         try:
-            parsed = yaml.safe_load(chunk)
+            parsed = load_untrusted(chunk)
         except yaml.YAMLError:
             return "", None
         if (
