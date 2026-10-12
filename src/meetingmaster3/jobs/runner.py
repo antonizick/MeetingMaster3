@@ -296,6 +296,12 @@ class JobRunner:
                     "E_STAGE_UNKNOWN", f"This job has no stage {from_stage!r}.", "", status_code=422
                 )
             self.stages.reset_from(job_id, rows[from_stage].position)
+            # Answers given to the stages that re-run are stale (a cloud consent, speaker names
+            # for labels that may change): they will be asked again if still needed.
+            folder = job_dir(self.jobs_root, job_id)
+            for row in rows.values():
+                if row.position >= rows[from_stage].position:
+                    input_path(folder, row.stage).unlink(missing_ok=True)
         fields: dict[str, Any] = _clear_errors()
         if overrides:
             fields["settings"] = self._merge_options(job, overrides)

@@ -200,6 +200,50 @@ async def test_declined_consent_fails_without_sending(tmp_path: Path, vault: Pat
         await runner.stop()
 
 
+async def test_a_local_switch_never_leaves_consent_for_a_later_cloud_backend(
+    tmp_path: Path, vault: Path
+) -> None:
+    """Phase 15 finding (S6): choosing "use a local model" at the cloud question submits
+    ``{"consent": true}``; that answer must not approve a cloud backend picked on a later retry."""
+    settings = settings_for(None)  # no vault: the job fails at ``write``, after generation
+    backends = Backends()
+    runner = make_runner(tmp_path, pipeline(Log(), backends), settings)
+    await runner.start(prune=False)
+    try:
+        job_id = add_job(runner)
+        runner.update_options(job_id, {"backend": "openrouter"})
+        await wait_status(runner, job_id, JobStatus.WAITING_FOR_INPUT)
+        runner.submit_input(job_id, SPEAKERS)
+        await wait_status(runner, job_id, JobStatus.WAITING_FOR_INPUT)
+        assert runner.describe(job_id)["waiting_for"]["kind"] == "cloud_consent"
+        # What POST /ui/jobs/{id}/consent with choice=local does:
+        runner.update_options(job_id, {"backend": "ollama", "model": None})
+        runner.submit_input(job_id, {"consent": True})
+        await wait_status(runner, job_id, JobStatus.FAILED)
+        assert not (job_dir(runner.jobs_root, job_id) / "input.generate.json").exists()
+
+        settings.vault.path = vault
+        runner.resume(job_id, {"backend": "openrouter"}, from_stage="generate")
+        await wait_status(runner, job_id, JobStatus.WAITING_FOR_INPUT)
+        assert runner.describe(job_id)["waiting_for"]["kind"] == "cloud_consent"
+        assert not any(b.calls for b in backends.made if b.id == "openrouter")
+    finally:
+        await runner.stop()
+
+
+def test_resume_from_a_stage_clears_its_stale_answers(tmp_path: Path, vault: Path) -> None:
+    runner = make_runner(tmp_path, pipeline(Log(), Backends()), settings_for(vault))
+    job_id = add_job(runner)
+    folder = job_dir(runner.jobs_root, job_id)
+    for stage in ("await_speaker_confirmation", "generate"):
+        (folder / f"input.{stage}.json").write_text('{"consent": true}')
+    runner.jobs.set_status(job_id, JobStatus.RUNNING)
+    runner.jobs.set_status(job_id, JobStatus.FAILED)
+    runner.resume(job_id, from_stage="generate")
+    assert not (folder / "input.generate.json").exists()
+    assert (folder / "input.await_speaker_confirmation.json").exists()  # earlier stage kept
+
+
 async def test_upload_consent_option_skips_the_question(tmp_path: Path, vault: Path) -> None:
     runner = make_runner(tmp_path, pipeline(Log(), Backends()), settings_for(vault))
     await runner.start(prune=False)

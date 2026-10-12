@@ -191,7 +191,14 @@ class GenerateStage(BaseStage):
     ) -> bool:
         """True when the job may send the transcript to ``backend``; pauses the job to ask
         otherwise."""
+        from meetingmaster3.jobs.stage import input_path
+
         settings = ctx.settings
+        # An answer is consumed by the run that reads it, whatever the outcome: a "yes" given
+        # while the job was switched to a local model must never approve a cloud backend chosen
+        # later (Phase 15 finding; S6).
+        answer = ctx.input()
+        input_path(ctx.job_dir, self.name).unlink(missing_ok=True)
         cfg = settings.llm.backends.get(name)
         remembered = bool(cfg and cfg.consent_remembered)
         if not requires_consent(backend) or remembered or options.cloud_consent_for == name:
@@ -199,11 +206,7 @@ class GenerateStage(BaseStage):
         if options.cloud_consent:
             ctx.options["cloud_consent_for"] = name
             return True
-        answer = ctx.input()
         if answer is not None:
-            from meetingmaster3.jobs.stage import input_path
-
-            input_path(ctx.job_dir, self.name).unlink(missing_ok=True)
             if answer.get("consent") is True:
                 ctx.options["cloud_consent_for"] = name
                 return True
