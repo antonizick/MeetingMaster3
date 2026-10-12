@@ -26,12 +26,27 @@ Meeting facts:
 - Speakers in the transcript: Sam Lee, Ana Costa, Speaker 3
 - Today's date: Sunday 2026-10-11. Relative deadlines ("Friday", "next week") refer to the meeting date, not to today.
 === SECTION summary ===
-Now write the section "Summary".
+Now write the section "Summary Succinct".
 
 In 1-2 sentences, say what the meeting was about and how many tasks came out of it, naming the
 most urgent one. No bullet points.
 
-Output rules: return only the content of the "Summary" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
+Output rules: return only the content of the "Summary Succinct" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
+=== SECTION summary-detailed ===
+Now write the section "Summary Detailed".
+
+Write a detailed summary for someone who will work from this task list. First paragraph:
+what the meeting set out to get done and the situation that created the work. Second
+paragraph: the main threads of discussion that produced the commitments, saying who
+raised what and who took what on. Third paragraph: where things stand now, which tasks
+are most urgent or depend on each other, and what was left without an owner or a deadline.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
+
+Output rules: return only the content of the "Summary Detailed" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
 === SECTION action-items ===
 Now write the section "Action Items".
 

@@ -6,7 +6,8 @@ description: Multi-participant project sync with status by person or role, block
 tags: [project, team]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: status-by-person, title: Status by Person, kind: extraction, max_tokens: 1500}
   - {id: milestones, title: Milestones & Dates, kind: extraction}
   - {id: blockers, title: Blockers & Dependencies, kind: extraction}
@@ -27,6 +28,18 @@ hope is not a commitment. Never attribute work to someone who did not say they o
 <!-- mm3:prompt:summary -->
 In 2-4 sentences, give the overall state of the project as reported: what is on track, what is
 at risk and what is blocked. No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed summary of the project's state as reported. First paragraph: the
+project, the phase or milestone it is in, and the purpose of this sync. Second paragraph:
+what each contributor reported, in their own terms, keeping honest status ("in progress"
+is not "done"). Third paragraph: risks, blockers and dependencies, what was decided, and
+what is due before the next sync.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:status-by-person -->
 One block per contributor who gave an update, in the order they spoke. For each, record what

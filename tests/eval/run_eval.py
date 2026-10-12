@@ -129,6 +129,7 @@ def score_record(score: Score, result: GenerationResult, seconds: float) -> dict
         "checks": dict(score.checks),
         "found": {k: len(v) for k, v in score.found.items()},
         "missing": {k: sorted(v) for k, v in score.missing.items() if v},
+        "metrics": dict(score.metrics),
         "mode": result.mode,
         "calls": result.calls,
         "seconds": round(seconds, 1),

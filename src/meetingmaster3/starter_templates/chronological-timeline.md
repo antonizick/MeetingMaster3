@@ -6,7 +6,8 @@ description: Events, updates and decisions in the order they occurred, with time
 tags: [general, timeline]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: timeline, title: Timeline, kind: extraction, max_tokens: 2400}
   - {id: decisions, title: Decisions Made, kind: extraction}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks}
@@ -26,6 +27,17 @@ Do not reorder, merge distant events or invent events.
 
 <!-- mm3:prompt:summary -->
 In 2-3 sentences, give the arc of the meeting from start to finish. No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed summary that follows the arc of the meeting in order. First paragraph:
+how it opened and what it was for. Second paragraph: the main sequence of topics and
+events, in the order they happened, with who drove each. Third paragraph: how it ended,
+what was concluded and what remained open. Keep the order of events; never reorder them.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:timeline -->
 List the events, topics, updates and turning points in the order they happened in the meeting,

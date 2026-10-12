@@ -7,6 +7,8 @@ tags: [governance, formal]
 favorite: false
 sections:
   - {id: attendance, title: Attendance & Quorum, kind: extraction}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: items-considered, title: Items Considered, kind: narrative, max_tokens: 2000}
   - {id: motions-and-votes, title: Motions & Votes, kind: extraction, max_tokens: 1500}
   - {id: resolutions, title: Resolutions, kind: extraction}
@@ -36,6 +38,24 @@ Structure:
 - **Apologies / absent:** <Names, or "none stated">
 - **Quorum:** <what was said, or "not stated">
 - **Called to order:** [mm:ss]
+
+<!-- mm3:prompt:summary -->
+In 1-2 formal, past-tense sentences, state the nature of the meeting and the principal
+resolutions adopted, as stated. If no resolution was adopted, say so. No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed summary of the proceedings in formal, neutral, past-tense language.
+First paragraph: the nature of the meeting, who chaired it and the principal matters
+before the board. Second paragraph: the substance of the discussion of each principal
+matter, attributed to the members who spoke, without characterising tone or adding
+opinion. Third paragraph: the resolutions adopted, the matters deferred or referred
+elsewhere, and any items noted as not stated. Copy motions and outcomes as stated; never
+infer a vote or a result.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:items-considered -->
 Record each agenda item in the order it was taken, in formal language. Give a bold item title

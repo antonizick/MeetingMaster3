@@ -14,6 +14,16 @@ from meetingmaster3.domain.note import LOOSE_MARKER_RE, normalise_body
 from meetingmaster3.templates.schema import SectionFormat
 
 EMPTY_BODY = "_Nothing to report._"
+DETAILED_SUMMARY_ID = "summary-detailed"
+"""The section whose answer must have at least :data:`MIN_PARAGRAPHS` paragraphs (R25)."""
+MIN_PARAGRAPHS = 2
+FIRMER_PARAGRAPHS = (
+    "Your answer has {n} paragraph(s), but this section needs at least two paragraphs and "
+    "typically three, separated by a blank line: (1) the context and purpose of the meeting, "
+    "(2) the main threads of discussion and who said what, (3) the outcomes, decisions and open "
+    "questions. Rewrite the whole section as prose paragraphs. Use only facts from the "
+    "transcript; do not pad it or invent anything. Answer with the section text only."
+)
 
 _THINK_RE = re.compile(r"<(think|thinking|reasoning)>.*?</\1>", re.S | re.I)
 _OPEN_THINK_RE = re.compile(r"^\s*<(think|thinking|reasoning)>.*", re.S | re.I)
@@ -172,3 +182,19 @@ def clean_section(
     body = normalise_body("\n".join(lines))
     body = re.sub(r"\n{3,}", "\n\n", body)
     return body or EMPTY_BODY
+
+
+def count_paragraphs(body: str) -> int:
+    """Prose paragraphs in a section body: blocks separated by blank lines that contain words
+    and are not a heading, a list or a placeholder."""
+    count = 0
+    for block in re.split(r"\n[ \t]*\n", body.replace("\r\n", "\n")):
+        lines = [ln for ln in block.split("\n") if ln.strip()]
+        if not lines or body.strip() == EMPTY_BODY:
+            continue
+        first = lines[0].strip()
+        if _HEADING_RE.match(first) or all(_BULLET_RE.match(ln) for ln in lines):
+            continue
+        if re.search(r"\w", block):
+            count += 1
+    return count

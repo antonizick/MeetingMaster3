@@ -6,7 +6,8 @@ description: Risk review covering risks and current issues with severity and own
 tags: [risk, project]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: risks, title: Risks, kind: extraction, max_tokens: 1500}
   - {id: issues, title: Current Issues, kind: extraction}
   - {id: mitigations, title: Mitigations Agreed, kind: extraction}
@@ -27,6 +28,18 @@ or a number. Name an owner only for someone who took the item on or was clearly 
 <!-- mm3:prompt:summary -->
 In 2-4 sentences, say what was reviewed, how many risks and issues came up, and which one the
 group was most worried about. No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed summary of the risk review. First paragraph: what was reviewed and why.
+Second paragraph: the main risks (what might happen) and issues (what has already
+happened), kept apart, with the severity and likelihood people gave in their own words,
+or "not rated". Third paragraph: the mitigations agreed, who owns them, and the items
+still without an owner or a plan. Never invent a rating or a number.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:risks -->
 List each risk: a possible future problem. Give what could happen, the cause or trigger

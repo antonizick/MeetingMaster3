@@ -43,12 +43,13 @@ Who does what by when. Tasks, owners, deadlines, dependencies and blockers, with
 
 **Sections, in order:**
 
-1. Summary
-2. Action Items (checkbox tasks)
-3. Blockers & Dependencies
-4. Decisions Made
-5. Next Steps
-6. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Action Items (checkbox tasks)
+4. Blockers & Dependencies
+5. Decisions Made
+6. Next Steps
+7. AI Recommendations
 
 ## Agile Stand-up
 
@@ -60,11 +61,12 @@ Short stand-up notes by person, with what was done, what is planned and what is 
 
 **Sections, in order:**
 
-1. Summary
-2. Updates by Person
-3. Blockers
-4. Action Items (checkbox tasks)
-5. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Updates by Person
+4. Blockers
+5. Action Items (checkbox tasks)
+6. AI Recommendations
 
 ## Board & Governance Minutes
 
@@ -77,11 +79,13 @@ Formal minutes for a board or governance meeting recording attendance, motions, 
 **Sections, in order:**
 
 1. Attendance & Quorum
-2. Items Considered
-3. Motions & Votes
-4. Resolutions
-5. Action Items (checkbox tasks)
-6. Adjournment
+2. Summary Succinct
+3. Summary Detailed
+4. Items Considered
+5. Motions & Votes
+6. Resolutions
+7. Action Items (checkbox tasks)
+8. Adjournment
 
 This template deliberately has no **AI Recommendations** section: it is a formal record.
 
@@ -95,14 +99,15 @@ Captures the ideas raised in a brainstorm, groups them into themes and records t
 
 **Sections, in order:**
 
-1. Summary
-2. Ideas Raised
-3. Themes
-4. Energy & Consensus
-5. Promising Directions
-6. Open Questions
-7. Next Steps
-8. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Ideas Raised
+4. Themes
+5. Energy & Consensus
+6. Promising Directions
+7. Open Questions
+8. Next Steps
+9. AI Recommendations
 
 ## Chronological Timeline
 
@@ -114,11 +119,12 @@ Events, updates and decisions in the order they occurred, with timestamps, for a
 
 **Sections, in order:**
 
-1. Summary
-2. Timeline
-3. Decisions Made
-4. Action Items (checkbox tasks)
-5. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Timeline
+4. Decisions Made
+5. Action Items (checkbox tasks)
+6. AI Recommendations
 
 ## Decision Log
 
@@ -130,11 +136,12 @@ A record of every decision made, with rationale, alternatives considered and own
 
 **Sections, in order:**
 
-1. Summary
-2. Decisions
-3. Deferred Decisions
-4. Action Items (checkbox tasks)
-5. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Decisions
+4. Deferred Decisions
+5. Action Items (checkbox tasks)
+6. AI Recommendations
 
 ## Detailed Meeting Minutes
 
@@ -146,13 +153,14 @@ Comprehensive, near-verbatim structured notes in the order things were said, for
 
 **Sections, in order:**
 
-1. Summary
-2. Discussion
-3. Decisions Made
-4. Action Items (checkbox tasks)
-5. Open Questions
-6. Next Steps
-7. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Discussion
+4. Decisions Made
+5. Action Items (checkbox tasks)
+6. Open Questions
+7. Next Steps
+8. AI Recommendations
 
 ## Executive Summary
 
@@ -164,12 +172,13 @@ A short, high-level brief on outcomes, key decisions and their implications, for
 
 **Sections, in order:**
 
-1. Summary
-2. Decisions Made
-3. Action Items (checkbox tasks)
-4. Open Questions
-5. Next Steps
-6. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Decisions Made
+4. Action Items (checkbox tasks)
+5. Open Questions
+6. Next Steps
+7. AI Recommendations
 
 ## General Discussion Summary
 
@@ -181,11 +190,12 @@ Neutral, balanced overview of the topics discussed, the main points made and how
 
 **Sections, in order:**
 
-1. Summary
-2. Topics Discussed
-3. Open Questions
-4. Next Steps
-5. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Topics Discussed
+4. Open Questions
+5. Next Steps
+6. AI Recommendations
 
 ## Job Interview Notes
 
@@ -197,15 +207,16 @@ Evidence-based notes on a candidate interview with answers to key questions, str
 
 **Sections, in order:**
 
-1. Summary
-2. Answers to Key Questions
-3. Candidate Strengths
-4. Concerns & Gaps
-5. Culture-Fit Signals
-6. Candidate's Questions
-7. Hiring Recommendation
-8. Next Steps
-9. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Answers to Key Questions
+4. Candidate Strengths
+5. Concerns & Gaps
+6. Culture-Fit Signals
+7. Candidate's Questions
+8. Hiring Recommendation
+9. Next Steps
+10. AI Recommendations
 
 ## Just the Facts
 
@@ -217,10 +228,12 @@ A neutral, compact record of what was said and agreed, without interpretation. G
 
 **Sections, in order:**
 
-1. Key Points
-2. Decisions Made
-3. Action Items (checkbox tasks)
-4. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Key Points
+4. Decisions Made
+5. Action Items (checkbox tasks)
+6. AI Recommendations
 
 ## Key Takeaways & Next Steps
 
@@ -232,9 +245,11 @@ Only the key insights and the immediate actions, for a quick read.
 
 **Sections, in order:**
 
-1. Key Takeaways
-2. Action Items (checkbox tasks)
-3. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Key Takeaways
+4. Action Items (checkbox tasks)
+5. AI Recommendations
 
 ## One-on-One & Coaching
 
@@ -246,14 +261,15 @@ Notes for a one-on-one or coaching conversation covering goals, progress, feedba
 
 **Sections, in order:**
 
-1. Summary
-2. Goals & Progress
-3. Feedback Shared
-4. Challenges & Support Needed
-5. Career & Development
-6. Follow-ups (checkbox tasks)
-7. Next Steps
-8. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Goals & Progress
+4. Feedback Shared
+5. Challenges & Support Needed
+6. Career & Development
+7. Follow-ups (checkbox tasks)
+8. Next Steps
+9. AI Recommendations
 
 ## Project Team Sync
 
@@ -265,14 +281,15 @@ Multi-participant project sync with status by person or role, blockers, dependen
 
 **Sections, in order:**
 
-1. Summary
-2. Status by Person
-3. Milestones & Dates
-4. Blockers & Dependencies
-5. Decisions Made
-6. Action Items (checkbox tasks)
-7. Next Steps
-8. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Status by Person
+4. Milestones & Dates
+5. Blockers & Dependencies
+6. Decisions Made
+7. Action Items (checkbox tasks)
+8. Next Steps
+9. AI Recommendations
 
 ## Q&A Extraction
 
@@ -284,11 +301,12 @@ Extracts the questions asked and the answers given as a clean FAQ, and lists the
 
 **Sections, in order:**
 
-1. Summary
-2. Questions & Answers
-3. Unanswered Questions
-4. Next Steps
-5. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Questions & Answers
+4. Unanswered Questions
+5. Next Steps
+6. AI Recommendations
 
 ## Retrospective & Lessons Learned
 
@@ -300,14 +318,15 @@ Retrospective or lessons-learned review covering what went well, what did not, r
 
 **Sections, in order:**
 
-1. Summary
-2. What Went Well
-3. What Did Not Go Well
-4. Root Causes
-5. Improvements to Try
-6. Decisions Made
-7. Action Items (checkbox tasks)
-8. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. What Went Well
+4. What Did Not Go Well
+5. Root Causes
+6. Improvements to Try
+7. Decisions Made
+8. Action Items (checkbox tasks)
+9. AI Recommendations
 
 ## Risks, Issues & Mitigations
 
@@ -319,13 +338,14 @@ Risk review covering risks and current issues with severity and owners, the miti
 
 **Sections, in order:**
 
-1. Summary
-2. Risks
-3. Current Issues
-4. Mitigations Agreed
-5. Action Items (checkbox tasks)
-6. Next Steps
-7. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Risks
+4. Current Issues
+5. Mitigations Agreed
+6. Action Items (checkbox tasks)
+7. Next Steps
+8. AI Recommendations
 
 ## Sales & Client Call
 
@@ -337,15 +357,16 @@ Client or sales call summary covering needs, pain points, objections, commitment
 
 **Sections, in order:**
 
-1. Summary
-2. Client Needs & Goals
-3. Pain Points
-4. Objections & Concerns
-5. Commitments Made
-6. Relationship Signals
-7. Action Items (checkbox tasks)
-8. Next Steps
-9. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Client Needs & Goals
+4. Pain Points
+5. Objections & Concerns
+6. Commitments Made
+7. Relationship Signals
+8. Action Items (checkbox tasks)
+9. Next Steps
+10. AI Recommendations
 
 ## Speaker-Attributed Notes
 
@@ -357,12 +378,13 @@ Notes organised by speaker, so you can see what each person said, argued for and
 
 **Sections, in order:**
 
-1. Summary
-2. Points by Speaker
-3. Decisions Made
-4. Action Items (checkbox tasks)
-5. Open Questions
-6. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Points by Speaker
+4. Decisions Made
+5. Action Items (checkbox tasks)
+6. Open Questions
+7. AI Recommendations
 
 ## Strategic Meeting Summary
 
@@ -374,15 +396,16 @@ Long-term goals, the strategic options on the table, where people agree or diffe
 
 **Sections, in order:**
 
-1. Summary
-2. Strategic Goals
-3. Options Considered
-4. Alignment & Disagreement
-5. Decisions Made
-6. Recommended Directions
-7. Open Questions
-8. Next Steps
-9. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Strategic Goals
+4. Options Considered
+5. Alignment & Disagreement
+6. Decisions Made
+7. Recommended Directions
+8. Open Questions
+9. Next Steps
+10. AI Recommendations
 
 ## Technical Deep-Dive
 
@@ -394,15 +417,16 @@ Detailed engineering notes for design reviews, architecture discussions and inci
 
 **Sections, in order:**
 
-1. Summary
-2. Problem & Context
-3. Technical Details
-4. Options Considered
-5. Decisions Made
-6. Risks & Concerns
-7. Action Items (checkbox tasks)
-8. Open Questions
-9. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Problem & Context
+4. Technical Details
+5. Options Considered
+6. Decisions Made
+7. Risks & Concerns
+8. Action Items (checkbox tasks)
+9. Open Questions
+10. AI Recommendations
 
 ## Workshop & Training Recap
 
@@ -414,11 +438,12 @@ Recap of a workshop or training session covering the concepts taught, exercises,
 
 **Sections, in order:**
 
-1. Summary
-2. Concepts Covered
-3. Exercises & Activities
-4. Key Learnings
-5. Questions Raised
-6. Applying It
-7. Next Steps
-8. AI Recommendations
+1. Summary Succinct
+2. Summary Detailed
+3. Concepts Covered
+4. Exercises & Activities
+5. Key Learnings
+6. Questions Raised
+7. Applying It
+8. Next Steps
+9. AI Recommendations

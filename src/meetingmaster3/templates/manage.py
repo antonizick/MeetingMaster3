@@ -23,6 +23,7 @@ from meetingmaster3.templates.loader import (
     builtin_files,
     install_builtins,
     load_library,
+    newer_builtins,
     record_installed,
     vault_templates_dir,
 )
@@ -129,6 +130,10 @@ class TemplateManager:
                 status_code=404,
             )
         return file_name
+
+    def newer_builtin_names(self) -> set[str]:
+        """Edited copies of built-ins for which a newer shipped version exists."""
+        return newer_builtins(self.vault_root, self.subfolder, self.manifest_path)
 
     def builtin_names(self) -> set[str]:
         return {p.name for p in builtin_files()}

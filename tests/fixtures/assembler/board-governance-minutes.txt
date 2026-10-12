@@ -41,6 +41,30 @@ Structure:
 - **Called to order:** [mm:ss]
 
 Output rules: return only the content of the "Attendance & Quorum" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
+=== SECTION summary ===
+Now write the section "Summary Succinct".
+
+In 1-2 formal, past-tense sentences, state the nature of the meeting and the principal
+resolutions adopted, as stated. If no resolution was adopted, say so. No bullet points.
+
+Output rules: return only the content of the "Summary Succinct" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
+=== SECTION summary-detailed ===
+Now write the section "Summary Detailed".
+
+Write a detailed summary of the proceedings in formal, neutral, past-tense language.
+First paragraph: the nature of the meeting, who chaired it and the principal matters
+before the board. Second paragraph: the substance of the discussion of each principal
+matter, attributed to the members who spoke, without characterising tone or adding
+opinion. Third paragraph: the resolutions adopted, the matters deferred or referred
+elsewhere, and any items noted as not stated. Copy motions and outcomes as stated; never
+infer a vote or a result.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
+
+Output rules: return only the content of the "Summary Detailed" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
 === SECTION items-considered ===
 Now write the section "Items Considered".
 

@@ -6,7 +6,8 @@ description: Notes for a one-on-one or coaching conversation covering goals, pro
 tags: [people, coaching]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: goals-and-progress, title: Goals & Progress, kind: narrative}
   - {id: feedback, title: Feedback Shared, kind: extraction}
   - {id: challenges-and-support, title: Challenges & Support Needed, kind: extraction}
@@ -30,6 +31,19 @@ recorded or they directly affect the work arrangement discussed; then record onl
 <!-- mm3:prompt:summary -->
 In 2-4 sentences, say what the conversation covered and its overall tone, in neutral and kind
 wording. No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed, supportive summary of the conversation that both people would
+recognise as fair. First paragraph: the purpose of the conversation and its overall tone.
+Second paragraph: the main topics, the feedback given as it was given, and the person's own
+words about how things are going. Third paragraph: what was agreed, the support offered
+and the next check-in, if mentioned. Describe behaviour, not character, and keep sensitive
+personal matters out unless the person asked for them to be recorded.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:goals-and-progress -->
 In a short paragraph or a few bullets, record the goals discussed (work, learning, wellbeing

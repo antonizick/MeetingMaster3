@@ -6,6 +6,8 @@ description: A neutral, compact record of what was said and agreed, without inte
 tags: [general, minimal]
 favorite: false
 sections:
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: key-points, title: Key Points, kind: extraction, format: bullets, max_tokens: 1200}
   - {id: decisions, title: Decisions Made, kind: extraction, format: bullets}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks}
@@ -20,6 +22,22 @@ You are a neutral minute-taker. Record only what was said, in plain declarative 
 No adjectives of judgement ("great", "productive", "concerning"), no interpretation of motives,
 no summaries of mood. When people disagreed, record each position and who held it. Short bullets,
 one fact each.
+
+<!-- mm3:prompt:summary -->
+In 1-2 plain declarative sentences, state what the meeting was for and what it produced.
+No adjectives of judgement. No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed, neutral record of the meeting in plain declarative sentences. First
+paragraph: what the meeting was for and who took part. Second paragraph: what was said on
+the main topics and by whom; where people disagreed, state each position and who held it.
+Third paragraph: what was agreed and what was left open. Use no adjectives of judgement,
+no interpretation of motives and no description of mood.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:key-points -->
 List the substantive facts, updates, figures and positions stated in the meeting, in the order

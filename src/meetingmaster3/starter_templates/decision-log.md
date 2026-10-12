@@ -6,7 +6,8 @@ description: A record of every decision made, with rationale, alternatives consi
 tags: [general, governance]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: decisions, title: Decisions, kind: extraction, max_tokens: 1200}
   - {id: deferred-decisions, title: Deferred Decisions, kind: extraction}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks}
@@ -25,6 +26,18 @@ reasoning in the participants' own terms. Never upgrade a tentative agreement in
 <!-- mm3:prompt:summary -->
 In 1-3 sentences, say how many decisions were made, what they were about, and whether anything
 important was deferred. No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed summary for readers who will later ask why a decision was made. First
+paragraph: the context and the questions the meeting had to settle. Second paragraph: the
+options and arguments that were discussed, in the participants' own terms and attributed
+to them. Third paragraph: what was decided, by whom, what was deferred, and any condition
+attached. Never present a proposal or a preference as a decision.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:decisions -->
 Record every decision that was made, in the order it was made, as a numbered list. Individual

@@ -27,13 +27,29 @@ Meeting facts:
 - Speakers in the transcript: Sam Lee, Ana Costa, Speaker 3
 - Today's date: Sunday 2026-10-11. Relative deadlines ("Friday", "next week") refer to the meeting date, not to today.
 === SECTION summary ===
-Now write the section "Summary".
+Now write the section "Summary Succinct".
 
 Write 3-5 sentences, as one paragraph: the system or problem under discussion, the technical
 conclusion that was reached, and the most important consequence (for the design, the schedule or
 production). No bullet points.
 
-Output rules: return only the content of the "Summary" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
+Output rules: return only the content of the "Summary Succinct" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
+=== SECTION summary-detailed ===
+Now write the section "Summary Detailed".
+
+Write a detailed technical summary for engineers. First paragraph: the system or problem,
+its context and why it was discussed now. Second paragraph: the technical substance: the
+approaches, measurements and arguments, keeping component names, versions and numbers as
+spoken (identifiers in `inline code`) and separating facts from proposals and opinions.
+Third paragraph: the conclusion reached, its consequences for the design, the schedule or
+production, and the open technical questions. Never fill gaps with general knowledge.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
+
+Output rules: return only the content of the "Summary Detailed" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
 === SECTION context ===
 Now write the section "Problem & Context".
 

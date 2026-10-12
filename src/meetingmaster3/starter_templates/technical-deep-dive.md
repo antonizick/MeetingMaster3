@@ -6,7 +6,8 @@ description: Detailed engineering notes for design reviews, architecture discuss
 tags: [engineering, technical]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: context, title: Problem & Context, kind: extraction}
   - {id: technical-details, title: Technical Details, kind: extraction, max_tokens: 1200}
   - {id: options-considered, title: Options Considered, kind: extraction}
@@ -32,6 +33,19 @@ not belong in the note.
 Write 3-5 sentences, as one paragraph: the system or problem under discussion, the technical
 conclusion that was reached, and the most important consequence (for the design, the schedule or
 production). No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed technical summary for engineers. First paragraph: the system or problem,
+its context and why it was discussed now. Second paragraph: the technical substance: the
+approaches, measurements and arguments, keeping component names, versions and numbers as
+spoken (identifiers in `inline code`) and separating facts from proposals and opinions.
+Third paragraph: the conclusion reached, its consequences for the design, the schedule or
+production, and the open technical questions. Never fill gaps with general knowledge.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:context -->
 Describe the problem and the situation that led to the meeting, in 2-6 bullets: the current

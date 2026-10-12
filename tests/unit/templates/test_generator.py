@@ -78,7 +78,8 @@ async def test_full_mode_generates_every_section_in_order() -> None:
     assert all(c.think is False for c in backend.calls)
     # Temperatures follow R6: extraction 0.2, narrative 0.4.
     temps = {c.messages[-1].content.split('"')[1]: c.temperature for c in backend.calls}
-    assert temps["Summary"] == 0.4 and temps["Action Items"] == 0.2
+    assert temps["Summary Succinct"] == 0.4 and temps["Summary Detailed"] == 0.4
+    assert temps["Action Items"] == 0.2
     # The rendered note parses back with valid markers, AI Recommendations last.
     note = build_note(meta(), result.sections)
     parsed = parse_note(render_note(note))
@@ -120,8 +121,10 @@ async def test_empty_answer_is_retried_then_warned() -> None:
     gen = generator(FakeLLMBackend(responder=lambda r: next(answers)), warn=warnings.append)
     result = await gen.generate(meta(), transcript())
     assert result.sections[0].body_markdown == "_Nothing to report._"
-    assert result.calls == len(result.sections) + 1
-    assert warnings == ['The model returned nothing for the "Summary" section.']
+    # one retry for the empty Summary Succinct, one for the one-paragraph Summary Detailed
+    assert result.calls == len(result.sections) + 2
+    assert warnings[0] == 'The model returned nothing for the "Summary Succinct" section.'
+    assert "fewer than 2 paragraphs" in warnings[1] and len(warnings) == 2
 
 
 async def test_consent_is_enforced_before_any_call() -> None:

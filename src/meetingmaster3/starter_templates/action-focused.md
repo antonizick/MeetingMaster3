@@ -6,7 +6,8 @@ description: Who does what by when. Tasks, owners, deadlines, dependencies and b
 tags: [general, tasks]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks, max_tokens: 1200}
   - {id: blockers, title: Blockers & Dependencies, kind: extraction}
   - {id: decisions, title: Decisions Made, kind: extraction}
@@ -27,6 +28,18 @@ was not clearly given it.
 <!-- mm3:prompt:summary -->
 In 1-2 sentences, say what the meeting was about and how many tasks came out of it, naming the
 most urgent one. No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed summary for someone who will work from this task list. First paragraph:
+what the meeting set out to get done and the situation that created the work. Second
+paragraph: the main threads of discussion that produced the commitments, saying who
+raised what and who took what on. Third paragraph: where things stand now, which tasks
+are most urgent or depend on each other, and what was left without an owner or a deadline.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:action-items -->
 List every task, grouped by owner (people in the order they first appear, **Unassigned** last).

@@ -6,7 +6,8 @@ description: Client or sales call summary covering needs, pain points, objection
 tags: [sales, client]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: client-needs, title: Client Needs & Goals, kind: extraction}
   - {id: pain-points, title: Pain Points, kind: extraction}
   - {id: objections, title: Objections & Concerns, kind: extraction}
@@ -29,6 +30,19 @@ maybe into a yes. Treat the client with respect and do not speculate about their
 <!-- mm3:prompt:summary -->
 In 3-4 sentences, say who the call was with (the client's name and organisation, if stated), why
 the call took place, the main outcome and the current stage of the relationship. No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed account of the call that a colleague could take over from. First
+paragraph: who the call was with, why it took place and where the relationship stood.
+Second paragraph: what the client said about their needs, concerns and timeline, kept
+separate from what our side presented or offered. Third paragraph: the commitments made on
+each side (prices, dates, features), the next step and what is still open. Never upgrade
+a maybe into a yes.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:client-needs -->
 List what the client said they need or want to achieve, in their own terms, one bullet each.

@@ -17,6 +17,11 @@
       {% if c.overrides_builtin and not c.is_builtin_file %}<span class="badge">replaces a built-in</span>{% endif %}
       {% if c.valid %}<span class="badge local">✓ valid</span>{% else %}<span class="badge status-failed">✗ invalid</span>{% endif %}
     </p>
+    {% if c.newer_builtin %}
+      <p class="hint">A newer version of this built-in is available. You edited your copy, so it
+        was not changed. <strong>Reset to default</strong> gets the new version (your copy goes to
+        the Archive folder), or add the new sections by hand.</p>
+    {% endif %}
     {% if c.valid %}
       <p>{{ c.description }}</p>
       <p class="muted">{{ c.sections|length }} sections{% if c.tags %} · {{ c.tags|join(', ') }}{% endif %}</p>

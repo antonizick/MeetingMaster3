@@ -6,7 +6,8 @@ description: A short, high-level brief on outcomes, key decisions and their impl
 tags: [general, leadership]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: decisions, title: Decisions Made, kind: extraction}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks}
   - {id: open-questions, title: Open Questions, kind: extraction}
@@ -27,6 +28,18 @@ logistics and anything that did not change an outcome.
 Write 2-4 sentences, as one paragraph, that answer: what was this meeting for, what was
 concluded, and what does it mean for the business (impact, risk, cost or timing)? Mention the
 single most important decision or result first. No bullet points. Do not list the participants.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed summary for an executive who has five minutes rather than one. First
+paragraph: why the meeting was held and the business context. Second paragraph: the main
+lines of discussion and the trade-offs, naming who argued for what. Third paragraph: what
+was decided, what it means for the business (impact, risk, cost or timing) and what is
+still unresolved. Lead with outcomes, not with the order of discussion.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:decisions -->
 List every decision that was actually made in the meeting, one bullet each, most important

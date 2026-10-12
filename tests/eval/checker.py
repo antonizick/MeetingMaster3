@@ -21,6 +21,7 @@ from meetingmaster3.domain.note import AI_RECOMMENDATIONS_ID
 from meetingmaster3.domain.transcript import Segment, SpeakerMap, Transcript
 from meetingmaster3.markdown.note_parser import parse_note
 from meetingmaster3.markdown.sections import scan_sections
+from meetingmaster3.templates.postprocess import count_paragraphs
 from meetingmaster3.templates.schema import Template
 
 MEETINGS_DIR = Path(__file__).parent / "meetings"
@@ -114,6 +115,8 @@ class Score:
     found: dict[str, list[str]] = field(default_factory=dict)
     missing: dict[str, list[str]] = field(default_factory=dict)
     problems: list[str] = field(default_factory=list)
+    metrics: dict[str, int] = field(default_factory=dict)
+    """Reported, never compared with the baseline (they vary from run to run)."""
 
     @property
     def passed(self) -> bool:
@@ -219,7 +222,47 @@ def score_note(
         if strict_questions:
             s.checks["questions_captured"] = not s.missing.get("questions")
     _check_sections(s, parsed, template, exp)
+    _check_summaries(s, parsed)
     return s
+
+
+DETAILED_PARAGRAPHS = (2, 4)
+DETAILED_WORDS = (120, 600)
+"""Prompt targets are about 150-500 words; the check allows 20 % either way."""
+SUCCINCT_MAX_SENTENCES = 6
+_LIST_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+", re.M)
+_HEADING_RE = re.compile(r"^#{1,6}\s", re.M)
+_SENTENCE_RE = re.compile(r"[.!?](?:\s|$)")
+
+
+def _check_summaries(s: Score, parsed: Any) -> None:
+    """Phase 15a (R25): Summary Detailed is 2-4 prose paragraphs of roughly 150-500 words, and
+    Summary Succinct stays one short paragraph, shorter than the detailed one."""
+    detailed = parsed.note.section("summary-detailed")
+    succinct = parsed.note.section("summary")
+    if detailed is not None:
+        body = detailed.body_markdown
+        paragraphs = count_paragraphs(body)
+        words = len(body.split())
+        s.metrics.update(detailed_paragraphs=paragraphs, detailed_words=words)
+        lo, hi = DETAILED_PARAGRAPHS
+        s.checks["detailed_paragraphs"] = lo <= paragraphs <= hi
+        s.checks["detailed_prose"] = not _LIST_RE.search(body) and not _HEADING_RE.search(body)
+        s.checks["detailed_length"] = DETAILED_WORDS[0] <= words <= DETAILED_WORDS[1]
+        if not s.checks["detailed_paragraphs"]:
+            s.problems.append(f"Summary Detailed has {paragraphs} paragraph(s)")
+        if not s.checks["detailed_length"]:
+            s.problems.append(f"Summary Detailed has {words} words")
+    if succinct is not None:
+        body = succinct.body_markdown
+        sentences = len(_SENTENCE_RE.findall(body.strip() + " "))
+        s.metrics.update(succinct_sentences=sentences, succinct_words=len(body.split()))
+        short = count_paragraphs(body) <= 1 and sentences <= SUCCINCT_MAX_SENTENCES
+        if detailed is not None:
+            short = short and len(body.split()) < len(detailed.body_markdown.split())
+        s.checks["succinct_short"] = short
+        if not short:
+            s.problems.append(f"Summary Succinct is long ({sentences} sentences)")
 
 
 def _check_sections(s: Score, parsed: Any, template: Template, exp: dict[str, Any]) -> None:

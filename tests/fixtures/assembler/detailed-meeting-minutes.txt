@@ -25,12 +25,27 @@ Meeting facts:
 - Speakers in the transcript: Sam Lee, Ana Costa, Speaker 3
 - Today's date: Sunday 2026-10-11. Relative deadlines ("Friday", "next week") refer to the meeting date, not to today.
 === SECTION summary ===
-Now write the section "Summary".
+Now write the section "Summary Succinct".
 
 In 2-4 sentences, say what the meeting was for and what it produced (decisions, tasks, open
 items). No bullet points.
 
-Output rules: return only the content of the "Summary" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
+Output rules: return only the content of the "Summary Succinct" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
+=== SECTION summary-detailed ===
+Now write the section "Summary Detailed".
+
+Write a detailed summary that a reader could rely on instead of the full minutes. First
+paragraph: the purpose of the meeting and the agenda as it played out. Second paragraph:
+the main points of discussion in order, attributed to the people who made them, keeping
+figures, dates and qualifications as said. Third paragraph: the decisions, tasks and open
+items the meeting produced. Do not editorialise.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
+
+Output rules: return only the content of the "Summary Detailed" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
 === SECTION discussion ===
 Now write the section "Discussion".
 

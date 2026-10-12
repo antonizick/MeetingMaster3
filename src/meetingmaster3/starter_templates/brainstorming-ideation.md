@@ -6,7 +6,8 @@ description: Captures the ideas raised in a brainstorm, groups them into themes 
 tags: [creative, ideation]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: ideas, title: Ideas Raised, kind: extraction, max_tokens: 1500}
   - {id: themes, title: Themes, kind: narrative}
   - {id: energy-and-consensus, title: Energy & Consensus, kind: narrative}
@@ -28,6 +29,18 @@ a decision or a task unless someone explicitly did so.
 <!-- mm3:prompt:summary -->
 In 2-3 sentences, say what the brainstorm was about (the problem or goal), roughly how many
 ideas came up, and where the energy went. No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed summary of the brainstorm. First paragraph: the problem or goal and how
+the session was framed. Second paragraph: the main families of ideas, with who proposed
+the notable ones and how others reacted, without judging them. Third paragraph: which
+ideas drew the most energy, anything the group chose to explore further, and the open
+questions it left. Do not turn an idea into a decision or a plan unless someone did.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:ideas -->
 List every distinct idea that was raised, one bullet each, in the order raised, with who

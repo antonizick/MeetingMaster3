@@ -6,7 +6,8 @@ description: Evidence-based notes on a candidate interview with answers to key q
 tags: [hiring, people]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: key-answers, title: Answers to Key Questions, kind: extraction, max_tokens: 1500}
   - {id: candidate-strengths, title: Candidate Strengths, kind: extraction}
   - {id: concerns, title: Concerns & Gaps, kind: extraction}
@@ -39,6 +40,21 @@ Rules for this template:
 In 3-4 sentences, say which role the interview was for (if stated), the candidate's relevant
 background as they described it, and the overall impression of how well the interview evidence
 matched the role. No bullet points. Do not mention protected characteristics.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed assessment narrative of the interview. First paragraph: the role (if
+stated), the format of the interview and the candidate's background as they described it.
+Second paragraph: the main evidence the candidate gave (projects, results, methods,
+numbers), in their words where possible, and how they answered the interviewers' key
+questions. Third paragraph: how the evidence matched the role, where it was strong and
+what was not demonstrated in this interview, and any open points to follow up. Use only
+job-relevant evidence and never mention protected characteristics. This is advisory input;
+do not make a hiring decision.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:key-answers -->
 For each substantive question the interviewers asked, record a short entry: the question,

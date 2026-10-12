@@ -6,7 +6,8 @@ description: Comprehensive, near-verbatim structured notes in the order things w
 tags: [general, record]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: discussion, title: Discussion, kind: narrative, max_tokens: 2400}
   - {id: decisions, title: Decisions Made, kind: extraction}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks, max_tokens: 1200}
@@ -27,6 +28,18 @@ editorialise and do not add anything that was not said.
 <!-- mm3:prompt:summary -->
 In 2-4 sentences, say what the meeting was for and what it produced (decisions, tasks, open
 items). No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed summary that a reader could rely on instead of the full minutes. First
+paragraph: the purpose of the meeting and the agenda as it played out. Second paragraph:
+the main points of discussion in order, attributed to the people who made them, keeping
+figures, dates and qualifications as said. Third paragraph: the decisions, tasks and open
+items the meeting produced. Do not editorialise.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:discussion -->
 Write the record of the meeting in the order it happened, as one block per topic. Give each

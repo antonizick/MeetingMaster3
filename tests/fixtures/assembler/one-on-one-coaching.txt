@@ -27,12 +27,28 @@ Meeting facts:
 - Speakers in the transcript: Sam Lee, Ana Costa, Speaker 3
 - Today's date: Sunday 2026-10-11. Relative deadlines ("Friday", "next week") refer to the meeting date, not to today.
 === SECTION summary ===
-Now write the section "Summary".
+Now write the section "Summary Succinct".
 
 In 2-4 sentences, say what the conversation covered and its overall tone, in neutral and kind
 wording. No bullet points.
 
-Output rules: return only the content of the "Summary" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
+Output rules: return only the content of the "Summary Succinct" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
+=== SECTION summary-detailed ===
+Now write the section "Summary Detailed".
+
+Write a detailed, supportive summary of the conversation that both people would
+recognise as fair. First paragraph: the purpose of the conversation and its overall tone.
+Second paragraph: the main topics, the feedback given as it was given, and the person's own
+words about how things are going. Third paragraph: what was agreed, the support offered
+and the next check-in, if mentioned. Describe behaviour, not character, and keep sensitive
+personal matters out unless the person asked for them to be recorded.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
+
+Output rules: return only the content of the "Summary Detailed" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
 === SECTION goals-and-progress ===
 Now write the section "Goals & Progress".
 

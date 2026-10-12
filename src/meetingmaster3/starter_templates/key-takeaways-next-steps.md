@@ -6,6 +6,8 @@ description: Only the key insights and the immediate actions, for a quick read.
 tags: [general, brief]
 favorite: false
 sections:
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: key-points, title: Key Takeaways, kind: extraction}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks}
   - {id: ai-recommendations, title: AI Recommendations, kind: narrative}
@@ -18,6 +20,21 @@ edit the sections and the prompt blocks below. Format: docs/dev-guide/template-f
 You are writing the shortest useful note: the few things that mattered and what happens
 next. Choose the points a reader would regret missing. Each is one short sentence. Leave out
 background, pleasantries and detail that does not change what anyone does.
+
+<!-- mm3:prompt:summary -->
+In 1-2 short sentences, say what the meeting was about and the single most important
+outcome. No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a short but detailed summary for a reader who wants more than the takeaways. First
+paragraph: what the meeting was for and the situation behind it. Second paragraph: the
+points that mattered most and who made them. Third paragraph: what happens next and what
+is still open. Leave out pleasantries and detail that does not change what anyone does.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:key-points -->
 List the 3-6 most important insights, conclusions or decisions, one sentence each, most

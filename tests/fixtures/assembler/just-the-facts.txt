@@ -24,6 +24,28 @@ Meeting facts:
 - Participants: Sam Lee, Ana Costa
 - Speakers in the transcript: Sam Lee, Ana Costa, Speaker 3
 - Today's date: Sunday 2026-10-11. Relative deadlines ("Friday", "next week") refer to the meeting date, not to today.
+=== SECTION summary ===
+Now write the section "Summary Succinct".
+
+In 1-2 plain declarative sentences, state what the meeting was for and what it produced.
+No adjectives of judgement. No bullet points.
+
+Output rules: return only the content of the "Summary Succinct" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
+=== SECTION summary-detailed ===
+Now write the section "Summary Detailed".
+
+Write a detailed, neutral record of the meeting in plain declarative sentences. First
+paragraph: what the meeting was for and who took part. Second paragraph: what was said on
+the main topics and by whom; where people disagreed, state each position and who held it.
+Third paragraph: what was agreed and what was left open. Use no adjectives of judgement,
+no interpretation of motives and no description of mood.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
+
+Output rules: return only the content of the "Summary Detailed" section, in Markdown. Do not repeat the heading, do not add a title, do not wrap the answer in a code block, and do not add any introduction or closing remark.
 === SECTION key-points ===
 Now write the section "Key Points".
 

@@ -46,9 +46,12 @@ async def _form(request: Request) -> dict[str, str]:
     return {k: v for k, v in data.items() if isinstance(v, str)}
 
 
-def _card(entry: TemplateEntry, builtin_files: set[str], default_id: str) -> dict[str, Any]:
+def _card(
+    entry: TemplateEntry, builtin_files: set[str], default_id: str, newer: set[str] | None = None
+) -> dict[str, Any]:
     info = entry.to_dict()
     info["is_builtin_file"] = entry.path.name in builtin_files
+    info["newer_builtin"] = entry.source == "vault" and entry.path.name in (newer or set())
     info["is_default"] = entry.id == default_id
     info["obsidian_link"] = (
         views.obsidian_link(str(entry.path)) if entry.source == "vault" else None
@@ -62,8 +65,10 @@ def _library_context(
     settings = request.app.state.settings
     library = manager.library()
     builtin_files = manager.builtin_names()
+    newer = manager.newer_builtin_names()
     cards = [
-        _card(e, builtin_files, settings.generation.default_template) for e in library.listing()
+        _card(e, builtin_files, settings.generation.default_template, newer)
+        for e in library.listing()
     ]
     tags = sorted({t for c in cards for t in c["tags"]})
     needle = q.strip().lower()

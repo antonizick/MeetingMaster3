@@ -6,7 +6,8 @@ description: Long-term goals, the strategic options on the table, where people a
 tags: [leadership, strategy]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: strategic-goals, title: Strategic Goals, kind: extraction}
   - {id: options, title: Options Considered, kind: extraction, max_tokens: 1200}
   - {id: alignment, title: Alignment & Disagreement, kind: narrative}
@@ -29,6 +30,18 @@ a direction as agreed unless someone said it was agreed.
 <!-- mm3:prompt:summary -->
 In 3-5 sentences, say what strategic question the meeting addressed, the main options and
 where the group ended up. No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed summary of the strategy discussion for the leadership team. First
+paragraph: the strategic question, the context and what is at stake. Second paragraph: the
+options and trade-offs discussed, with who favoured which option and why. Third paragraph:
+where the group ended up, separating decisions from preferences and recommendations, and
+the questions that must be answered before the next step.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:strategic-goals -->
 List the long-term goals, targets or outcomes that were stated or assumed (with any time

@@ -6,7 +6,8 @@ description: Recap of a workshop or training session covering the concepts taugh
 tags: [learning, training]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: concepts, title: Concepts Covered, kind: extraction, max_tokens: 1500}
   - {id: exercises, title: Exercises & Activities, kind: extraction}
   - {id: learnings, title: Key Learnings, kind: extraction}
@@ -28,6 +29,18 @@ knowledge from outside the session and do not correct the trainer.
 <!-- mm3:prompt:summary -->
 In 3-4 sentences, say what the workshop or training was about, who ran it, and what participants
 should now be able to do. No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed recap that a colleague who missed the session could learn from. First
+paragraph: the topic, who ran it and its aims. Second paragraph: the main ideas as they
+were taught, in the trainer's terms, with the examples and figures given. Third paragraph:
+the questions and comments from participants, what participants should now be able to do,
+and any follow-up material or exercises mentioned. Do not add outside knowledge.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:concepts -->
 List the concepts, techniques, rules or frameworks that were taught, in the order they were taught.

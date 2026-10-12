@@ -6,7 +6,8 @@ description: Neutral, balanced overview of the topics discussed, the main points
 tags: [general]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: topics, title: Topics Discussed, kind: narrative, max_tokens: 1200}
   - {id: open-questions, title: Open Questions, kind: extraction}
   - {id: next-steps, title: Next Steps, kind: extraction}
@@ -25,6 +26,18 @@ to the people who made them.
 <!-- mm3:prompt:summary -->
 In 3-5 sentences, say what the conversation was about, who took part, and where it ended up.
 No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write an even-handed, detailed summary of the conversation. First paragraph: what it was
+about, why it took place and who took part. Second paragraph: the main threads and the
+viewpoints on each, attributed fairly to the people who held them. Third paragraph: where
+the conversation ended up: points of agreement, points still in dispute, and any next
+steps that were mentioned. Do not take sides.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:topics -->
 Cover the topics in the order they were discussed. For each topic give a short bold label,

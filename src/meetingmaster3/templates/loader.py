@@ -249,12 +249,15 @@ def record_installed(manifest_path: Path, file_name: str, data: bytes) -> None:
     )
 
 
-def install_builtins(vault_root: Path, subfolder: str, manifest_path: Path) -> list[InstallResult]:
+def install_builtins(
+    vault_root: Path, subfolder: str, manifest_path: Path, *, add_missing: bool = True
+) -> list[InstallResult]:
     """Copy the built-in templates into the vault's templates folder.
 
-    A missing file is written. An existing file is replaced only when its bytes equal the hash
-    MM3 recorded when it last installed that file (the user never edited it) and the shipped
-    version changed. Everything else is left alone.
+    A missing file is written (unless ``add_missing`` is false: a built-in the user deleted is
+    not brought back by an upgrade). An existing file is replaced only when its bytes equal the
+    hash MM3 recorded when it last installed that file (the user never edited it) and the
+    shipped version changed. Everything else is left alone.
     """
     folder = vault_templates_dir(vault_root, subfolder, create=True)
     manifest = _read_manifest(manifest_path)
@@ -263,6 +266,8 @@ def install_builtins(vault_root: Path, subfolder: str, manifest_path: Path) -> l
         shipped = src.read_bytes()
         target = folder / src.name
         if not target.exists():
+            if not add_missing:
+                continue
             atomic_write_text(target, shipped.decode("utf-8"), vault_root=vault_root)
             manifest[src.name] = _sha(shipped)
             results.append(InstallResult(src.name, "installed"))
@@ -290,12 +295,34 @@ def install_builtins(vault_root: Path, subfolder: str, manifest_path: Path) -> l
 
 def ensure_installed(vault_root: Path, subfolder: str, manifest_path: Path) -> bool:
     """First-run install: copy the built-ins when the templates folder does not exist yet.
-    Returns True when it installed anything."""
+    Afterwards, refresh the copies the user never edited when a new app version ships a changed
+    built-in (Phase 15a added Summary Detailed this way). Returns True when it changed a file."""
     try:
         folder = vault_templates_dir(vault_root, subfolder)
     except MM3Error:
         return False
     if folder.exists():
-        return False
+        results = install_builtins(vault_root, subfolder, manifest_path, add_missing=False)
+        return any(r.action == "updated" for r in results)
     install_builtins(vault_root, subfolder, manifest_path)
     return True
+
+
+def newer_builtins(vault_root: Path, subfolder: str, manifest_path: Path) -> set[str]:
+    """Built-in file names whose vault copy the user edited while the shipped version changed
+    since MM3 installed it: the library offers "Reset to default" to get the new version."""
+    try:
+        folder = vault_templates_dir(vault_root, subfolder)
+    except MM3Error:
+        return set()
+    manifest = _read_manifest(manifest_path)
+    out = set()
+    for src in builtin_files():
+        target = folder / src.name
+        installed = manifest.get(src.name)
+        if installed is None or not target.is_file():
+            continue
+        shipped = _sha(src.read_bytes())
+        if installed != shipped and _sha(target.read_bytes()) not in (installed, shipped):
+            out.add(src.name)
+    return out

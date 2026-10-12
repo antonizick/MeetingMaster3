@@ -310,7 +310,7 @@ async def test_failed_generation_resumes_from_finished_sections(
         calls["n"] += 1
         if calls["n"] == 3:
             raise RuntimeError("model crashed")
-        return f"Body {calls['n']}."
+        return f"Body {calls['n']}.\n\nMore."
 
     backends = Backends(responder=flaky)
     runner = make_runner(tmp_path, pipeline(Log(), backends), settings_for(vault))
@@ -320,14 +320,14 @@ async def test_failed_generation_resumes_from_finished_sections(
         await run_job(runner, job_id, SPEAKERS, final=JobStatus.FAILED)
         folder = job_dir(runner.jobs_root, job_id)
         partial = json.loads((folder / "generate.partial.json").read_text("utf-8"))
-        assert list(partial["sections"]) == ["summary", "decisions"]
+        assert list(partial["sections"]) == ["summary", "summary-detailed"]
         runner.resume(job_id)
         await wait_status(runner, job_id, JobStatus.WRITTEN)
         gen = json.loads((folder / "generation.json").read_text("utf-8"))
-        assert gen["reused_sections"] == ["decisions", "summary"]
+        assert gen["reused_sections"] == ["summary", "summary-detailed"]
         sections = parse_note(Path(written(runner, job_id)["note_path"]).read_text("utf-8"))
         bodies = [s.body_markdown for s in sections.note.sections]
-        assert bodies[:2] == ["Body 1.", "Body 2."]
+        assert bodies[:2] == ["Body 1.\n\nMore.", "Body 2.\n\nMore."]
     finally:
         await runner.stop()
 

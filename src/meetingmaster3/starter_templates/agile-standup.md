@@ -6,7 +6,8 @@ description: Short stand-up notes by person, with what was done, what is planned
 tags: [agile, team]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: updates, title: Updates by Person, kind: extraction, max_tokens: 1500}
   - {id: blockers, title: Blockers, kind: extraction}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks}
@@ -24,6 +25,18 @@ a plan into a task for someone who did not take it on.
 <!-- mm3:prompt:summary -->
 In one or two sentences, give the overall state: how many people reported and whether any
 blocker needs attention today. No bullet points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a brisk, detailed summary of the stand-up. First paragraph: the overall state of
+the work and of the sprint or goal, if mentioned. Second paragraph: the notable updates,
+naming who reported what progress and what they plan next. Third paragraph: blockers,
+dependencies between people and anything agreed to take offline. Keep it short and factual;
+add no commentary.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:updates -->
 One block per person who gave an update, in the order they spoke. Keep each line short.

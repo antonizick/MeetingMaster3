@@ -81,10 +81,14 @@ def _section(prompt: str) -> str:
             "No open questions."
         )
     speakers = list(dict.fromkeys(s for _, s, _ in lines))
-    return (
+    text = (
         f"Simulated {title.lower()} from the offline fake model: {len(lines)} turns by "
         f"{', '.join(speakers) or 'nobody'}."
     )
+    if "detailed" in low:  # Summary Detailed needs two paragraphs or more (R25)
+        first = lines[0][2] if lines else "nothing"
+        text += f"\n\nThe conversation opened with: {first}"
+    return text
 
 
 @dataclass

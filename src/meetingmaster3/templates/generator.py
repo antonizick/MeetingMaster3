@@ -46,7 +46,14 @@ from meetingmaster3.templates.mapreduce import (
     render_notes,
     repair_prompt,
 )
-from meetingmaster3.templates.postprocess import EMPTY_BODY, clean_section
+from meetingmaster3.templates.postprocess import (
+    DETAILED_SUMMARY_ID,
+    EMPTY_BODY,
+    FIRMER_PARAGRAPHS,
+    MIN_PARAGRAPHS,
+    clean_section,
+    count_paragraphs,
+)
 from meetingmaster3.templates.schema import Template, TemplateSection
 
 log = logging.getLogger(__name__)
@@ -396,6 +403,10 @@ class NoteGenerator:
                 for line in unassigned:
                     log.info("Owner guard: unassigned a task its owner only suggested: %s", line)
             if body != EMPTY_BODY:
+                if section.id == DETAILED_SUMMARY_ID:
+                    body, finish = await self._paragraph_floor(
+                        prepared, section, prompt, text, body, finish
+                    )
                 if finish == "length":
                     self._warn(
                         f'The "{section.title}" section reached its length limit and may be '
@@ -404,6 +415,44 @@ class NoteGenerator:
                 return body
         self._warn(f'The model returned nothing for the "{section.title}" section.')
         return body
+
+    async def _paragraph_floor(
+        self,
+        prepared: PreparedContext,
+        section: TemplateSection,
+        prompt: str,
+        answer: str,
+        body: str,
+        finish: str | None,
+    ) -> tuple[str, str | None]:
+        """Summary Detailed needs two paragraphs or more (R25): one retry with a firmer
+        instruction, then keep the better answer and warn. Never pads."""
+        n = count_paragraphs(body)
+        if n >= MIN_PARAGRAPHS:
+            return body, finish
+        log.info('"%s" has %d paragraph(s); asking once more', section.title, n)
+        text, retry_finish = await self._call(
+            prepared.system,
+            [
+                Message("user", prompt),
+                Message("assistant", answer[:8000]),
+                Message("user", FIRMER_PARAGRAPHS.format(n=n)),
+            ],
+            temperature=self.template.temperature(section),
+            max_tokens=self.template.max_tokens(section),
+            num_ctx=prepared.num_ctx,
+        )
+        retry = clean_section(
+            text, title=section.title, fmt=section.format, meeting_day=prepared.meeting_day
+        )
+        if retry != EMPTY_BODY and count_paragraphs(retry) > n:
+            body, finish = retry, retry_finish
+        if count_paragraphs(body) < MIN_PARAGRAPHS:
+            self._warn(
+                f'The "{section.title}" section has fewer than {MIN_PARAGRAPHS} paragraphs; the '
+                "model kept it short. Regenerate it, or try a larger model."
+            )
+        return body, finish
 
     async def generate(
         self,

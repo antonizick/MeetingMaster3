@@ -6,7 +6,8 @@ description: Notes organised by speaker, so you can see what each person said, a
 tags: [general, attribution]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: points-by-speaker, title: Points by Speaker, kind: extraction, max_tokens: 2400}
   - {id: decisions, title: Decisions Made, kind: extraction}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks, max_tokens: 1200}
@@ -26,6 +27,18 @@ it. Use only the names in the speaker list; if a speaker is unnamed, use their l
 <!-- mm3:prompt:summary -->
 In 2-4 sentences, say what the meeting was about and who the main contributors were. No bullet
 points.
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed summary in which it is always clear who said what. First paragraph: what
+the meeting was about and who the main contributors were. Second paragraph: each main
+contributor's position or contribution, attributed by name and kept as they expressed it.
+Third paragraph: where the positions met or diverged, and what was concluded or left open.
+Use only the names in the speaker list; never guess who an unnamed speaker is.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank
+lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
+transcript and the names in the speaker list; never invent facts, names or numbers. Do not
+repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:points-by-speaker -->
 One block per speaker, in the order they first spoke. List 2-6 of their most important points,
