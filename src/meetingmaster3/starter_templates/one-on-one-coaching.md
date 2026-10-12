@@ -7,7 +7,7 @@ tags: [people, coaching]
 favorite: false
 sections:
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: goals-and-progress, title: Goals & Progress, kind: narrative}
   - {id: feedback, title: Feedback Shared, kind: extraction}
   - {id: challenges-and-support, title: Challenges & Support Needed, kind: extraction}
@@ -41,9 +41,9 @@ and the next check-in, if mentioned. Describe behaviour, not character, and keep
 personal matters out unless the person asked for them to be recorded.
 
 Write prose only: typically three paragraphs and never fewer than two, separated by blank
-lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
-transcript and the names in the speaker list; never invent facts, names or numbers. Do not
-repeat the short summary word for word: go deeper.
+lines, about 200-450 words in all. No bullet points, numbered lists, headings or tables. Use
+only what was said in the transcript and the names in the speaker list; never invent facts,
+names or numbers. Do not repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:goals-and-progress -->
 In a short paragraph or a few bullets, record the goals discussed (work, learning, wellbeing

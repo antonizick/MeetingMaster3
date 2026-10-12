@@ -7,7 +7,7 @@ tags: [learning, training]
 favorite: false
 sections:
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: concepts, title: Concepts Covered, kind: extraction, max_tokens: 1500}
   - {id: exercises, title: Exercises & Activities, kind: extraction}
   - {id: learnings, title: Key Learnings, kind: extraction}
@@ -38,9 +38,9 @@ the questions and comments from participants, what participants should now be ab
 and any follow-up material or exercises mentioned. Do not add outside knowledge.
 
 Write prose only: typically three paragraphs and never fewer than two, separated by blank
-lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
-transcript and the names in the speaker list; never invent facts, names or numbers. Do not
-repeat the short summary word for word: go deeper.
+lines, about 200-450 words in all. No bullet points, numbered lists, headings or tables. Use
+only what was said in the transcript and the names in the speaker list; never invent facts,
+names or numbers. Do not repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:concepts -->
 List the concepts, techniques, rules or frameworks that were taught, in the order they were taught.

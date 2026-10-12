@@ -7,7 +7,7 @@ tags: [general, leadership]
 favorite: false
 sections:
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: decisions, title: Decisions Made, kind: extraction}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks}
   - {id: open-questions, title: Open Questions, kind: extraction}
@@ -37,9 +37,9 @@ was decided, what it means for the business (impact, risk, cost or timing) and w
 still unresolved. Lead with outcomes, not with the order of discussion.
 
 Write prose only: typically three paragraphs and never fewer than two, separated by blank
-lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
-transcript and the names in the speaker list; never invent facts, names or numbers. Do not
-repeat the short summary word for word: go deeper.
+lines, about 200-450 words in all. No bullet points, numbered lists, headings or tables. Use
+only what was said in the transcript and the names in the speaker list; never invent facts,
+names or numbers. Do not repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:decisions -->
 List every decision that was actually made in the meeting, one bullet each, most important

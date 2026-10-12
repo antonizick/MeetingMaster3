@@ -7,7 +7,7 @@ tags: [general, timeline]
 favorite: false
 sections:
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: timeline, title: Timeline, kind: extraction, max_tokens: 2400}
   - {id: decisions, title: Decisions Made, kind: extraction}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks}
@@ -35,9 +35,9 @@ events, in the order they happened, with who drove each. Third paragraph: how it
 what was concluded and what remained open. Keep the order of events; never reorder them.
 
 Write prose only: typically three paragraphs and never fewer than two, separated by blank
-lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
-transcript and the names in the speaker list; never invent facts, names or numbers. Do not
-repeat the short summary word for word: go deeper.
+lines, about 200-450 words in all. No bullet points, numbered lists, headings or tables. Use
+only what was said in the transcript and the names in the speaker list; never invent facts,
+names or numbers. Do not repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:timeline -->
 List the events, topics, updates and turning points in the order they happened in the meeting,

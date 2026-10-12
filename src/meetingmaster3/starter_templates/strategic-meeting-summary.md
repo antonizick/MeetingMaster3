@@ -7,7 +7,7 @@ tags: [leadership, strategy]
 favorite: false
 sections:
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: strategic-goals, title: Strategic Goals, kind: extraction}
   - {id: options, title: Options Considered, kind: extraction, max_tokens: 1200}
   - {id: alignment, title: Alignment & Disagreement, kind: narrative}
@@ -39,9 +39,9 @@ where the group ended up, separating decisions from preferences and recommendati
 the questions that must be answered before the next step.
 
 Write prose only: typically three paragraphs and never fewer than two, separated by blank
-lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
-transcript and the names in the speaker list; never invent facts, names or numbers. Do not
-repeat the short summary word for word: go deeper.
+lines, about 200-450 words in all. No bullet points, numbered lists, headings or tables. Use
+only what was said in the transcript and the names in the speaker list; never invent facts,
+names or numbers. Do not repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:strategic-goals -->
 List the long-term goals, targets or outcomes that were stated or assumed (with any time

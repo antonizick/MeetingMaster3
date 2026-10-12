@@ -7,7 +7,7 @@ tags: [general, minimal]
 favorite: false
 sections:
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: key-points, title: Key Points, kind: extraction, format: bullets, max_tokens: 1200}
   - {id: decisions, title: Decisions Made, kind: extraction, format: bullets}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks}
@@ -35,9 +35,9 @@ Third paragraph: what was agreed and what was left open. Use no adjectives of ju
 no interpretation of motives and no description of mood.
 
 Write prose only: typically three paragraphs and never fewer than two, separated by blank
-lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
-transcript and the names in the speaker list; never invent facts, names or numbers. Do not
-repeat the short summary word for word: go deeper.
+lines, about 200-450 words in all. No bullet points, numbered lists, headings or tables. Use
+only what was said in the transcript and the names in the speaker list; never invent facts,
+names or numbers. Do not repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:key-points -->
 List the substantive facts, updates, figures and positions stated in the meeting, in the order

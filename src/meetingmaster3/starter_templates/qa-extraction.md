@@ -7,7 +7,7 @@ tags: [faq, reference]
 favorite: false
 sections:
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: questions-and-answers, title: Questions & Answers, kind: extraction, max_tokens: 2400}
   - {id: unanswered, title: Unanswered Questions, kind: extraction}
   - {id: next-steps, title: Next Steps, kind: extraction}
@@ -36,9 +36,9 @@ Third paragraph: the questions that were answered only partly, contradicted or l
 Never answer a question yourself or add outside knowledge.
 
 Write prose only: typically three paragraphs and never fewer than two, separated by blank
-lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
-transcript and the names in the speaker list; never invent facts, names or numbers. Do not
-repeat the short summary word for word: go deeper.
+lines, about 200-450 words in all. No bullet points, numbered lists, headings or tables. Use
+only what was said in the transcript and the names in the speaker list; never invent facts,
+names or numbers. Do not repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:questions-and-answers -->
 List each question that was asked and answered, in the order asked. Rewrite the question so it

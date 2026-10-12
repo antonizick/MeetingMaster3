@@ -110,7 +110,7 @@ Attendance & Quorum). Your own templates are not changed automatically. To add t
 under `sections:` (keep the `summary` id: notes, regeneration and ratings use it):
 ```yaml
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
 ```
 and a prompt block for each, for example (adapt the first sentences to your template's voice):
 ```markdown
@@ -119,8 +119,8 @@ Write a detailed summary. First paragraph: why the meeting was held and its cont
 the main threads of discussion, naming who said what. Third paragraph: what was decided, what happens next
 and what is still open.
 
-Write prose only: typically three paragraphs and never fewer than two, separated by blank lines. No bullet
-points, numbered lists, headings or tables. Use only what was said in the transcript and the names in the
+Write prose only: typically three paragraphs and never fewer than two, separated by blank lines, about
+200-450 words in all. No bullet points, numbered lists, headings or tables. Use only what was said in the transcript and the names in the
 speaker list; never invent facts, names or numbers. Do not repeat the short summary word for word: go deeper.
 ```
 A section with the id `summary-detailed` always gets the two-paragraph check: an answer with one paragraph is

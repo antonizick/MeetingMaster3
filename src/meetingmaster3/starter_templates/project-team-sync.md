@@ -7,7 +7,7 @@ tags: [project, team]
 favorite: false
 sections:
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: status-by-person, title: Status by Person, kind: extraction, max_tokens: 1500}
   - {id: milestones, title: Milestones & Dates, kind: extraction}
   - {id: blockers, title: Blockers & Dependencies, kind: extraction}
@@ -37,9 +37,9 @@ is not "done"). Third paragraph: risks, blockers and dependencies, what was deci
 what is due before the next sync.
 
 Write prose only: typically three paragraphs and never fewer than two, separated by blank
-lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
-transcript and the names in the speaker list; never invent facts, names or numbers. Do not
-repeat the short summary word for word: go deeper.
+lines, about 200-450 words in all. No bullet points, numbered lists, headings or tables. Use
+only what was said in the transcript and the names in the speaker list; never invent facts,
+names or numbers. Do not repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:status-by-person -->
 One block per contributor who gave an update, in the order they spoke. For each, record what

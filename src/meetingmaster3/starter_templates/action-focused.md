@@ -7,7 +7,7 @@ tags: [general, tasks]
 favorite: false
 sections:
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks, max_tokens: 1200}
   - {id: blockers, title: Blockers & Dependencies, kind: extraction}
   - {id: decisions, title: Decisions Made, kind: extraction}
@@ -37,9 +37,9 @@ raised what and who took what on. Third paragraph: where things stand now, which
 are most urgent or depend on each other, and what was left without an owner or a deadline.
 
 Write prose only: typically three paragraphs and never fewer than two, separated by blank
-lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
-transcript and the names in the speaker list; never invent facts, names or numbers. Do not
-repeat the short summary word for word: go deeper.
+lines, about 200-450 words in all. No bullet points, numbered lists, headings or tables. Use
+only what was said in the transcript and the names in the speaker list; never invent facts,
+names or numbers. Do not repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:action-items -->
 List every task, grouped by owner (people in the order they first appear, **Unassigned** last).

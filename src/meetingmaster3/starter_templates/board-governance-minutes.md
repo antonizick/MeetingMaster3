@@ -8,7 +8,7 @@ favorite: false
 sections:
   - {id: attendance, title: Attendance & Quorum, kind: extraction}
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: items-considered, title: Items Considered, kind: narrative, max_tokens: 2000}
   - {id: motions-and-votes, title: Motions & Votes, kind: extraction, max_tokens: 1500}
   - {id: resolutions, title: Resolutions, kind: extraction}
@@ -53,9 +53,9 @@ elsewhere, and any items noted as not stated. Copy motions and outcomes as state
 infer a vote or a result.
 
 Write prose only: typically three paragraphs and never fewer than two, separated by blank
-lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
-transcript and the names in the speaker list; never invent facts, names or numbers. Do not
-repeat the short summary word for word: go deeper.
+lines, about 200-450 words in all. No bullet points, numbered lists, headings or tables. Use
+only what was said in the transcript and the names in the speaker list; never invent facts,
+names or numbers. Do not repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:items-considered -->
 Record each agenda item in the order it was taken, in formal language. Give a bold item title

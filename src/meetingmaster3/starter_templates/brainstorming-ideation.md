@@ -7,7 +7,7 @@ tags: [creative, ideation]
 favorite: false
 sections:
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: ideas, title: Ideas Raised, kind: extraction, max_tokens: 1500}
   - {id: themes, title: Themes, kind: narrative}
   - {id: energy-and-consensus, title: Energy & Consensus, kind: narrative}
@@ -38,9 +38,9 @@ ideas drew the most energy, anything the group chose to explore further, and the
 questions it left. Do not turn an idea into a decision or a plan unless someone did.
 
 Write prose only: typically three paragraphs and never fewer than two, separated by blank
-lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
-transcript and the names in the speaker list; never invent facts, names or numbers. Do not
-repeat the short summary word for word: go deeper.
+lines, about 200-450 words in all. No bullet points, numbered lists, headings or tables. Use
+only what was said in the transcript and the names in the speaker list; never invent facts,
+names or numbers. Do not repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:ideas -->
 List every distinct idea that was raised, one bullet each, in the order raised, with who

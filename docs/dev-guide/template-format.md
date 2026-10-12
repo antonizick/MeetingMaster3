@@ -43,7 +43,7 @@ tags: [general, leadership]
 favorite: false
 sections:
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: decisions, title: Decisions Made, kind: extraction}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks}
   - {id: ai-recommendations, title: AI Recommendations, kind: narrative}
@@ -98,7 +98,7 @@ Common section ids (reuse them so regeneration and future tooling stay consisten
 **Two summaries (Phase 15a, R25, ADR-0031).** `summary` is the short one (titled "Summary
 Succinct" in the built-ins; the id stays `summary` so older notes, regeneration and ratings keep
 working). `summary-detailed` follows it: prose, typically three paragraphs (context and purpose; the
-threads of discussion with who said what; outcomes, decisions and open questions), about 1 200 output
+threads of discussion with who said what; outcomes, decisions and open questions), about 1 000 output
 tokens. The generator enforces a floor for this id: fewer than two paragraphs
 (`templates/postprocess.count_paragraphs`) triggers one retry with a firmer instruction, then the
 better answer is kept and the job gets a warning; nothing is padded.

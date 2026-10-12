@@ -7,7 +7,7 @@ tags: [engineering, technical]
 favorite: false
 sections:
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: context, title: Problem & Context, kind: extraction}
   - {id: technical-details, title: Technical Details, kind: extraction, max_tokens: 1200}
   - {id: options-considered, title: Options Considered, kind: extraction}
@@ -43,9 +43,9 @@ Third paragraph: the conclusion reached, its consequences for the design, the sc
 production, and the open technical questions. Never fill gaps with general knowledge.
 
 Write prose only: typically three paragraphs and never fewer than two, separated by blank
-lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
-transcript and the names in the speaker list; never invent facts, names or numbers. Do not
-repeat the short summary word for word: go deeper.
+lines, about 200-450 words in all. No bullet points, numbered lists, headings or tables. Use
+only what was said in the transcript and the names in the speaker list; never invent facts,
+names or numbers. Do not repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:context -->
 Describe the problem and the situation that led to the meeting, in 2-6 bullets: the current

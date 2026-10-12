@@ -7,7 +7,7 @@ tags: [agile, review]
 favorite: false
 sections:
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: went-well, title: What Went Well, kind: extraction}
   - {id: did-not-go-well, title: What Did Not Go Well, kind: extraction}
   - {id: root-causes, title: Root Causes, kind: extraction}
@@ -40,9 +40,9 @@ root causes the group named or agreed on, the improvements it chose, and what re
 unresolved. Never blame individuals.
 
 Write prose only: typically three paragraphs and never fewer than two, separated by blank
-lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
-transcript and the names in the speaker list; never invent facts, names or numbers. Do not
-repeat the short summary word for word: go deeper.
+lines, about 200-450 words in all. No bullet points, numbered lists, headings or tables. Use
+only what was said in the transcript and the names in the speaker list; never invent facts,
+names or numbers. Do not repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:went-well -->
 List what the participants said went well, one bullet each, crediting the people named.

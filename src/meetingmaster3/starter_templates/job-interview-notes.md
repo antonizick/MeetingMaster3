@@ -7,7 +7,7 @@ tags: [hiring, people]
 favorite: false
 sections:
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: key-answers, title: Answers to Key Questions, kind: extraction, max_tokens: 1500}
   - {id: candidate-strengths, title: Candidate Strengths, kind: extraction}
   - {id: concerns, title: Concerns & Gaps, kind: extraction}
@@ -52,9 +52,9 @@ job-relevant evidence and never mention protected characteristics. This is advis
 do not make a hiring decision.
 
 Write prose only: typically three paragraphs and never fewer than two, separated by blank
-lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
-transcript and the names in the speaker list; never invent facts, names or numbers. Do not
-repeat the short summary word for word: go deeper.
+lines, about 200-450 words in all. No bullet points, numbered lists, headings or tables. Use
+only what was said in the transcript and the names in the speaker list; never invent facts,
+names or numbers. Do not repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:key-answers -->
 For each substantive question the interviewers asked, record a short entry: the question,

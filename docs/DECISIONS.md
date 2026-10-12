@@ -694,7 +694,7 @@ date at today, the one summary was too short, and the meetings already processed
    browser) becomes ` - `. The form shows "From the file name" under the Date until the user edits it.
 3. **Two summaries.** In all 22 built-ins the `summary` section keeps its id (notes, regeneration and ratings
    keep working) and is titled **Summary Succinct**; **Summary Detailed** (`summary-detailed`, narrative,
-   `max_tokens: 1200`) follows it, with a prompt in each template's voice: prose only, typically three
+   `max_tokens: 1000`) follows it, with a prompt in each template's voice: prose only, typically three
    paragraphs (context and purpose; threads of discussion with who said what; outcomes, decisions and open
    questions), never fewer than two. Board minutes place both after Attendance & Quorum (formal minutes
    open with attendance); Just the Facts and Key Takeaways gain both at the top. The generator counts

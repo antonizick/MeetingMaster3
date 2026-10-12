@@ -7,7 +7,7 @@ tags: [agile, team]
 favorite: false
 sections:
   - {id: summary, title: Summary Succinct, kind: narrative}
-  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1000}
   - {id: updates, title: Updates by Person, kind: extraction, max_tokens: 1500}
   - {id: blockers, title: Blockers, kind: extraction}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks}
@@ -34,9 +34,9 @@ dependencies between people and anything agreed to take offline. Keep it short a
 add no commentary.
 
 Write prose only: typically three paragraphs and never fewer than two, separated by blank
-lines. No bullet points, numbered lists, headings or tables. Use only what was said in the
-transcript and the names in the speaker list; never invent facts, names or numbers. Do not
-repeat the short summary word for word: go deeper.
+lines, about 200-450 words in all. No bullet points, numbered lists, headings or tables. Use
+only what was said in the transcript and the names in the speaker list; never invent facts,
+names or numbers. Do not repeat the short summary word for word: go deeper.
 
 <!-- mm3:prompt:updates -->
 One block per person who gave an update, in the order they spoke. Keep each line short.

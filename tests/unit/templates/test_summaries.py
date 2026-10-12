@@ -33,7 +33,7 @@ def test_every_builtin_has_both_summaries(template_id: str) -> None:
     assert ids[i + 1] == "summary-detailed"
     assert t.sections[i].title == "Summary Succinct"
     assert t.sections[i + 1].title == DETAILED and t.sections[i + 1].kind == "narrative"
-    assert t.max_tokens(t.sections[i + 1]) >= 1200
+    assert t.max_tokens(t.sections[i + 1]) >= 1000
     prompt = t.prompts["summary-detailed"]
     assert "never fewer than two" in prompt and "No bullet points" in prompt
     expected_first = 1 if template_id == "board-governance-minutes" else 0
