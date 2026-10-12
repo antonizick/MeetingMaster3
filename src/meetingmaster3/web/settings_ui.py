@@ -37,6 +37,7 @@ from meetingmaster3.transcription import hf_check, models
 from meetingmaster3.vault.paths import confine
 from meetingmaster3.web import settings_fields as sf
 from meetingmaster3.web import views
+from meetingmaster3.web.api.jobs import get_runner
 from meetingmaster3.web.api.speakers import _store, _wipe_tokens
 from meetingmaster3.web.model_downloads import DownloadManager, build_plan
 from meetingmaster3.web.pages import render
@@ -561,7 +562,7 @@ async def voiceprint_wipe_confirm(request: Request) -> HTMLResponse:
             "Press “Delete all voiceprints” again.",
             status_code=428,
         )
-    deleted = store.wipe()
+    deleted = store.wipe(get_runner(request).jobs_root)
     state = State(
         saved=True, notices=[f"Deleted all voiceprints ({deleted.get('voiceprints', 0)})."]
     )

@@ -61,3 +61,24 @@ def test_failure_never_raises(setup: tuple[Settings, Path, object, Path]) -> Non
     settings, jobs_root, job, _ = setup
     settings.vault.attachments_subfolder = "../outside"
     assert copy_audio_to_vault(jobs_root, job, settings) is None  # type: ignore[arg-type]
+
+
+def test_an_existing_file_is_never_replaced_and_reruns_are_idempotent(
+    setup: tuple[Settings, Path, object, Path],
+) -> None:
+    """Phase 15 finding: the copy used os.replace and clobbered a same-named recording."""
+    settings, jobs_root, job, note_path = setup
+    attachments = settings.vault.path / "Meetings" / "attachments"  # type: ignore[operator]
+    attachments.mkdir()
+    (attachments / "2026-10-11 - Sync.opus").write_bytes(b"SOMEONE ELSE'S")
+    relative = copy_audio_to_vault(jobs_root, job, settings)  # type: ignore[arg-type]
+    assert relative == "Meetings/attachments/2026-10-11 - Sync (2).opus"
+    assert (attachments / "2026-10-11 - Sync.opus").read_bytes() == b"SOMEONE ELSE'S"
+    assert (attachments / "2026-10-11 - Sync (2).opus").read_bytes() == b"OPUS"
+    # Running again (the write stage after a crash) reuses the copy instead of adding (3).
+    assert copy_audio_to_vault(jobs_root, job, settings) == relative  # type: ignore[arg-type]
+    assert sorted(p.name for p in attachments.iterdir()) == [
+        "2026-10-11 - Sync (2).opus",
+        "2026-10-11 - Sync.opus",
+    ]
+    assert parse_note(note_path.read_text()).note.meta.audio_ref == relative

@@ -62,7 +62,6 @@ class _MultipartUpload:
     is kept in memory (bounded). Other parts are ignored."""
 
     def __init__(self, boundary: bytes) -> None:
-        self.queue: asyncio.Queue[bytes | None] = asyncio.Queue(maxsize=8)
         self.options = b""
         self.filename: str | None = None
         self.file_parts = 0

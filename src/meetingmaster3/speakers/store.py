@@ -11,15 +11,18 @@ followed by a WAL checkpoint, so no copy stays in ``mm3.db-wal``.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import secrets
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from meetingmaster3.domain.transcript import clean_name
 from meetingmaster3.errors import MM3Error
+from meetingmaster3.jobs.files import EMBEDDINGS_NAME
 from meetingmaster3.jobs.models import iso, utcnow
 from meetingmaster3.speakers.match import KnownPerson
 from meetingmaster3.speakers.vectors import Vector, from_blob, normalize, to_blob
@@ -256,13 +259,22 @@ class VoiceprintStore:
         log.info("Deleted the stored voice of one person")
         return person
 
-    def wipe(self) -> dict[str, int]:
-        """Delete every voiceprint; returns the number of rows removed per table."""
+    def wipe(self, jobs_root: Path | None = None) -> dict[str, int]:
+        """Delete every voiceprint; returns the number of rows removed per table. With
+        ``jobs_root``, the voice embeddings that unfinished jobs still hold are deleted too
+        (``job_embeddings``: the number of files)."""
         counts = self.count_rows()
         with self.db.transaction() as conn:
             conn.execute("DELETE FROM voiceprint_embeddings")
             conn.execute("DELETE FROM voiceprints")
         self.db.checkpoint()
+        if jobs_root is not None:
+            removed = 0
+            for path in jobs_root.glob(f"*/{EMBEDDINGS_NAME}"):
+                with contextlib.suppress(FileNotFoundError):
+                    path.unlink()
+                    removed += 1
+            counts["job_embeddings"] = removed
         log.info("Deleted all stored voices (%d people)", counts["voiceprints"])
         return counts
 

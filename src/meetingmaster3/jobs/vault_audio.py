@@ -9,6 +9,7 @@ here runs unless the user turned the setting on, and a failure never fails the j
 from __future__ import annotations
 
 import contextlib
+import errno
 import json
 import logging
 import os
@@ -42,6 +43,25 @@ def copy_audio_to_vault(jobs_root: Path, job: JobRecord, settings: Settings) -> 
         return None
 
 
+def _place(tmp: Path, folder: Path, stem: str) -> Path:
+    """Move ``tmp`` to ``<stem>.opus`` in ``folder``, or ``<stem> (2).opus``... if taken: an
+    existing file is never replaced (S4, R13)."""
+    for n in range(1, 1000):
+        target = folder / (f"{stem}.opus" if n == 1 else f"{stem} ({n}).opus")
+        try:
+            os.link(tmp, target)  # atomic "create if absent"
+            return target
+        except FileExistsError:
+            continue
+        except OSError as exc:  # no hard links (exFAT, some FUSE mounts)
+            if exc.errno not in (errno.EPERM, errno.ENOTSUP, errno.EOPNOTSUPP, errno.EXDEV):
+                raise
+            if not os.path.lexists(target):
+                os.replace(tmp, target)
+                return target
+    raise MM3Error("vault_file_exists", f"Too many recordings named {stem!r}.", "")
+
+
 def _copy(jobs_root: Path, job: JobRecord, settings: Settings) -> str | None:
     folder = job_dir(jobs_root, job.id)
     source = folder / OPUS_NAME
@@ -53,21 +73,23 @@ def _copy(jobs_root: Path, job: JobRecord, settings: Settings) -> str | None:
     note_path = Path(info["note_path"])
     if not note_path.is_file() or not is_inside(root, note_path):
         return None
+    parsed = parse_note(read_text(note_path))
+    linked = parsed.note.meta.audio_ref
+    if linked and (root / linked).is_file() and is_inside(root, root / linked):
+        return linked  # already copied (the write stage ran again after a crash)
     target_dir = ensure_folder(root, settings.vault.attachments_subfolder)
-    target = target_dir / f"{note_path.stem}.opus"
-    if not is_inside(root, target):
-        return None
     fd, tmp = tempfile.mkstemp(dir=target_dir, prefix=".audio-", suffix=".mm3tmp")
     try:
         with os.fdopen(fd, "wb") as out, open(source, "rb") as src:
             shutil.copyfileobj(src, out)
-        os.replace(tmp, target)
-    except BaseException:
+        target = _place(Path(tmp), target_dir, note_path.stem)
+    finally:
         with contextlib.suppress(FileNotFoundError):
             os.unlink(tmp)
-        raise
+    if not is_inside(root, target):  # pragma: no cover - ensure_folder confined the folder
+        target.unlink(missing_ok=True)
+        return None
     relative = target.relative_to(root).as_posix()
-    parsed = parse_note(read_text(note_path))
     meta = parsed.note.meta.model_copy(update={"audio_ref": relative})
     atomic_write_text(
         note_path,

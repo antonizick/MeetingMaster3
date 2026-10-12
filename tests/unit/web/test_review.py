@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 
 from meetingmaster3.app import create_app
 from meetingmaster3.config.settings import BackendConfig, Settings
+from meetingmaster3.jobs.files import audio_files, job_dir
 from meetingmaster3.markdown.editing import edits_of, split_document
 from meetingmaster3.markdown.note_parser import parse_note
 from meetingmaster3.markdown.sections import scan_sections
@@ -452,12 +453,19 @@ def test_rename_speakers_updates_note_companion_and_job(
 def test_reprocess_and_missing_audio(ui: TestClient, tone: Path, vault: Path) -> None:
     url, _note = processed(ui, tone, vault)
     ws = Workspace(ui, url)
-    r = ws.post("reprocess")
-    assert r.status_code == 200 and r.json()["url"].startswith("/jobs/")
-    wait(ui, r.json()["job_id"], "waiting_for_input")
     runner = ui.app.state.runner  # type: ignore[attr-defined]
     job_id = re.search(r"/api/jobs/([0-9a-f-]+)/audio", ws.html)
     assert job_id
+    old = runner.jobs.get(job_id.group(1))
+    runner.jobs.update(old.id, settings={**old.settings, "cloud_consent_for": "cloud"})
+    r = ws.post("reprocess")
+    assert r.status_code == 200 and r.json()["url"].startswith("/jobs/")
+    new_id = r.json()["job_id"]
+    wait(ui, new_id, "waiting_for_input")
+    new = runner.jobs.get(new_id)
+    assert new.settings.get("cloud_consent_for") is None  # consent is per job (S6)
+    # The copied recording is one retention knows about (R8), so it is compressed and pruned.
+    assert new.audio_path in [p.name for p in audio_files(job_dir(runner.jobs_root, new_id))]
     runner.audio_file(job_id.group(1)).unlink()
     again = Workspace(ui, url)
     assert 'id="audio"' not in again.html and 'id="no-audio"' in again.html

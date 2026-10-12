@@ -153,10 +153,19 @@ def test_delete_and_two_step_wipe(api: TestClient, tone: Path) -> None:
     assert details["people"] == 1
     assert api.delete("/api/voiceprints?confirm=wrong").status_code == 428
     assert len(api.get("/api/voiceprints").json()["people"]) == 1  # nothing deleted yet
+    # A cancelled job that never reached confirmation still holds its voice embeddings (S7).
+    runner = api.app.state.runner  # type: ignore[attr-defined]
+    stale = runner.jobs_root / job_id / "speaker_embeddings.json"
+    stale.write_text("{}")
     token = api.delete("/api/voiceprints").json()["details"]["confirm_token"]
     done = api.delete(f"/api/voiceprints?confirm={token}")
     assert done.status_code == 200
-    assert done.json()["deleted"] == {"voiceprints": 1, "voiceprint_embeddings": 1}
+    assert done.json()["deleted"] == {
+        "voiceprints": 1,
+        "voiceprint_embeddings": 1,
+        "job_embeddings": 1,
+    }
+    assert not stale.exists()
     assert api.get("/api/voiceprints").json()["people"] == []
     assert api.delete(f"/api/voiceprints?confirm={token}").status_code == 428  # single use
 

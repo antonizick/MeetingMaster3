@@ -57,6 +57,26 @@ def test_secrets_masked_on_dump() -> None:
     assert "hf_abcdefghijklmnop" not in str(dumped)
 
 
+def test_backend_headers_and_url_credentials_are_masked_and_redacted() -> None:
+    """Phase 15 finding: proxy credentials in headers or the base URL were dumped in clear."""
+    from meetingmaster3.config.settings import BackendConfig
+    from meetingmaster3.logging import redact
+
+    s = Settings()
+    s.llm.backends["proxy"] = BackendConfig(
+        kind="openai",
+        base_url="https://user:pr0xy-pass@llm.example/v1",
+        headers={"Authorization": "Bearer tok-SECRET-1234", "X-Title": "MeetingMaster3"},
+    )
+    s.register_secrets()
+    dumped = s.dump_masked()["llm"]["backends"]["proxy"]
+    assert dumped["headers"] == {"Authorization": MASK, "X-Title": "MeetingMaster3"}
+    assert dumped["base_url"] == f"https://user:{MASK}@llm.example/v1"
+    assert "tok-SECRET-1234" not in str(s.dump_masked()) and "pr0xy-pass" not in str(dumped)
+    line = redact("sent Bearer tok-SECRET-1234 via pr0xy-pass")
+    assert "tok-SECRET-1234" not in line and "pr0xy-pass" not in line
+
+
 def test_paths_xdg_and_overrides(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     p = resolve_paths()
     assert p.config_file == tmp_path / "cfg" / "meetingmaster3" / "config.yaml"

@@ -158,4 +158,4 @@ async def wipe_voiceprints(request: Request, confirm: str | None = None) -> dict
                 "expires_in": int(WIPE_TOKEN_SECONDS),
             },
         )
-    return {"deleted": store.wipe()}
+    return {"deleted": store.wipe(get_runner(request).jobs_root)}

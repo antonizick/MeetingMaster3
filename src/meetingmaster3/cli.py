@@ -309,7 +309,7 @@ def voiceprints_wipe(
         ):
             typer.echo("Nothing deleted.")
             raise typer.Exit(1)
-        counts = store.wipe()
+        counts = store.wipe(resolve_paths().jobs_dir)
     finally:
         store.db.close()
     typer.echo(

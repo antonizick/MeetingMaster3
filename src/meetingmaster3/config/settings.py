@@ -11,6 +11,7 @@ import os
 import tempfile
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlsplit
 
 import yaml
 from pydantic import BaseModel, Field, SecretStr
@@ -21,6 +22,28 @@ from meetingmaster3.logging import register_secret
 
 LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 MASK = "********"
+#: Backend header names whose values are not secret (OpenRouter attribution); every other header
+#: value (``Authorization``, ``x-api-key``, a proxy token...) is treated as a secret.
+PUBLIC_HEADERS = frozenset({"http-referer", "referer", "x-title", "user-agent"})
+
+
+def _url_password(url: str | None) -> str | None:
+    """The password in ``https://user:password@host/`` (a proxy credential), if any."""
+    if not url:
+        return None
+    try:
+        return urlsplit(url).password
+    except ValueError:
+        return None
+
+
+def _mask_url(url: str | None) -> str | None:
+    password = _url_password(url)
+    return url.replace(f":{password}@", f":{MASK}@", 1) if url and password else url
+
+
+def _secret_headers(headers: dict[str, str]) -> dict[str, str]:
+    return {k: v for k, v in headers.items() if k.lower() not in PUBLIC_HEADERS and v}
 
 
 class ServerSettings(BaseModel):
@@ -185,13 +208,21 @@ class Settings(BaseSettings):
         for backend in self.llm.backends.values():
             if backend.api_key:
                 register_secret(backend.api_key.get_secret_value())
+            for value in _secret_headers(backend.headers).values():
+                register_secret(value)
+            if password := _url_password(backend.base_url):
+                register_secret(password)
 
     def dump_masked(self) -> dict[str, Any]:
         """Settings as plain data with every secret replaced by a mask (safe for the API)."""
         data = self.model_dump(mode="json")
         data["secrets"] = {k: (MASK if v else None) for k, v in vars(self.secrets).items()}
         for name, backend in self.llm.backends.items():
-            data["llm"]["backends"][name]["api_key"] = MASK if backend.api_key else None
+            entry = data["llm"]["backends"][name]
+            entry["api_key"] = MASK if backend.api_key else None
+            secret = _secret_headers(backend.headers)
+            entry["headers"] = {k: (MASK if k in secret else v) for k, v in backend.headers.items()}
+            entry["base_url"] = _mask_url(backend.base_url)
         return data
 
     def _dump_for_save(self) -> dict[str, Any]:

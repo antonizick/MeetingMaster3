@@ -753,12 +753,16 @@ async def reprocess(request: Request, mm3_id: str) -> dict[str, Any]:
     new_id = new_job_id()
     folder = job_dir(runner.jobs_root, new_id)
     folder.mkdir(parents=True, mode=0o700)
-    audio_name = "upload" + source.suffix
+    audio_name = "original" + source.suffix  # retention recognises original.* (R8)
     await asyncio.to_thread(shutil.copyfile, source, folder / audio_name)
     meta = parsed.note.meta
+    # Cloud consent is per job (S6): the new job asks again.
+    inherited = {
+        k: v for k, v in old.settings.items() if k not in {"cloud_consent", "cloud_consent_for"}
+    }
     options = JobOptions.model_validate(
         {
-            **old.settings,
+            **inherited,
             "title": meta.title,
             "meeting_date": meta.date.date() if meta.date else old.settings.get("meeting_date"),
             "template": meta.template_id or old.settings.get("template"),
