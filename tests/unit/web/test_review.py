@@ -282,7 +282,7 @@ def test_regenerate_accept_with_archive_then_save(ui: TestClient, tone: Path, va
     )
     assert r.status_code == 200, r.text
     out = r.json()
-    assert out["new_inner"].startswith("## Summary\n\n") and 'class="diff"' in out["html"]
+    assert out["new_inner"].startswith("## Summary Succinct\n\n") and 'class="diff"' in out["html"]
     assert "Hand-edited summary" in out["html"]  # diffed against the editor's version
     assert read_text(note) == before  # a preview writes nothing
 
