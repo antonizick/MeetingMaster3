@@ -37,6 +37,12 @@ src/meetingmaster3/
 Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, inside
 `transcription/` and `speakers/` only.
 
+## Deployment (Phase 14)
+`docker/Dockerfile` builds `runtime-gpu` and `runtime-cpu` from the same locked environment; compose adds the
+vault bind mount, the `/config`, `/data` and `/models` volumes, a GPU reservation and the loopback-only port.
+The app reaches the host's Ollama by `host.docker.internal` or, with `compose.host-network.yaml`, by `127.0.0.1`.
+See ADR-0026 and `docs/user-guide/install-docker.md`.
+
 ## Implemented so far (Phases 02 to 11)
 | Module | Responsibility |
 |---|---|

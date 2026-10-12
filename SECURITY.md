@@ -95,6 +95,16 @@ and the workspace's endpoints in the threat model.
 | No telemetry | UI, `docs/PRIVACY.md` | Ratings are stored in the local SQLite database and leave only when you download the export. |
 | Opening folders | `settings_ui.py` | "Open the config folder" runs `xdg-open` with our own path as a fixed argument list (no shell), and is unavailable in Docker. |
 
+### Implemented in Phase 14 (container posture, S1/S5)
+| Control | Where | Behaviour |
+|---|---|---|
+| Loopback-only publication | `docker/compose.yaml` | The app listens on `0.0.0.0` *inside* the container (Docker's bridge needs that; the CLI prints its no-auth warning) but the port is published as `127.0.0.1:8765:8765`, so only the host can connect. Verified with `ss -ltnp`. Do not change it to `0.0.0.0:8765`; use an SSH tunnel for remote access. |
+| Host network override | `docker/compose.host-network.yaml` | Lets the app reach an Ollama on `127.0.0.1`. The app then binds `127.0.0.1` itself (`MM3_SERVER__HOST`), but Docker's port isolation is gone: never combine it with a non-loopback bind. |
+| Least privilege | `Dockerfile`, compose | Non-root uid/gid 1000, read-only root filesystem with a `tmpfs` /tmp, `cap_drop: ALL`, `no-new-privileges`, tini as PID 1. The vault is the only host folder mounted. |
+| No secrets or models in images | `.dockerignore`, CI | `.env`, audio, tests and docs are excluded from the build context; CI fails if weights or `.env` files are in the image. Secrets arrive at run time (`.env` via compose `env_file`, or Settings, stored `0600` in the `/config` volume). |
+| Ollama exposure | `docs/user-guide/install-docker.md` | The host-network option needs no change to Ollama. Making Ollama listen on `0.0.0.0` exposes an unauthenticated API to the LAN unless firewalled, so it is documented as the less safe choice. A bundled Ollama is published on `127.0.0.1` only. |
+| GPU access | NVIDIA Container Toolkit | Grants the container the GPU only; no `--privileged`. |
+
 ### Implemented in Phase 03 (vault filesystem, S4)
 | Control | Where | Behaviour |
 |---|---|---|

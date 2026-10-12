@@ -45,6 +45,17 @@ physically erased when deleted. See [`docs/PRIVACY.md`](docs/PRIVACY.md).
 ```
 Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
+## Installation
+**Docker (recommended):**
+```bash
+export MM3_VAULT_PATH="$HOME/Documents"   # your Obsidian vault
+docker compose -f docker/compose.yaml up -d --build                                # NVIDIA GPU
+docker compose -f docker/compose.yaml -f docker/compose.cpu.yaml up -d --build     # CPU only
+```
+Then open <http://127.0.0.1:8765> (published on the loopback only). Models download into a volume, not
+the image. Full guide, Ollama options and sizes: [`docs/user-guide/install-docker.md`](docs/user-guide/install-docker.md).
+**Native (uv):** [`docs/user-guide/install-native.md`](docs/user-guide/install-native.md).
+
 ## Quickstart
 Start the web UI and follow the on-screen steps (vault setup, upload, name speakers):
 ```bash
@@ -53,7 +64,7 @@ MM3_FAKE_PIPELINE=1 uv run mm3 serve     # try the flow with simulated results, 
 ```
 The walk-through with screenshots is in [`docs/user-guide/getting-started.md`](docs/user-guide/getting-started.md).
 
-Or process a recording headlessly, from audio to a note in your vault (Docker arrives in Phase 14):
+Or process a recording headlessly, from audio to a note in your vault:
 ```bash
 uv sync --extra ml                      # transcription engine (see Installation)
 ollama pull qwen3:8b                    # a local LLM that fits an 8 GB GPU
@@ -79,7 +90,7 @@ uv run pytest
 **ffmpeg is required** (`ffmpeg` and `ffprobe` on `PATH`; Arch: `sudo pacman -S ffmpeg`, Debian/Ubuntu:
 `sudo apt install ffmpeg`, macOS: `brew install ffmpeg`); `uv run mm3 doctor` checks it. To try the job
 flow without ML models, run `MM3_FAKE_PIPELINE=1 uv run mm3 serve` (see
-[`docs/dev-guide/jobs-and-stages.md`](docs/dev-guide/jobs-and-stages.md)). Docker Compose arrives in Phase 14. Details:
+[`docs/dev-guide/jobs-and-stages.md`](docs/dev-guide/jobs-and-stages.md)). Docker Compose is in place (Phase 14). Details:
 [`docs/user-guide/install-native.md`](docs/user-guide/installation.md) and
 [`docs/dev-guide/setup.md`](docs/dev-guide/setup.md).
 

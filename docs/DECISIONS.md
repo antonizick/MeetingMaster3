@@ -524,3 +524,30 @@ that competes with unsaved edits); comparing mtimes only (false conflicts from s
 **Status.** Accepted (2026-10-11, Phase 11).
 **Consequences.** Drafts and bases hold meeting text in the app data folder (documented in PRIVACY). An
 archive written by "Accept & archive previous" exists even if the user never saves the new version.
+
+## ADR-0026: Docker images: python:3.12-slim + torch's own CUDA wheels; host-network override for Ollama
+**Context.** Phase 14 (R15, R16). The GPU image needs CUDA 12.8 and cuDNN 9 for torch 2.8.0 and CTranslate2.
+**Decision.**
+1. One multi-stage `docker/Dockerfile`, targets `runtime-gpu` and `runtime-cpu`, builder stages that `uv sync
+   --frozen --no-dev --extra ml --extra bedrock` into `/opt/venv` (uv pinned by digest). The CPU target then
+   reinstalls torch/torchaudio/torchvision from the PyTorch CPU index (same versions as `uv.lock`) and removes
+   the `nvidia-*` wheels and triton.
+2. **Base image (measured, uncompressed):** `nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04` alone is 2.86 GB,
+   `python:3.12-slim` about 0.13 GB. torch's wheels depend on `nvidia-*-cu12` (4.2 GB in the venv), so the
+   CUDA base would only duplicate libraries (about 16 GB total). We use `python:3.12-slim-bookworm`; the host
+   needs only a driver supporting CUDA 12.8 (ADR-0014). Verified: CTranslate2 and torch both see the GPU.
+3. **Measured sizes:** GPU image 13.3 GB on disk (4.57 GB compressed; venv 8.07 GB: nvidia wheels 4.2 GB,
+   torch 1.7 GB, triton 0.5 GB), CPU image 3.51 GB (0.82 GB compressed; venv 2.07 GB, ffmpeg layer 0.47 GB).
+   No model weights are present (`find` for *.safetensors/*.ckpt/.env in CI; models live in the `/models` volume).
+4. The container runs as uid/gid 1000 (build args), read-only root, `tmpfs` /tmp, `cap_drop: ALL`,
+   `no-new-privileges`, tini as PID 1, `HEALTHCHECK` on `/healthz`.
+5. The app binds `0.0.0.0` inside the container and compose publishes `127.0.0.1:8765` only (S1).
+6. **Host Ollama (R16), Nick's choice:** `docker/compose.host-network.yaml` runs the app with
+   `network_mode: host` (binding 127.0.0.1, Ollama at 127.0.0.1:11434). No host service was changed. The default
+   `compose.yaml` keeps the bridge network with `host.docker.internal` for people who expose Ollama.
+   The Ollama backend is configured by `MM3_LLM__BACKENDS__OLLAMA__*` environment variables.
+**Alternatives.** NVIDIA CUDA base (larger, no benefit); `OLLAMA_HOST=0.0.0.0` drop-in (exposes Ollama to the LAN);
+bundled Ollama profile (shares 8 GB VRAM, re-downloads models; offered as an option).
+**Status.** Accepted (2026-10-11, Phase 14).
+**Consequences.** The GPU image is large because of torch; a slimmer image would need a different ML stack.
+With host networking Docker does not isolate the port. The CI GPU image is built but never run.

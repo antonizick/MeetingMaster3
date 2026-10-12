@@ -8,6 +8,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Docker deployment (Phase 14): multi-stage `docker/Dockerfile` (`runtime-gpu`, `runtime-cpu`), compose
+  files (GPU default, CPU override, host-network override for an Ollama on 127.0.0.1, optional `ollama`
+  profile), a Makefile (`up`, `down`, `logs`, `doctor`, `models-download`, `prune`), a `docker` CI workflow
+  (CPU image build and smoke test, GPU image build, compose validation), `.dockerignore`, and the guides
+  `install-docker.md` and `install-native.md` (renamed from `installation.md`). Non-root, read-only root
+  filesystem, port published on 127.0.0.1 only, no models in the image. Measured sizes in ADR-0026.
 - Review workspace (Phase 11) at `/meetings/{mm3-id}`: the recording with play/pause, ±5 s, speed
   0.75-2× and keyboard shortcuts (Space/K, J, L; not while typing); the transcript with speaker colours,
   click-to-seek on any word or timestamp, the playing segment highlighted and followed (pauses when you

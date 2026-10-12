@@ -100,9 +100,13 @@ Dev-only: `playwright` 1.63.0 (Apache-2.0) drives the browser smoke test; it dow
 Phase 04. MeetingMaster3 runs them as separate programs installed by the user (no linking, nothing
 bundled); the Opus encoder used for retained audio is libopus (BSD-3-Clause) inside the user's ffmpeg.
 
-Docker images (Phase 14) will additionally contain the base image, ffmpeg (LGPL/GPL depending on
-build) and NVIDIA CUDA runtime libraries under their own licences; those are listed here when the
-image is built.
+Docker images (Phase 14, `docker/Dockerfile`) additionally contain, as separate programs and libraries
+installed from their distributors: the `python:3.12-slim-bookworm` base image (Debian packages under their own
+licences, PSF-2.0 for Python), Debian's `ffmpeg` (LGPL/GPL depending on build; the Debian build is GPL-licensed),
+`tini` (MIT), `curl` (curl licence), and the NVIDIA CUDA/cuDNN runtime libraries that PyTorch's `nvidia-*-cu12`
+wheels bring (NVIDIA proprietary licences, redistribution as part of those wheels; GPU image only). The `uv` binary
+(Apache-2.0/MIT) is used only in the build stage. The images are built by the user and not distributed by this
+repository until a release (Phase 16) decides otherwise; the full per-package licence audit is Phase 15.
 
 ## Model weights (never bundled)
 

@@ -15,12 +15,17 @@ effective settings with secrets masked.
 | Model cache | `<cache>/models` | `MM3_MODELS_DIR` |
 
 Directories are created with mode `0700`. `config.yaml` is written with mode `0600` (it can contain
-secrets) and atomically. In Docker these become the `/config`, `/data` and `/models` volumes (Phase 14).
+secrets) and atomically. In Docker these are the `/config`, `/data` and `/models` volumes, set by `MM3_CONFIG_DIR`, `MM3_DATA_DIR` and `MM3_MODELS_DIR` (see [install-docker.md](install-docker.md)).
 
 ## Environment variables
 Prefix `MM3_`; nested settings use a double underscore: `server.port` is `MM3_SERVER__PORT`. List values
 are JSON: `MM3_SERVER__ALLOWED_HOSTS='["mm3.lan"]'`. The app does not read a `.env` file itself; export the
-variables in your shell or process manager (see `.env.example`).
+variables in your shell or process manager (see `.env.example`); Docker Compose reads `.env` through `env_file`.
+
+Docker-specific variables: `MM3_VAULT_PATH` (host vault folder, compose variable, required), `MM3_PORT`
+(host port, default 8765), `MM3_UID`/`MM3_GID` (build/run user, default 1000), `MM3_OLLAMA_URL` (default
+`http://host.docker.internal:11434`, or `http://127.0.0.1:11434` with the host-network override) and
+`MM3_IN_DOCKER=1` (set by the image; hides "Open the config folder").
 
 ## Settings reference
 Every setting below can also be changed on the **Settings** screen ([`settings.md`](settings.md)), except `server.*`, which is read-only there on purpose.
