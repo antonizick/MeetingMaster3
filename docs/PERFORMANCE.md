@@ -14,6 +14,15 @@ estimates. Your hardware, recordings and models will differ: treat these as a gu
 | **Upload to note in the vault (whole job)** | **79-85 s** | **252-271 s** | **552-600 s** |
 
 So on this laptop **a 60-minute meeting is transcribed with speakers in about 4-5 minutes**, and the
+Phase 15a added a **Summary Detailed** section to every template (one more model call per note).
+Measured on the owner's two meetings with `qwen3:8b`, same machine, template without and with the
+section: 72 minutes (`action-focused`, map-reduce) 259 s → 289 s (+30 s, +12 %); 31 minutes
+(`detailed-meeting-minutes`, full context) 185 s → 262 s (+77 s, +42 %). The pre-job estimate now
+uses notes at 12-18× real time (was 15-21×). Adding the section to an *existing* note ("Update older
+notes") re-reads the transcript: 66 s for the 31-minute meeting and 317 s for the 72-minute one (its
+map step runs again; caching the map notes is on the roadmap). The eval (71 notes) took 47 s per note
+on average (max 95 s), against 33 s before.
+
 complete job, including notes written by a local 8B model, takes **about 8-9 minutes**. With a
 cloud LLM the notes take seconds instead (not measured here; that depends on the provider).
 
