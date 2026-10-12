@@ -14,11 +14,12 @@ repos:
     hooks:
       - id: check-added-large-files
         args: [--maxkb=500]
+        exclude: ^tests/e2e/vendor/  # axe-core, test-only (Phase 15)
       - id: end-of-file-fixer
-        exclude: ^(tests/fixtures/notes/|src/meetingmaster3/web/static/vendor/)  # byte-exact fixtures, vendored files
+        exclude: ^(tests/fixtures/notes/|src/meetingmaster3/web/static/vendor/|tests/e2e/vendor/)  # byte-exact fixtures, vendored files
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
-        exclude: ^(tests/fixtures/notes/|src/meetingmaster3/web/static/vendor/)
+        exclude: ^(tests/fixtures/notes/|src/meetingmaster3/web/static/vendor/|tests/e2e/vendor/)
   - repo: local
     hooks:
       - id: mypy

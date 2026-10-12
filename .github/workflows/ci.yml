@@ -27,6 +27,23 @@ jobs:
           --cov --cov-report=term-missing
       - name: Dependency vulnerability audit
         run: uv export --frozen --no-emit-project --no-hashes | uvx pip-audit -r /dev/stdin --no-deps --disable-pip
+      - name: Dependency vulnerability audit (ml extra, ADR-0014 advisories ignored by id)
+        run: scripts/pip_audit_ml.sh
+
+  e2e:
+    # Browser tests with the fake pipeline (no models): core flow, review workspace, settings,
+    # consent dialog, OOM retry, error pages, keyboard and axe-core accessibility (Phase 15).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: true
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - run: uv sync --frozen
+      - run: uv run playwright install --with-deps chromium
+      - run: uv run pytest -m e2e tests/e2e
 
   gitleaks:
     runs-on: ubuntu-latest

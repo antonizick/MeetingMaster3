@@ -3,6 +3,8 @@
     uv run python -m tests.eval.run_eval --model qwen3:8b
     uv run python -m tests.eval.run_eval --model gemma2:9b --templates executive-summary
     uv run python -m tests.eval.run_eval --model qwen3:8b --long      # map-reduce check
+    uv run python -m tests.eval.run_eval --model qwen3:8b --json results.json
+    uv run python -m tests.eval.baseline results.json                 # flag regressions
 
 Notes are saved to ``--out`` (default: a temp folder) for reading. Uses the backends configured
 in ``config.yaml`` (default: the local Ollama). Nothing is sent anywhere else.
@@ -118,6 +120,28 @@ async def run_one(
     return render_note(build_note(meta, result.sections)), result, time.monotonic() - started
 
 
+def score_record(score: Score, result: GenerationResult, seconds: float) -> dict[str, object]:
+    """One note's result for ``--json`` and the baseline (numbers and ids only)."""
+    return {
+        "meeting": score.meeting,
+        "template": score.template,
+        "passed": score.passed,
+        "checks": dict(score.checks),
+        "found": {k: len(v) for k, v in score.found.items()},
+        "missing": {k: sorted(v) for k, v in score.missing.items() if v},
+        "mode": result.mode,
+        "calls": result.calls,
+        "seconds": round(seconds, 1),
+    }
+
+
+def write_results(path: Path, model: str, records: list[dict[str, object]]) -> None:
+    import json
+
+    data = {"model": model, "date": dt.date.today().isoformat(), "results": records}
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
 async def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--backend", default=None)
@@ -128,6 +152,7 @@ async def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--long", action="store_true", help="Only the long map-reduce meeting.")
     ap.add_argument("--long-window", type=int, default=8192)
     ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument("--json", type=Path, default=None, help="Write per-note results (scores).")
     args = ap.parse_args(argv)
 
     settings = load_settings()
@@ -164,6 +189,7 @@ async def main(argv: list[str] | None = None) -> int:
 
     scores: list[Score] = []
     modes: list[str] = []
+    records: list[dict[str, object]] = []
     for template, meeting, window in jobs:
         print(f"- {meeting.name} / {template.id} ...", flush=True)
         text, result, seconds = await run_one(backend, args.model, template, meeting, window)
@@ -171,6 +197,9 @@ async def main(argv: list[str] | None = None) -> int:
         score = score_note(text, meeting, template)
         scores.append(score)
         modes.append(result.mode)
+        records.append(score_record(score, result, seconds))
+        if args.json:
+            write_results(args.json, args.model, records)
         print(f"  {score.summary()}  [{result.mode}, {result.chunks} chunks, "
               f"{result.calls} calls, {seconds:.0f} s]")  # fmt: skip
         for p in score.problems:

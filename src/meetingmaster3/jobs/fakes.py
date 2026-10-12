@@ -29,6 +29,10 @@ if TYPE_CHECKING:
     from meetingmaster3.llm.base import LLMBackend
 
 SECONDS_ENV = "MM3_FAKE_STAGE_SECONDS"
+#: ``MM3_FAKE_OOM=1`` makes the fake transcription run out of GPU memory unless the job was
+#: retried with the suggested smaller model (UI and e2e tests of the OOM path, Phase 15).
+OOM_ENV = "MM3_FAKE_OOM"
+OOM_SMALLER = "medium"
 STEPS = 10
 
 _LINES = [
@@ -101,6 +105,16 @@ class FakeTranscribe(FakeStage):
     artifact_name = "transcript.json"
 
     def produce(self, ctx: StageContext) -> Any:
+        if os.environ.get(OOM_ENV) and ctx.options.get("transcription_model") != OOM_SMALLER:
+            from meetingmaster3.transcription.stages import E_OOM
+
+            raise MM3Error(
+                E_OOM,
+                "The GPU ran out of memory during transcribe (simulated).",
+                f"Retry with a smaller model ({OOM_SMALLER}).",
+                status_code=507,
+                details={"suggested_overrides": {"transcription_model": OOM_SMALLER}},
+            )
         t = fake_transcript(ctx.job.duration_seconds)
         return json.loads(t.model_copy(update={"diarized": False}).model_dump_json())
 

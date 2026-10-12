@@ -204,7 +204,7 @@ kbd { font-family: ui-monospace, monospace; font-size: 0.8em; border: 1px solid 
 .nsec { border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.4rem 0.6rem; margin: 0.35rem 0; background: var(--bg); }
 .nsec textarea.sec { border-color: transparent; background: var(--bg); }
 .nsec textarea.sec:focus { border-color: var(--accent); }
-.marker { font-size: 0.75rem; color: var(--muted); opacity: 0.65; user-select: none; }
+.marker { font-size: 0.75rem; color: var(--muted); user-select: none; }  /* no opacity: AA contrast (Phase 15 axe) */
 .marker code { font-size: 1em; font-variant-ligatures: none; }
 .editor textarea.part, .diff-table, .diff-unified { font-variant-ligatures: none; }
 .nsec-tools { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; justify-content: flex-end; margin: 0.15rem 0; }
