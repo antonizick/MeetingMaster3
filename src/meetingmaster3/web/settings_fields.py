@@ -109,6 +109,9 @@ NOTES_FIELDS = (
           "A .transcript.md file next to each note.",
           warning="Without it a note cannot be re-opened to regenerate sections or rename "
           "speakers."),
+    Field("generation.readable_transcript", "Write a readable transcript", "bool",
+          "A '(Transcript).md' file next to each note, laid out like the review screen, with "
+          "coloured speaker names. Made from the companion transcript."),
     Field("generation.max_context", "Largest context for local models (tokens)", "int",
           "Longer meetings are summarised in parts. Raise it on GPUs with more memory."),
     Field("generation.think", "Let reasoning models think", "bool",

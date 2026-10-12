@@ -1,4 +1,5 @@
-"""Note file names: ``YYYY-MM-DD - Title.md`` and ``YYYY-MM-DD - Title.transcript.md`` (spec §5).
+"""Note file names: ``YYYY-MM-DD - Title.md``, ``YYYY-MM-DD - Title.transcript.md`` (spec §5) and
+the readable transcript ``YYYY-MM-DD - Title (Transcript).md`` (R25).
 
 Titles are sanitised per R13 and collisions get `` (2)``, `` (3)``, ... so nothing is ever
 overwritten silently. A note and its companion always share one stem.
@@ -22,6 +23,9 @@ MAX_TITLE_BYTES = 150
 within the usual 255-byte file-name limit."""
 NOTE_SUFFIX = ".md"
 TRANSCRIPT_SUFFIX = ".transcript.md"
+READABLE_MARK = " (Transcript)"
+"""Added to the note's stem for the readable transcript. It never ends with ``.transcript.md``, so
+nothing mistakes it for the companion; scanners classify it by ``mm3-kind``, not by name."""
 
 
 def sanitize_title(title: str, *, max_bytes: int = MAX_TITLE_BYTES) -> str:
@@ -69,6 +73,14 @@ class NotePaths:
     @property
     def transcript_link(self) -> str:
         return self.stem + TRANSCRIPT_SUFFIX.removesuffix(NOTE_SUFFIX)
+
+
+def readable_names(note_stem: str, *, limit: int = 20) -> list[str]:
+    """Candidate file names of a note's readable transcript, in order of preference:
+    ``Stem (Transcript).md``, ``Stem (Transcript 2).md``, ..."""
+    names = [note_stem + READABLE_MARK + NOTE_SUFFIX]
+    names += [f"{note_stem} (Transcript {n}){NOTE_SUFFIX}" for n in range(2, limit + 1)]
+    return names
 
 
 def allocate_note_paths(folder: Path, date: dt.date, title: str, *, limit: int = 1000) -> NotePaths:

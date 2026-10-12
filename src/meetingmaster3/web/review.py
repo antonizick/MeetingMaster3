@@ -33,7 +33,7 @@ from meetingmaster3.markdown.diff import diff_stats, side_by_side, unified_diff
 from meetingmaster3.markdown.editing import Edits, split_document
 from meetingmaster3.markdown.frontmatter import wikilink
 from meetingmaster3.markdown.note_parser import parse_note
-from meetingmaster3.markdown.note_writer import render_note
+from meetingmaster3.markdown.note_writer import render_note, with_transcript_link
 from meetingmaster3.markdown.sections import (
     SectionMarkerError,
     append_section,
@@ -77,6 +77,7 @@ from meetingmaster3.vault.io import atomic_write_text, read_text
 from meetingmaster3.vault.naming import NOTE_SUFFIX
 from meetingmaster3.vault.paths import confine, resolve_vault_root
 from meetingmaster3.vault.picker import browse, find_companions, read_identity
+from meetingmaster3.vault.readable import readable_link, refresh_readable
 from meetingmaster3.web import views
 from meetingmaster3.web.api.jobs import get_runner
 from meetingmaster3.web.pages import render, templates
@@ -665,6 +666,9 @@ async def rename_apply(request: Request, mm3_id: str) -> dict[str, Any]:
         )
     atomic_write_text(companion_path, plan.companion_text, overwrite=True, vault_root=root)
     sha = write_checked(root, path, plan.note_text, expected_sha=body.base_sha)
+    refresh_readable(
+        root, path, companion_path, enabled=_settings(request).generation.readable_transcript
+    )
     store = _store(request, mm3_id)
     store.put_base(plan.note_text)
     store.clear_draft()
@@ -733,6 +737,11 @@ async def link_transcript(request: Request, mm3_id: str) -> dict[str, Any]:
     ref = target.name.removesuffix(NOTE_SUFFIX)
     note = parsed.note.with_meta(parsed.note.meta.model_copy(update={"transcript_ref": ref}))
     new_text = render_note(note, base=parsed)
+    readable = refresh_readable(
+        root, path, target, enabled=_settings(request).generation.readable_transcript
+    )
+    if readable is not None:
+        new_text = with_transcript_link(new_text, readable_link(readable))
     sha = write_checked(root, path, new_text, expected_sha=body.base_sha)
     _store(request, mm3_id).put_base(new_text)
     return {"sha": sha, "transcript": wikilink(ref)}

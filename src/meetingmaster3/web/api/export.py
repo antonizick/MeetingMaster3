@@ -18,6 +18,8 @@ from meetingmaster3.jobs.files import check_job_id, job_dir
 from meetingmaster3.templates.stages import WRITTEN_FILE
 from meetingmaster3.vault.io import read_text
 from meetingmaster3.vault.paths import resolve_vault_root
+from meetingmaster3.vault.picker import read_identity
+from meetingmaster3.vault.readable import find_readable
 from meetingmaster3.web.api.jobs import get_runner
 
 router = APIRouter(tags=["export"])
@@ -55,7 +57,11 @@ def build_export(
     if kind == "note":
         return read_text(note), f"{stem}.md", "text/markdown; charset=utf-8"
     if kind == "zip":
-        data = exporting.meeting_zip(note, transcript, audio, audio_name=f"{stem}.opus")
+        info = read_identity(note)
+        readable = find_readable(note, info.mm3_id) if info is not None else None
+        data = exporting.meeting_zip(
+            note, transcript, audio, audio_name=f"{stem}.opus", readable=readable
+        )
         return data, f"{stem}.zip", "application/zip"
     if transcript is None:
         raise MM3Error(

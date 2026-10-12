@@ -378,6 +378,11 @@ def test_missing_companion_is_note_only_and_can_be_relinked(
     )
     assert r.status_code == 200, r.text
     assert parse_note(read_text(fixture_note)).note.meta.transcript_ref == "Renamed transcript"
+    readable = fixture_note.with_name(fixture_note.stem + " (Transcript).md")
+    assert "mm3-transcript: '[[Renamed transcript]]'" in read_text(readable) or (
+        'mm3-transcript: "[[Renamed transcript]]"' in read_text(readable)
+    )
+    assert f"[[{readable.stem}|Read the transcript]]" in read_text(fixture_note)
     assert Workspace(ui, open_url(ui, f"Meetings/2026/{NOTE}")).data["can_regenerate"]
 
 
@@ -390,6 +395,8 @@ def test_switch_template_archives_and_preserves_user_text(
     text = read_text(fixture_note).replace(
         "<!-- mm3:section:decisions -->", "My own paragraph.\n\n<!-- mm3:section:decisions -->"
     )
+    link = "- **Transcript:** [[2026-10-11 - Product Sync (Transcript)|Read the transcript]]\n"
+    text = text.replace("- **Participants:**", link + "- **Participants:**", 1)
     fixture_note.write_text(text, encoding="utf-8")
     ws = Workspace(ui, open_url(ui, f"Meetings/2026/{NOTE}"))
     r = ws.post("switch/preview", base_sha=ws.sha, template="action-focused")
@@ -403,6 +410,7 @@ def test_switch_template_archives_and_preserves_user_text(
     new = parse_note(read_text(fixture_note))
     assert new.note.meta.template_id == "action-focused" and new.ok
     assert read_text(fixture_note).endswith("## Preserved notes\n\nMy own paragraph.\n")
+    assert read_text(fixture_note).count(link) == 1  # the readable link survives the switch
     assert ws.post("switch/apply", token=r.json().get("token", "0" * 32)).status_code in (409, 422)
 
 
@@ -445,6 +453,8 @@ def test_rename_speakers_updates_note_companion_and_job(
     assert meta.participants == ["Alicia", "Bob", "Dana"]
     assert "Alice said hi outside." in read_text(note)
     assert "Alicia:**" in read_text(companion) and "] Alice:**" not in read_text(companion)
+    readable = note.with_name(note.stem + " (Transcript).md")
+    assert ">Alicia</mark>" in read_text(readable) and ">Alice</mark>" not in read_text(readable)
     stale = ws.post("speakers/apply", base_sha=ws.sha, names={"SPEAKER_00": "X"})
     assert stale.status_code == 409
 

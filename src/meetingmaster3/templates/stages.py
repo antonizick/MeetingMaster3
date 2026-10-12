@@ -28,7 +28,7 @@ from meetingmaster3.jobs.stage import BaseStage, InputRequired, StageContext
 from meetingmaster3.llm.base import E_CONSENT_REQUIRED, E_LLM_CONFIG, LLMBackend, llm_error
 from meetingmaster3.llm.consent import requires_consent
 from meetingmaster3.markdown.note_parser import parse_note
-from meetingmaster3.markdown.note_writer import build_note, render_note
+from meetingmaster3.markdown.note_writer import build_note, render_note, with_transcript_link
 from meetingmaster3.markdown.transcript_format import build_companion, render_transcript
 from meetingmaster3.speakers.cascade import (
     NAMED_TRANSCRIPT_FILE,
@@ -46,6 +46,7 @@ from meetingmaster3.templates.schema import Template
 from meetingmaster3.vault.io import atomic_write_text, read_text
 from meetingmaster3.vault.naming import NotePaths, allocate_note_paths
 from meetingmaster3.vault.paths import is_inside, output_folder, resolve_vault_root
+from meetingmaster3.vault.readable import readable_link, write_readable
 
 if TYPE_CHECKING:
     from meetingmaster3.config.settings import Settings
@@ -362,6 +363,7 @@ class WriteStage(BaseStage):
         paths = self._paths(ctx, root, note.meta)
         mm3_id = str(note.meta.id)
         companion = settings.generation.write_companion
+        readable: Path | None = None
 
         if companion:
             speaker_map = load_job_speaker_map(ctx.job_dir)
@@ -373,6 +375,11 @@ class WriteStage(BaseStage):
                 note_ref=paths.note_link,
             )
             self._write(paths.transcript, render_transcript(doc), root, mm3_id)
+            if settings.generation.readable_transcript:
+                try:
+                    readable = write_readable(root, paths.note, doc, transcript=paths.transcript)
+                except MM3Error as exc:
+                    ctx.warn(f"The readable transcript was not written: {exc.message}")
         else:
             ctx.warn(
                 "The companion transcript is turned off (generation.write_companion), so this "
@@ -381,7 +388,10 @@ class WriteStage(BaseStage):
         meta = note.meta.model_copy(
             update={"transcript_ref": paths.transcript_link if companion else None}
         )
-        self._write(paths.note, render_note(note.with_meta(meta)), root, mm3_id)
+        note_text = render_note(note.with_meta(meta))
+        if readable is not None:
+            note_text = with_transcript_link(note_text, readable_link(readable))
+        self._write(paths.note, note_text, root, mm3_id)
 
         if ctx.db is not None:
             from meetingmaster3.storage.repositories import RecentMeetingsRepository
@@ -405,6 +415,7 @@ class WriteStage(BaseStage):
                 "transcript_relative": paths.transcript.relative_to(root).as_posix()
                 if companion
                 else None,
+                "readable_relative": readable.relative_to(root).as_posix() if readable else None,
                 "title": meta.title,
                 "template": meta.template_id,
             },

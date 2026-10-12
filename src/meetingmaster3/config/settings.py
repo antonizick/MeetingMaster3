@@ -118,6 +118,9 @@ class GenerationSettings(BaseModel):
     write_companion: bool = True
     """Write the companion transcript next to the note (Q2). Without it, a note cannot be
     re-opened for regeneration or speaker renaming."""
+    readable_transcript: bool = True
+    """Also write a readable copy of the transcript, ``<note> (Transcript).md``, with coloured
+    speaker names (R25). Needs the companion transcript, which it is made from."""
     max_context: int = Field(default=16384, ge=2048, le=1_048_576)
     """Largest context window (tokens) planned for a *local* model. Models advertise windows
     (e.g. 40k) that an 8 GB GPU cannot hold next to the weights; longer meetings use map-reduce."""

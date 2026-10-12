@@ -1,8 +1,9 @@
 """Browse the vault for MM3 notes to re-open (spec §9), confined to the vault root (S4).
 
 Only folders and ``.md`` files whose frontmatter has an ``mm3-id`` are listed. Companion
-transcripts, archived copies (``mm3-archived``) and hidden folders (``.obsidian``, ``.trash``)
-are skipped. Only the start of each file is read.
+transcripts, readable transcripts (``mm3-kind: readable-transcript``), archived copies
+(``mm3-archived``) and hidden folders (``.obsidian``, ``.trash``) are skipped. Only the start of
+each file is read.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from typing import Any
 from meetingmaster3.errors import MM3Error
 from meetingmaster3.markdown.frontmatter import FrontmatterError, split_frontmatter
 from meetingmaster3.markdown.note_parser import BOM, text_value
+from meetingmaster3.markdown.readable_transcript import KIND as READABLE_KIND
 from meetingmaster3.vault.naming import NOTE_SUFFIX, TRANSCRIPT_SUFFIX
 from meetingmaster3.vault.paths import confine, is_inside
 
@@ -30,6 +32,14 @@ class NoteInfo:
     date: str | None
     archived: bool = False
     is_transcript: bool = False
+    """The companion transcript (the machine copy with the data block)."""
+    is_readable: bool = False
+    """The readable transcript (R25): generated for people, never parsed back."""
+
+    @property
+    def is_note(self) -> bool:
+        """A live MM3 note: not a transcript of either kind and not an archived copy."""
+        return not (self.archived or self.is_transcript or self.is_readable)
 
 
 def read_identity(path: Path) -> NoteInfo | None:
@@ -47,12 +57,15 @@ def read_identity(path: Path) -> NoteInfo | None:
     if fm is None or not isinstance(fm.data, dict) or fm.data.get("mm3-id") is None:
         return None
     date = fm.data.get("date")
+    readable = fm.data.get("mm3-kind") == READABLE_KIND
     return NoteInfo(
         mm3_id=str(fm.data["mm3-id"]),
         title=text_value(fm.data.get("title")) or path.stem,
         date=(text_value(date) or "")[:10] or None,
         archived="mm3-archived" in fm.data,
-        is_transcript="mm3-note" in fm.data or path.name.endswith(TRANSCRIPT_SUFFIX),
+        is_transcript=not readable
+        and ("mm3-note" in fm.data or path.name.endswith(TRANSCRIPT_SUFFIX)),
+        is_readable=readable,
     )
 
 
@@ -126,7 +139,7 @@ def browse(root: Path, folder: str = "") -> Listing:
             listing.truncated = True
             break
         info = read_identity(path)
-        if info is None or info.archived or info.is_transcript:
+        if info is None or not info.is_note:
             continue
         notes.append(
             Entry(

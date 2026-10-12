@@ -18,15 +18,13 @@ from typing import Any
 from meetingmaster3.config.settings import Settings
 from meetingmaster3.errors import MM3Error
 from meetingmaster3.jobs.files import EMBEDDINGS_NAME
-from meetingmaster3.markdown.transcript_format import (
-    TranscriptParseError,
-    parse_transcript,
-    timestamp,
-)
+from meetingmaster3.markdown.readable_transcript import clock
+from meetingmaster3.markdown.transcript_format import TranscriptParseError, parse_transcript
 from meetingmaster3.storage.db import Database
 from meetingmaster3.vault.io import read_text
 from meetingmaster3.vault.naming import TRANSCRIPT_SUFFIX
 from meetingmaster3.vault.paths import confine, is_inside
+from meetingmaster3.vault.picker import read_identity
 
 KINDS = ("note", "transcript", "txt", "zip")
 #: Tables included in "Export all app data". Voiceprint tables are deliberately absent.
@@ -63,30 +61,47 @@ def locate(vault_root: Path, note_relative: str) -> tuple[Path, Path | None]:
     note = confine(vault_root, note_relative)
     if not note.is_file():
         raise _not_found("The note")
+    info = read_identity(note)
+    if info is not None and info.is_readable:
+        raise MM3Error(
+            "E_NOTE_NOT_FOUND",
+            "That is the readable transcript, not a note.",
+            "Give the vault-relative path of the note (.md) next to it.",
+            status_code=404,
+        )
     companion = note.with_name(note.name.removesuffix(".md") + TRANSCRIPT_SUFFIX)
     transcript = companion if companion.is_file() and is_inside(vault_root, companion) else None
     return note, transcript
 
 
 def transcript_to_text(markdown: str) -> str:
-    """The readable turns of a companion transcript as plain text, one ``[h:mm:ss] Name: text``
-    line per turn."""
+    """The readable turns of a companion transcript as plain text, laid out like the readable
+    transcript (R25): the time and the name on one line, the text below, a blank line between
+    turns."""
     try:
         parsed = parse_transcript(markdown)
     except TranscriptParseError:
         return markdown
-    lines = []
+    blocks = []
     for turn in parsed.visible_turns:
-        lines.append(f"[{timestamp(turn.start)}] {turn.name}: {turn.text}".rstrip())
-    return "\n".join(lines) + ("\n" if lines else "")
+        text = " ".join(turn.text.split())
+        blocks.append(f"{clock(turn.start)} {turn.name}" + (f"\n{text}" if text else ""))
+    return "\n\n".join(blocks) + ("\n" if blocks else "")
 
 
 def meeting_zip(
-    note: Path, transcript: Path | None, audio: Path | None = None, *, audio_name: str = ""
+    note: Path,
+    transcript: Path | None,
+    audio: Path | None = None,
+    *,
+    audio_name: str = "",
+    readable: Path | None = None,
 ) -> bytes:
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
         archive.writestr(note.name, read_text(note))
+        if readable is not None and readable.is_file():
+            archive.writestr(readable.name, read_text(readable))
         if transcript is not None:
             archive.writestr(transcript.name, read_text(transcript))
             archive.writestr(

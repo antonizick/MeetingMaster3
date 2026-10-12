@@ -52,7 +52,7 @@ NOTE_KEYS = (
 """Frontmatter keys MM3 owns in a note, in the order it writes them."""
 
 HEADER_LINE_RE = re.compile(
-    r"^- \*\*(?:Date & Time|Participants|Tags|Location / Context):\*\*.*\r?$"
+    r"^- \*\*(?:Date & Time|Participants|Tags|Location / Context|Transcript):\*\*.*\r?$"
 )
 
 

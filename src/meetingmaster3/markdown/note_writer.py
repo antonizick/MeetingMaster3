@@ -9,21 +9,26 @@ unchanged sections. ``render_note(parse_note(text).note, base=parse_note(text)) 
 from __future__ import annotations
 
 import datetime as dt
+from dataclasses import replace
 from typing import Any
 
 from meetingmaster3.domain.meeting import MeetingMeta
 from meetingmaster3.domain.note import (
     AI_RECOMMENDATIONS_ID,
     FORMAT_VERSION,
+    HEADER_LINE_RE,
     NOTE_KEYS,
     Block,
     Note,
     Section,
     TextBlock,
 )
+from meetingmaster3.markdown.editing import split_document
 from meetingmaster3.markdown.frontmatter import render_frontmatter, same, wikilink
 from meetingmaster3.markdown.note_parser import BOM, ParsedNote
 from meetingmaster3.markdown.sections import render_section
+
+TRANSCRIPT_LINE_PREFIX = "- **Transcript:** "
 
 _ALWAYS = frozenset({"title", "participants", "tags", "mm3-version", "mm3-id"})
 _DEFAULTS = MeetingMeta()
@@ -158,3 +163,37 @@ def render_note(note: Note, base: ParsedNote | None = None) -> str:
         else:
             parts.append(render_section(block, note.newline))
     return (BOM if base and base.bom else "") + fm + "".join(parts)
+
+
+def transcript_line(link: str, newline: str = "\n") -> str:
+    """The header line that links the readable transcript (R25)."""
+    return f"{TRANSCRIPT_LINE_PREFIX}[[{link}|Read the transcript]]{newline}"
+
+
+def header_transcript_line(text: str) -> str | None:
+    """The note's ``- **Transcript:**`` header line (with its line ending), if it has one."""
+    lines = split_document(text).texts[0].splitlines(keepends=True)
+    return next((ln for ln in lines if ln.startswith(TRANSCRIPT_LINE_PREFIX)), None)
+
+
+def with_transcript_link(text: str, link: str | None = None, *, line: str | None = None) -> str:
+    """``text`` with a ``- **Transcript:**`` line at the end of its header block (after the H1 and
+    the Appendix B lines). A note that already has one, or has no H1 before its first section,
+    is returned unchanged. ``line`` gives the exact line to insert instead of ``link``."""
+    doc = split_document(text)
+    lines = doc.texts[0].splitlines(keepends=True)
+    if any(ln.startswith(TRANSCRIPT_LINE_PREFIX) for ln in lines):
+        return text
+    i = 0
+    while i < len(lines) and not lines[i].strip():
+        i += 1
+    if i >= len(lines) or not lines[i].startswith("# "):
+        return text
+    i += 1
+    while i < len(lines) and HEADER_LINE_RE.match(lines[i].rstrip("\r\n")):
+        i += 1
+    if i > 0 and not lines[i - 1].endswith("\n"):
+        lines[i - 1] += doc.newline
+    new = line if line is not None else transcript_line(link or "", doc.newline)
+    lines.insert(i, new if new.endswith("\n") else new + doc.newline)
+    return replace(doc, texts=("".join(lines), *doc.texts[1:])).join()

@@ -3,6 +3,7 @@ FakeLLMBackend, writing into a temporary vault."""
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 from pathlib import Path
 from typing import Any
@@ -115,6 +116,16 @@ async def test_audio_to_vault_note_and_companion(tmp_path: Path, vault: Path) ->
         assert companion.doc.note_ref == note_path.stem
         assert companion.doc.speakers.names == meta.speakers.names
         assert companion.body_matches_data
+
+        # the readable transcript (R25) sits next to the note and is linked from its header
+        readable = note_path.with_name(note_path.stem + " (Transcript).md")
+        assert out["readable_relative"] == readable.relative_to(vault).as_posix()
+        text = readable.read_text("utf-8")
+        assert "mm3-kind: readable-transcript" in text and f"mm3-id: {meta.id}" in text
+        assert "Alice Chen</mark>" in text and "<!-- mm3:transcript-data" not in text
+        assert f"- **Transcript:** [[{readable.stem}|Read the transcript]]" in (
+            note_path.read_text("utf-8")
+        )
 
         recent = RecentMeetingsRepository(runner.db).get(str(note_path))
         assert recent.mm3_id == str(meta.id) and recent.title == "Product Sync"
@@ -362,6 +373,38 @@ async def test_write_is_idempotent_after_a_crash(tmp_path: Path, vault: Path) ->
         (folder / "written.json").unlink()
         WriteStage().run(ctx)  # a second run (e.g. after a crash before written.json)
         assert sorted(p.name for p in vault.rglob("*.md")) == before  # no "(2)" copies
+    finally:
+        await runner.stop()
+
+
+async def test_readable_transcript_can_be_turned_off(tmp_path: Path, vault: Path) -> None:
+    settings = settings_for(vault, readable_transcript=False)
+    runner = make_runner(tmp_path, pipeline(Log(), Backends()), settings)
+    await runner.start(prune=False)
+    try:
+        job_id = add_job(runner, title="Product Sync")
+        await run_job(runner, job_id, SPEAKERS)
+        out = written(runner, job_id)
+        assert out["readable_relative"] is None
+        assert not list(vault.rglob("*(Transcript).md"))
+        assert "**Transcript:**" not in Path(out["note_path"]).read_text("utf-8")
+    finally:
+        await runner.stop()
+
+
+async def test_readable_name_taken_by_a_foreign_file(tmp_path: Path, vault: Path) -> None:
+    runner = make_runner(tmp_path, pipeline(Log(), Backends()), settings_for(vault))
+    await runner.start(prune=False)
+    try:
+        job_id = add_job(runner, title="Product Sync")
+        folder = vault / "Meetings" / str(dt.date.today().year)
+        folder.mkdir(parents=True)
+        mine = folder / f"{dt.date.today():%Y-%m-%d} - Product Sync (Transcript).md"
+        mine.write_text("my own file\n")
+        await run_job(runner, job_id, SPEAKERS)
+        assert mine.read_text() == "my own file\n"  # never replaced
+        out = written(runner, job_id)
+        assert out["readable_relative"].endswith("Product Sync (Transcript 2).md")
     finally:
         await runner.stop()
 

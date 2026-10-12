@@ -59,7 +59,7 @@ def _matches(root: Path, path: Path, mm3_id: str) -> bool:
     if path.name.endswith(TRANSCRIPT_SUFFIX):
         return False
     info = read_identity(path)
-    return info is not None and not info.archived and info.mm3_id == mm3_id
+    return info is not None and info.is_note and info.mm3_id == mm3_id
 
 
 def locate_note(

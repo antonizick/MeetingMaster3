@@ -17,7 +17,12 @@ from typing import Any
 from meetingmaster3.config.settings import Settings
 from meetingmaster3.domain.note import HEADER_LINE_RE, Note, split_lines
 from meetingmaster3.markdown.note_parser import ParsedNote, parse_note
-from meetingmaster3.markdown.note_writer import build_note, render_note
+from meetingmaster3.markdown.note_writer import (
+    TRANSCRIPT_LINE_PREFIX,
+    build_note,
+    render_note,
+    with_transcript_link,
+)
 from meetingmaster3.templates.generator import NoteGenerator
 from meetingmaster3.templates.loader import TemplateLibrary
 from meetingmaster3.templates.regenerate import choose_model, companion_transcript
@@ -116,7 +121,18 @@ async def switch_template(
         newline=newline,
     )
     preserved = preserved_text(parsed.note)
-    new_text = with_preserved(render_note(note), preserved, newline)
+    new_text = render_note(note)
+    old_link = next(
+        (
+            ln
+            for ln in parsed.note.preamble.splitlines(keepends=True)
+            if ln.startswith(TRANSCRIPT_LINE_PREFIX)
+        ),
+        None,
+    )
+    if old_link is not None:  # keep the link to the readable transcript (R25)
+        new_text = with_transcript_link(new_text, line=old_link)
+    new_text = with_preserved(new_text, preserved, newline)
     if parsed.bom:
         new_text = "﻿" + new_text
     return SwitchResult(

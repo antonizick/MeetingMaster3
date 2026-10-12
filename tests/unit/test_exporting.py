@@ -47,7 +47,8 @@ def written(vault: Path) -> Path:
 
 def test_plain_text_transcript(written: Path) -> None:
     text = exporting.transcript_to_text((written / TRANSCRIPT).read_text())
-    assert text == "[00:00:01] Alice: Good morning.\n[00:01:05] Bob: Shall we start?\n"
+    # laid out like the readable transcript (R25): time and name, then the text, blank line
+    assert text == "00:01 Alice\nGood morning.\n\n01:05 Bob\nShall we start?\n"
     assert exporting.transcript_to_text("not a transcript") == "not a transcript"
 
 
@@ -64,9 +65,8 @@ def test_export_meeting_api(ui: TestClient, written: Path) -> None:
     assert note.status_code == 200 and note.text.endswith("# Note\n")
     assert "attachment" in note.headers["content-disposition"]
     txt = ui.get("/api/export/meeting", params={"note": NOTE, "kind": "txt"})
-    assert txt.text.startswith("[00:00:01] Alice:") and txt.headers["content-type"].startswith(
-        "text/plain"
-    )
+    assert txt.text.startswith("00:01 Alice\nGood morning.")
+    assert txt.headers["content-type"].startswith("text/plain")
     tr = ui.get("/api/export/meeting", params={"note": NOTE, "kind": "transcript"})
     assert "mm3-version" in tr.text
     z = zipfile.ZipFile(io.BytesIO(ui.get("/api/export/meeting", params={"note": NOTE}).content))
@@ -77,6 +77,22 @@ def test_export_meeting_api(ui: TestClient, written: Path) -> None:
     ]
     assert ui.get("/api/export/meeting", params={"note": "../x.md"}).status_code == 400
     assert ui.get("/api/export/meeting", params={"note": NOTE, "kind": "pdf"}).status_code == 422
+
+
+READABLE = "Meetings/2026/2026-10-11 - Product Sync (Transcript).md"
+
+
+def test_zip_includes_the_readable_transcript(ui: TestClient, written: Path) -> None:
+    (written / READABLE).write_text("---\nmm3-id: x\nmm3-kind: readable-transcript\n---\nHi\n")
+    z = zipfile.ZipFile(io.BytesIO(ui.get("/api/export/meeting", params={"note": NOTE}).content))
+    assert "2026-10-11 - Product Sync (Transcript).md" in z.namelist()
+    # the readable file is not a note
+    with pytest.raises(MM3Error):
+        exporting.locate(written, READABLE)
+    # a file of that name that belongs to another meeting is left out
+    (written / READABLE).write_text("---\nmm3-id: y\nmm3-kind: readable-transcript\n---\n")
+    z = zipfile.ZipFile(io.BytesIO(ui.get("/api/export/meeting", params={"note": NOTE}).content))
+    assert "2026-10-11 - Product Sync (Transcript).md" not in z.namelist()
 
 
 def test_note_without_companion(ui: TestClient, written: Path) -> None:

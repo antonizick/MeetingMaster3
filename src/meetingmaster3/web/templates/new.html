@@ -22,7 +22,8 @@
       <div class="field"><label for="title">Title</label>
         <input id="title" name="title" type="text" maxlength="200" autocomplete="off"></div>
       <div class="field"><label for="meeting_date">Date</label>
-        <input id="meeting_date" name="meeting_date" type="date"></div>
+        <input id="meeting_date" name="meeting_date" type="date" aria-describedby="date-hint">
+        <p id="date-hint" class="hint" x-show="dateFromName" x-cloak>From the file name</p></div>
       <div class="field"><label for="meeting_time">Start time <span class="muted">(optional)</span></label>
         <input id="meeting_time" name="meeting_time" type="time"></div>
       <div class="field"><label for="location">Location <span class="muted">(optional)</span></label>

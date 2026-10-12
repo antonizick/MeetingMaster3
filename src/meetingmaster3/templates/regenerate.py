@@ -25,6 +25,7 @@ from meetingmaster3.templates.schema import Template, TemplateParams
 from meetingmaster3.vault.io import read_text
 from meetingmaster3.vault.naming import NOTE_SUFFIX, TRANSCRIPT_SUFFIX
 from meetingmaster3.vault.paths import confine, resolve_vault_root
+from meetingmaster3.vault.picker import read_identity
 
 E_NOTE_NOT_FOUND = "E_NOTE_NOT_FOUND"
 E_SECTION_NOT_FOUND = "E_SECTION_NOT_FOUND"
@@ -52,7 +53,13 @@ class RegenerationPreview:
 
 def note_path(root: Path, relative: str) -> Path:
     path = confine(root, relative)
-    if path.suffix != NOTE_SUFFIX or path.name.endswith(TRANSCRIPT_SUFFIX) or not path.is_file():
+    info = read_identity(path) if path.is_file() else None
+    if (
+        path.suffix != NOTE_SUFFIX
+        or path.name.endswith(TRANSCRIPT_SUFFIX)
+        or not path.is_file()
+        or (info is not None and info.is_readable)
+    ):
         raise MM3Error(
             E_NOTE_NOT_FOUND,
             f"There is no note at {relative!r} in the vault.",
