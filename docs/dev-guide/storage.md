@@ -55,9 +55,11 @@ Primary key `(job_id, stage)`; `job_id` references `jobs(id) ON DELETE CASCADE`.
 | `mm3_id` | The note's `mm3-id`. |
 | `title`, `date` | For the list. |
 | `last_opened` | Sort key (written or re-opened). |
+| `job_id` | Migration 3 (Phase 11): the job that wrote the note, so the review workspace finds its audio. `NULL` for notes opened from the vault picker that no job wrote; the workspace then looks for a job whose `written.json` has the same `mm3_id`. |
 
 `RecentMeetingsRepository.touch()` upserts (keeping known values when an argument is empty);
-`recent(limit)` lists newest first.
+`recent(limit)` lists newest first; `for_meeting(mm3_id)` lists the entries of one meeting
+(paths are absolute in practice: the write stage and the workspace store resolved paths).
 
 ### `voiceprints` (migration 2, Phase 07)
 Opt-in biometric data (S7); written only when `privacy.voiceprints_enabled` is true. Access goes through

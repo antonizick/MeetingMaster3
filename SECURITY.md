@@ -59,8 +59,9 @@ The full baseline is in [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) section
 | Log redaction | `logging.py` | Registered secret values plus `hf_...`, `sk-...`, AWS key and bearer-token patterns are replaced with `[REDACTED]`. |
 | Repo hygiene | pre-commit, CI | gitleaks, audio-file guard, large-file guard, `pip-audit`. |
 
-Phase 10 tightened the CSP and settled the CSRF question (see below). Still for Phase 15: review the
-CSP once more with the review workspace (Phase 11) in place.
+Phase 10 tightened the CSP and settled the CSRF question (see below). Phase 11 added the review
+workspace without loosening the CSP (no editor library, ADR-0020). Still for Phase 15: review the CSP
+and the workspace's endpoints in the threat model.
 
 ### Implemented in Phase 10 (web UI, S2/S3)
 | Control | Where | Behaviour |
@@ -71,6 +72,17 @@ CSP once more with the review workspace (Phase 11) in place.
 | Preview confinement (S4) | `web/pages.py` | `/preview?path=` opens only an absolute `.md` file that resolves (symlinks included) inside the vault root. |
 | No third-party requests | tests, e2e | The Playwright smoke test fails if the browser requests any host other than the app. |
 | Errors | `errors.py` | HTMX requests get an escaped toast fragment; browsers get the error page; API clients get JSON. |
+
+### Implemented in Phase 11 (review workspace)
+| Control | Where | Behaviour |
+|---|---|---|
+| Same CSP, no new script sources | `static/js/transcript.js`, `static/js/review.js` | Plain scripts from `'self'`; the editor is `<textarea>`s (ADR-0020). Page data is a `<script type="application/json">` block (Jinja `tojson`, not executed). Sizes and the splitter use CSSOM (`element.style`), which `style-src 'self'` allows; templates contain no `style` attributes. |
+| CSRF | `web/review.py` | Every workspace action is a `POST`/`DELETE` with the `X-CSRF-Token` header (tested for each route). |
+| Vault confinement (S4) | `web/review.py`, `review/workspace.py`, `vault/picker.py` | Every action names the note by its vault-relative path; it is re-resolved with `confine()` and must be a non-archived MM3 note whose `mm3-id` equals the workspace's. The picker lists folders inside the vault only (symlinks out are skipped; `..` and absolute paths are refused). "Link this transcript" accepts only a companion with the same `mm3-id` in the note's own folder. |
+| Atomic writes and lost-update protection | `review/save.py` | Saves, appends, template switches and renames write atomically and only if the file's SHA-256 still equals the version the editor was opened from; otherwise the user sees a diff and decides (ADR-0021). A change to `mm3-id` is refused. |
+| Marker protection (R11) | `markdown/editing.py` | Marker lines are re-inserted by the server and never taken from the browser; a marker typed into a section is refused; marker-like changes to user text need an explicit confirmation. |
+| Sanitised rendering (S3) | `web/render.py` | The workspace preview and the diffs use the same renderer (raw HTML escaped); `[mm:ss]` links are generated from escaped text. Diffs and transcript text are Jinja-escaped. |
+| Cloud consent (S6) | `templates/regenerate.py`, `review/switch.py` | Regeneration and template switches with a cloud backend need the per-request consent box (or remembered consent); without it nothing is sent. |
 
 ### Implemented in Phase 03 (vault filesystem, S4)
 | Control | Where | Behaviour |
@@ -128,3 +140,4 @@ _To be completed as phases land. Final version in Phase 15._
 | Transcript text sent to an LLM | Selected backend | Phase 08/09 (done) | **Only for a cloud backend you confirmed** |
 | Generation checkpoints and drafts | Job folder: `notes.draft.md`, `generation.json`, `generate.partial.json`, `written.json` | Phase 09 (done) | No |
 | Template install record | `$XDG_DATA_HOME/meetingmaster3/templates.installed.json` (file hashes only) | Phase 09 (done) | No |
+| Review workspace working copies | `$XDG_DATA_HOME/meetingmaster3/reviews/<mm3-id>/` (folder `0700`): the last 5 opened versions of the note (`base-<sha256>.md`), the unsaved draft (`draft.json`, removed on save) and a pending template switch | Phase 11 (done) | No |

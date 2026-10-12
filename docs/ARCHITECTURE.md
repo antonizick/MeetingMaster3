@@ -37,7 +37,7 @@ src/meetingmaster3/
 Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, inside
 `transcription/` and `speakers/` only.
 
-## Implemented so far (Phases 02 to 10)
+## Implemented so far (Phases 02 to 11)
 | Module | Responsibility |
 |---|---|
 | `app.py` | `create_app(settings, paths)` factory. Middleware order (outermost first): TrustedHost, security headers, CSRF. The lifespan opens `mm3.db` and starts/stops the `JobRunner`. |
@@ -90,6 +90,12 @@ Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, ins
 | `templates/generator.py`, `mapreduce.py`, `postprocess.py` | `NoteGenerator` (consent, fit check, per-section calls, map-reduce, checkpoints, `regenerate_section`); chunk extraction, JSON repair, merge; output clean-up and deadline dates. |
 | `templates/stages.py`, `regenerate.py` | The `generate` and `write` stages; preview of one section's regeneration for a vault note. |
 | `web/api/templates.py` | `GET /api/templates`, `POST /api/templates/install`, `POST /api/jobs/{id}/generate`, `POST /api/notes/regenerate-section`. |
+| `markdown/editing.py` | Split a note into editable parts (frontmatter, user text around sections, section contents) and join edited parts back with the original marker lines and line endings (ADR-0020). |
+| `vault/picker.py` | Vault browser for re-opening notes (folders and `mm3-id` notes only, archives and transcripts skipped, confined); `find_companions` searches the vault for a moved transcript. |
+| `review/store.py` | Per-meeting working files in app data: base snapshots by SHA-256, the autosaved draft, a pending template switch. |
+| `review/workspace.py` | Locate a note by `mm3-id` (Recent list or a vault path), load it with its companion transcript, job and audio state; transcript view model; degradation modes. |
+| `review/save.py`, `rename.py`, `switch.py` | Save with the hash check and conflict (ADR-0021); speaker renaming through the Phase 07 cascade; whole-note template switch with "Preserved notes". |
+| `web/review.py` | `/open`, `/open/note`, `/ui/open/browse`, `/meetings/{mm3_id}` and the workspace's JSON actions under `/ui/review/{mm3_id}/`. |
 
 All other packages are empty placeholders with a docstring, filled in by later phases.
 
@@ -181,3 +187,22 @@ The page is always rendered from `JobRunner.describe`, so a reload or reconnect 
 SSE only decides *when* to re-render. Pages: `/setup`, `/` (new meeting), `/jobs/{id}`,
 `/jobs/{id}/speakers`, `/meetings`, `/preview`, `/templates`, `/settings` (read-only until Phase 12).
 Decision record: ADR-0019.
+
+### Review workspace (Phase 11)
+```
+/open ── picker (vault/picker.py) + Recent ──▶ /open/note?path= ──▶ /meetings/{mm3_id}?path=
+                                                                       │ review/workspace.py: note, companion,
+                                                                       │ job + audio; base snapshot (review/store.py)
+browser: transcript.js (player, binary-search sync, search, splitter, shortcuts)
+         review.js (parts editor, autosave draft, save/conflict, preview, dialogs)
+   │  JSON to /ui/review/{mm3_id}/...  (path + base SHA in every call; CSRF header)
+   ├─ draft · render · save ───────────────▶ markdown/editing.py join ─▶ review/save.py (hash check, atomic write)
+   ├─ regenerate ─▶ templates/regenerate.regenerate_text (editor's copy) ─▶ diff partial + new section text
+   ├─ archive-section ─▶ vault/archive.archive_section (R12)      append-section ─▶ sections.append_section (R11)
+   ├─ switch/preview|apply ─▶ review/switch.py (NoteGenerator) ─▶ archive_note + write
+   ├─ speakers/preview|apply ─▶ review/rename.py (speakers.cascade) ─▶ companion + note + job speaker map
+   └─ locate · link-transcript · reprocess (note-only mode)
+```
+The editor never sends marker lines; the server re-inserts them from the base, and unchanged parts keep their
+exact bytes. `/preview` remains the read-only view for files that are not MM3 notes. Decision records: ADR-0020
+(editor), ADR-0021 (save model). Pages added: `/open`, `/meetings/{mm3_id}`.

@@ -12,7 +12,7 @@ Pages are added as the features land. Planned index:
 | [`llm-backends.md`](llm-backends.md) (Ollama, Bedrock, OpenRouter) | 08 (written) |
 | [`templates.md`](templates.md) (built-in templates, choosing a model, customising templates, cloud consent, regeneration) | 09 (written), 13 |
 | [`getting-started.md`](getting-started.md) (upload to vault note) | 10 (written) |
-| `review-and-regeneration.md` | 11 |
+| [`reviewing-and-editing.md`](reviewing-and-editing.md) (workspace, shortcuts, regeneration, archives, template switch, renaming speakers, re-open, damaged markers) | 11 (written) |
 | `settings.md` | 12 |
 | `docker.md` | 14 |
 | `troubleshooting.md` and `faq.md` | 15, 16 |

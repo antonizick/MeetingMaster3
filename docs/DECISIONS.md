@@ -398,3 +398,59 @@ sanitiser (an extra native dependency for no gain while HTML is escaped).
 **Status.** Accepted (2026-10-11, Phase 10).
 **Consequences.** Firefox is expected to work (standard APIs only) but only Chromium was exercised here.
 
+
+## ADR-0020: Review editor: textareas per note part instead of CodeMirror 6
+**Context.** Phase 11 needs a Markdown editor for the whole note in which the section-marker lines are
+de-emphasised and protected (R11), under the strict CSP of ADR-0019 (`script-src 'self'`,
+`style-src 'self'`, no `eval`) and without a build step (ADR-0002). The phase prompt suggested vendoring a
+prebuilt CodeMirror 6 bundle or a lighter alternative justified here.
+**Options.**
+| Option | Pros | Cons |
+|---|---|---|
+| CodeMirror 6, prebuilt bundle with Markdown mode | Syntax highlighting, one editor for the whole file, mature undo/search | No official single-file build: we would build and vendor ~400 KB with esbuild (a build step to maintain); injects styles at run time (CSP `style-src` needs constructable stylesheets or a nonce); markers are still ordinary text, so protection is a warning after the fact |
+| One `<textarea>` with the whole file | Tiny, no dependency | Markers can be deleted with one keystroke; only a warning is possible |
+| **Textareas per part** (chosen) | No dependency or build; CSP untouched; marker lines are not editable at all; per-section Regenerate controls and feedback slots sit next to their section; the server joins parts back byte-for-byte | No syntax highlighting; a section cannot be split or merged in the editor (do that in Obsidian) |
+**Decision.** The note is split on the server (`markdown/editing.py`) into its frontmatter, the user text
+before, between and after sections, and each valid section's content between its markers. Each part is a
+`<textarea>`; the marker lines are shown as dimmed, non-editable labels. The browser sends the parts back
+and the server re-inserts the original marker lines. A part that comes back unchanged (apart from the
+browser's LF line endings) is restored byte-for-byte; a changed part takes the document's line ending.
+A marker typed into a section is refused; a marker-like line added to or removed from user text (for
+example while repairing a damaged section) needs an explicit "Save anyway". A rendered preview (server-side
+`web/render.py`) replaces the editor on demand. Damaged sections are plain user text to the editor.
+**Status.** Accepted (2026-10-11, Phase 11).
+**Consequences.** No new third-party code. Highlighting can be added later without changing the save model.
+
+## ADR-0021: Review workspace save model: base snapshots, conflict check, accept-then-save
+**Context.** Edits made in the browser must reach the vault atomically, never overwrite changes made
+elsewhere (Obsidian, sync, another tab) without asking, survive a closed tab, and keep text outside the
+markers byte-identical through regeneration and template switches (R11, R12).
+**Decision.**
+1. Opening a note stores the exact text as a *base* in app data (`<data>/reviews/<mm3-id>/base-<sha256>.md`,
+   newest 5 kept, folder `0700`). Every action names its base by SHA-256. A save joins the editor's parts
+   against that base, checks that the result is still an MM3 note with the same `mm3-id`, and writes
+   atomically only if the file on disk still has the base's hash. Otherwise it returns a conflict with a
+   side-by-side and unified diff (vault version vs. yours) and the user chooses: keep mine (overwrite the
+   exact version shown), take theirs (reload), or keep editing to merge by hand. A hash, not the mtime,
+   decides, so touching a file without changing it is not a conflict.
+2. Unsaved parts are autosaved (debounced) to `draft.json` in the same folder. Reopening offers to restore
+   them when the note's sections still match; the draft is removed on save.
+3. Regeneration is a preview computed from the editor's current copy of the section (unsaved edits
+   included). Accept replaces the section's text in the editor; "Accept & archive previous" first writes
+   the editor's previous version to the R12 section archive. The user then saves as usual. Appending a
+   fresh copy of a damaged section, switching template and renaming speakers write the vault directly and
+   therefore require a clean editor and an unchanged file.
+4. A template switch generates the whole note in a preview (stored as `pending-<token>.md`), then archives
+   the current note whole and writes the new one. Text outside the old sections is appended under
+   "## Preserved notes" (an earlier such heading is not nested); user properties and links are kept.
+5. Renaming speakers applies the Phase 07 cascade: companion transcript (headings and `mm3-speakers`), note
+   `mm3-speakers` and `participants`, names inside MM3 sections (whole words, simultaneous), the
+   Participants header line only if it is still exactly what MM3 wrote, and the job's speaker map if the
+   job still exists. Voiceprints are not enrolled (the per-meeting embeddings no longer exist).
+6. Migration 3 adds `recent_meetings.job_id`, so a re-opened note finds its job's audio; older notes fall
+   back to scanning the jobs' `written.json`.
+**Alternatives.** Applying accepted regenerations to the vault immediately (simpler, but a second save path
+that competes with unsaved edits); comparing mtimes only (false conflicts from sync tools that touch files).
+**Status.** Accepted (2026-10-11, Phase 11).
+**Consequences.** Drafts and bases hold meeting text in the app data folder (documented in PRIVACY). An
+archive written by "Accept & archive previous" exists even if the user never saves the new version.

@@ -8,6 +8,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Review workspace (Phase 11) at `/meetings/{mm3-id}`: the recording with play/pause, ±5 s, speed
+  0.75-2× and keyboard shortcuts (Space/K, J, L; not while typing); the transcript with speaker colours,
+  click-to-seek on any word or timestamp, the playing segment highlighted and followed (pauses when you
+  scroll), and search; a resizable splitter that stacks on narrow screens. The note is edited as parts
+  with protected section markers, autosaved as a draft, previewed rendered (with clickable `[mm:ss]`
+  references) and saved atomically, with a diff and keep-mine / take-theirs when the file changed
+  elsewhere. Per-section regeneration with instructions, model choice, side-by-side and unified diffs,
+  Accept, Accept & archive previous (R12) and Discard; "append as a new section" for damaged markers
+  (R11); whole-note template switch with an archive and "Preserved notes"; renaming speakers after the
+  fact (transcript, properties, header and generated sections); **Open a note**: a vault browser and the
+  Recent list; note-only mode when the transcript is missing (locate and link it, or transcribe the
+  retained recording again) and read-only mode for notes without markers. Feedback slots for Phase 12.
+  Guide: `docs/user-guide/reviewing-and-editing.md`. ADR-0020, ADR-0021, spec R23.
+- Database migration 3: `recent_meetings.job_id`.
 - Web UI, core flow (Phase 10): first-run vault setup with live validation and a preview of the output
   path, upload with drag and drop and progress, hardware confirmation with an ETA and advanced
   overrides, template and model pickers with a local/cloud badge and a cloud consent dialog, live job
@@ -19,6 +33,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `markdown-it-py` is now a direct dependency (note preview); `playwright` is a dev dependency.
 
 ### Security
+- Review workspace (Phase 11): no change to the strict CSP (no editor library); every action is CSRF
+  checked, re-confines the note path to the vault and checks its `mm3-id`; writes are atomic and refused
+  when the file changed since it was opened; section-marker lines are never accepted from the browser.
 - Strict CSP for the UI (`script-src 'self'`, `style-src 'self'`, no inline script, no `eval`; HTMX runs
   with `allowEval=false`); every UI action is an HTMX request carrying the CSRF header. The note preview
   renders Markdown with raw HTML disabled, images off and only http(s)/mailto links, and only opens
@@ -36,6 +53,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   makes no network calls (verified with a socket audit).
 
 ### Changed
+- "Review & edit" on the job page and the notes in **Recent** now open the review workspace;
+  `/preview` is the read-only view for files that are not MeetingMaster3 notes (and links MM3 notes to
+  the workspace). The main menu gains **Open a note**.
 - The `generate` and `write` stages are built in (no longer placeholders). `MM3_FAKE_PIPELINE=1` now
   runs the real generation stage with an offline fake model and writes the note to the vault when one
   is configured.

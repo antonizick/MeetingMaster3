@@ -15,10 +15,10 @@ repos:
       - id: check-added-large-files
         args: [--maxkb=500]
       - id: end-of-file-fixer
-        exclude: ^tests/fixtures/notes/  # byte-exact round-trip fixtures
+        exclude: ^(tests/fixtures/notes/|src/meetingmaster3/web/static/vendor/)  # byte-exact fixtures, vendored files
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
-        exclude: ^tests/fixtures/notes/
+        exclude: ^(tests/fixtures/notes/|src/meetingmaster3/web/static/vendor/)
   - repo: local
     hooks:
       - id: mypy

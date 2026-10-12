@@ -56,8 +56,8 @@ before anything is sent: *Allow*, *Use a local model instead* or *Don't send*.
 
 ## 5. Done
 The completion box shows the note and transcript paths, an **Open in Obsidian** link and **Review & edit**, which
-for now opens a read-only preview of the note (editing and per-section regeneration come with the review
-workspace).
+opens the review workspace: the recording and transcript side by side with the note, which you can edit,
+regenerate section by section and save back to the vault. See [reviewing and editing](reviewing-and-editing.md).
 
 ![Done](../assets/05-done.png)
 

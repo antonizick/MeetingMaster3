@@ -15,6 +15,7 @@ leave your machine. It is completed as phases land and finalised in Phase 15.
 | Model weights | `$XDG_CACHE_HOME/meetingmaster3/models` (`MM3_MODELS_DIR`) |
 | Transcription artifacts | Job folder: `transcript.json`, `aligned.json`, `diarization.json` (who spoke when, as time ranges; no voice embeddings), `transcript.final.json`. Deleted with the job. |
 | Note drafts | Job folder: `notes.draft.md` (the generated note), `generation.json` (template, backend, model), `generate.partial.json` (finished sections while generating), `written.json` (vault paths). Deleted with the job. |
+| Review workspace copies | `$XDG_DATA_HOME/meetingmaster3/reviews/<mm3-id>/` (folder `0700`): the last few versions of a note as you opened it (used to detect edits made elsewhere), your unsaved edits (`draft.json`, deleted when you save) and a template switch waiting for your confirmation. They contain meeting text; delete the folder to remove them. Archived versions of sections and notes go to an `Archive` folder in your vault. |
 | Templates | Your vault's templates folder (`MeetingMaster3/templates/`); `templates.installed.json` in the app data folder records only file hashes, to avoid overwriting your edits. |
 
 ## What can leave your machine

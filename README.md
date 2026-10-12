@@ -5,12 +5,13 @@
 [![CI](https://img.shields.io/badge/CI-pending-lightgrey)](#status)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-> ⚠️ **Pre-alpha, under construction.** The whole pipeline works headlessly (audio → transcript →
-> named speakers → structured note in your vault, via `mm3 process` or the API), but the web UI and
-> the review workspace arrive in the phases listed in the [plan](IMPLEMENTATION_PLAN.md).
+> ⚠️ **Pre-alpha, under construction.** The whole flow works in the browser and headlessly (audio →
+> transcript → named speakers → structured note in your vault → review, edit and regenerate), but
+> settings, the full template library, Docker and the security review arrive in the phases listed in
+> the [plan](IMPLEMENTATION_PLAN.md).
 
 ## Status
-Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-09 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, transcription and diarization, speaker naming and voiceprints, LLM backends, templates and note generation).
+Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-11 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, transcription and diarization, speaker naming and voiceprints, LLM backends, templates and note generation, the web UI's core flow, and the review workspace: synced audio and transcript, note editor, per-section regeneration with diffs and archives, template switching, renaming speakers and re-opening notes from the vault; see [reviewing and editing](docs/user-guide/reviewing-and-editing.md)).
 The CI badge above is a placeholder until the repository is published (Phase 16).
 
 ## Planned features (MVP)
