@@ -204,15 +204,26 @@ async def hardware_panel(
     settings = _settings(request)
     info = await asyncio.to_thread(get_hardware)
     rec = recommend(info, settings.hardware.profile, diarize=diarize)
-    eta = None
+    eta = notes_eta = None
     if duration and duration > 0:
         low, high = rec.transcription.estimate(duration)
         eta = format_eta(low, high)
+        notes = rec.llm.estimate(duration)
+        if notes is not None and _default_backend_is_local(request):
+            notes_eta = format_eta(*notes)
     return render(
         request,
         "partials/hardware.html",
-        {"info": info, "rec": rec, "eta": eta, "duration": duration},
+        {"info": info, "rec": rec, "eta": eta, "notes_eta": notes_eta, "duration": duration},
     )
+
+
+def _default_backend_is_local(request: Request) -> bool:
+    registry: BackendRegistry = request.app.state.llm_registry
+    try:
+        return bool(registry.get(None).is_local)
+    except MM3Error:
+        return False
 
 
 # -- job page --------------------------------------------------------------------------------------

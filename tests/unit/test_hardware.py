@@ -173,7 +173,7 @@ def test_vram8_recommendation_matches_spec() -> None:
     assert rec.profile == "vram8" and not rec.overridden
     assert rec.transcription.model == "large-v3-turbo"
     # measured in Phase 06 on the reference RTX 2070 Max-Q (the spec estimated 15-30x)
-    assert (rec.transcription.rtf_low, rec.transcription.rtf_high) == (14, 16)
+    assert (rec.transcription.rtf_low, rec.transcription.rtf_high) == (13, 16)
     assert rec.transcription.status == "measured"
     assert rec.transcription.diarize is True
     assert any(m.size_b <= 9 for m in rec.llm.models)
@@ -191,7 +191,10 @@ def test_eta_estimate() -> None:
     assert estimate_seconds(3600, 15, 30) == (120.0, 240.0)
     assert estimate_seconds(0, 15, 30) == (0.0, 0.0)
     t = recommend(info_for(SMI_2070)).transcription
-    assert t.estimate(1680) == (105.0, 120.0)  # measured 14-16x
+    assert t.estimate(1560) == (97.5, 120.0)  # measured 13-16x (Phase 15)
+    llm = recommend(info_for(SMI_2070)).llm
+    assert llm.status == "measured" and llm.estimate(3600) == (3600 / 21, 240.0)
+    assert recommend(info_for(SMI_2070)).to_dict()["llm"]["notes_rtf"] == [15.0, 21.0]
 
 
 def test_format_eta() -> None:

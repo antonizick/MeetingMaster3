@@ -29,14 +29,18 @@ profiles:
       compute_type: int8_float16
       batch_size: 8
       diarize: true
-      # Measured 2026-10-11 (Phase 06) on the reference RTX 2070 Max-Q 8 GB, whole pipeline
-      # (transcribe + align + diarize, models loaded per stage): 31 min in 131 s (14.3x),
-      # 72 min in 283 s (15.3x); diarization is about half the time. Peak VRAM 3.6 GB.
-      rtf: [14, 16]
+      # Measured 2026-10-12 (Phase 15, docs/PERFORMANCE.md) on the reference RTX 2070 Max-Q 8 GB,
+      # transcribe + align + diarize with models loaded per stage: 10 min in 47 s (12.8x), 31 min
+      # in 139 s (13.5x), 72 min in 275 s (15.8x). medium is no faster (12.2-14.7x). Diarization
+      # is about half the time. Peak VRAM of the app 2.8 GB (turbo) / 3.3 GB (medium).
+      rtf: [13, 16]
       status: measured
       notes: Balanced. Falls back to a smaller batch, then a smaller model, on out-of-memory.
     llm:
-      status: estimated
+      status: measured
+      # qwen3:8b (Q4_K_M), Executive Summary, Phase 15: 10 min of audio in 22-30 s, 31 min in
+      # 94-111 s, 72 min in 210-280 s (map-reduce); Ollama peaks at 5.5-5.8 GB VRAM.
+      notes_rtf: [15, 21]
       summary: 7-8B models at Q4_K_M fit in 8 GB with a modest context window.
       models:
         - {family: "Llama 3.1 8B / Qwen 2.5 7B", size_b: 8, quant: Q4_K_M, context: "8k-16k", quality: good, speed: fast}

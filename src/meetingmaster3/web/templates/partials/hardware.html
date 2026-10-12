@@ -9,7 +9,7 @@
   <dd>Whisper <code>{{ t.model }}</code>, <code>{{ t.compute_type }}</code>, batch size {{ t.batch_size }}</dd>
   <dt>Time to process</dt>
   <dd>{% if eta %}<strong>{{ eta }}</strong>{% if duration %} for {{ duration|duration }} of audio{% endif %}
-      <span class="muted">({{ t.status }} for this profile)</span>{% else %}Unknown until the audio length is known.{% endif %}</dd>
+      <span class="muted">({{ t.status }} for this profile)</span>{% if notes_eta %}, then {{ notes_eta }} to write the notes with the local model <span class="muted">({{ rec.llm.status }})</span>{% endif %}{% else %}Unknown until the audio length is known.{% endif %}</dd>
 </dl>
 {% for w in rec.warnings %}
   <div class="alert {{ 'error' if w.severity == 'critical' else ('warn' if w.severity == 'warning' else 'info') }}"

@@ -70,6 +70,14 @@ class LLMRecommendation:
     context_note: str
     vram_handoff: str
     status: Status
+    notes_rtf: tuple[float, float] | None = None
+    """Audio seconds per second of note generation with the recommended local model (measured on
+    8 GB in Phase 15), for the "notes add about ..." estimate; ``None`` when unknown."""
+
+    def estimate(self, duration_s: float) -> tuple[float, float] | None:
+        if self.notes_rtf is None:
+            return None
+        return estimate_seconds(duration_s, *self.notes_rtf)
 
 
 @dataclass(frozen=True)
@@ -104,6 +112,7 @@ class Recommendation:
                 "context_note": self.llm.context_note,
                 "vram_handoff": self.llm.vram_handoff,
                 "status": self.llm.status,
+                "notes_rtf": list(self.llm.notes_rtf) if self.llm.notes_rtf else None,
             },
             "warnings": [w.to_dict() for w in self.warnings],
         }
@@ -155,6 +164,7 @@ def _llm(data: dict[str, Any]) -> LLMRecommendation:
         context_note=data.get("context_note", ""),
         vram_handoff=data.get("vram_handoff", ""),
         status=data.get("status", "estimated"),
+        notes_rtf=(float(notes[0]), float(notes[1])) if (notes := data.get("notes_rtf")) else None,
     )
 
 

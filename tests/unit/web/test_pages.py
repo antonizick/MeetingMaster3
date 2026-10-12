@@ -151,6 +151,8 @@ def test_hardware_panel_shows_eta_and_advanced(
     assert "minutes" in r.text and "1h 00m" in r.text
     assert 'name="transcription_model"' in r.text and 'name="compute_type"' in r.text
     assert "never share the GPU" in r.text  # the 8 GB hand-off warning
+    # Measured times (R17): 60 min at 13-16x, then the notes at 15-21x with the local Ollama.
+    assert "4-5 minutes" in r.text and "then 3-4 minutes to write the notes" in r.text
     assert "Unknown until" in client.get("/ui/hardware").text
 
 
