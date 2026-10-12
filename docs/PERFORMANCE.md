@@ -14,15 +14,6 @@ estimates. Your hardware, recordings and models will differ: treat these as a gu
 | **Upload to note in the vault (whole job)** | **79-85 s** | **252-271 s** | **552-600 s** |
 
 So on this laptop **a 60-minute meeting is transcribed with speakers in about 4-5 minutes**, and the
-Phase 15a added a **Summary Detailed** section to every template (one more model call per note).
-Measured on the owner's two meetings with `qwen3:8b`, same machine, template without and with the
-section: 72 minutes (`action-focused`, map-reduce) 259 s → 289 s (+30 s, +12 %); 31 minutes
-(`detailed-meeting-minutes`, full context) 185 s → 262 s (+77 s, +42 %). The pre-job estimate now
-uses notes at 12-18× real time (was 15-21×). Adding the section to an *existing* note ("Update older
-notes") re-reads the transcript: 66 s for the 31-minute meeting and 317 s for the 72-minute one (its
-map step runs again; caching the map notes is on the roadmap). The eval (71 notes) took 47 s per note
-on average (max 95 s), against 33 s before.
-
 complete job, including notes written by a local 8B model, takes **about 8-10 minutes** (8-9 before Summary Detailed). With a
 cloud LLM the notes take seconds instead (not measured here; that depends on the provider).
 
@@ -34,6 +25,18 @@ cloud LLM the notes take seconds instead (not measured here; that depends on the
   and frees Whisper and pyannote before generation (spec R5). The whole GPU never exceeded 6.8 GB.
 - **Peak RAM** of the app is 2.5-3.1 GB during transcription (models in memory); Ollama's runner
   holds about 5.4 GB of RAM while loaded.
+
+Phase 15a added a **Summary Detailed** section to every template (one more model call per note).
+Measured on the owner's two meetings with `qwen3:8b`, same machine, template without and with the
+section: 72 minutes (`action-focused`, map-reduce) 259 s → 289 s (+30 s, +12 %); 31 minutes
+(`detailed-meeting-minutes`, full context) 185 s → 262 s (+77 s, +42 %). The pre-job estimate now
+uses notes at 12-18× real time (was 15-21×). Adding the section to an *existing* note ("Update older
+notes") re-reads the transcript: 66 s for the 31-minute meeting and 317 s for the 72-minute one (its
+map step runs again; caching the map notes is on the roadmap). Updating both notes on the real
+vault took 5 min 14 s in all. The final eval passes 71/71 notes (one note re-run after a 3/4
+action-recall miss that did not repeat) at 50 s per note on average (max 93 s), against 33 s
+before; every Summary Detailed has 2-3 paragraphs and 277-517 words (mean 334). The long meeting
+still completes through map-reduce (630 s): decisions 6/6, actions 15/16, questions 3/5.
 
 ## Raw numbers
 Per stage: wall time in seconds (real-time factor in brackets = audio seconds / wall seconds), then
