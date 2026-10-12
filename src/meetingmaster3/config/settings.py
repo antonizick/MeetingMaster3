@@ -33,6 +33,8 @@ class VaultSettings(BaseModel):
     path: Path | None = None
     output_subfolder: str = "Meetings/{yyyy}/"
     templates_subfolder: str = "MeetingMaster3/templates/"
+    attachments_subfolder: str = "Meetings/attachments/"
+    """Where the optional audio copy goes (``privacy.copy_audio_to_vault``, R8)."""
 
 
 MODEL_NAME_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$"
@@ -117,6 +119,9 @@ class PrivacySettings(BaseModel):
     audio_retention: Literal["forever", "days", "delete_after_write"] = "days"
     audio_retention_days: int = Field(default=90, ge=1)
     voiceprints_enabled: bool = False
+    copy_audio_to_vault: bool = False
+    """Copy the retained Opus audio into ``vault.attachments_subfolder`` and link it from the
+    note (``mm3-audio``). Off by default: it enlarges the vault, and a synced vault uploads it."""
 
 
 class SpeakerSettings(BaseModel):

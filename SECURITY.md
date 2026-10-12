@@ -72,6 +72,18 @@ CSP once more with the review workspace (Phase 11) in place.
 | No third-party requests | tests, e2e | The Playwright smoke test fails if the browser requests any host other than the app. |
 | Errors | `errors.py` | HTMX requests get an escaped toast fragment; browsers get the error page; API clients get JSON. |
 
+### Implemented in Phase 12 (settings, template library, feedback, export)
+| Control | Where | Behaviour |
+|---|---|---|
+| Write-only secrets (S5) | `web/settings_fields.py`, `settings_ui.py` | No page, partial or API response contains a stored secret: password inputs have no `value`, a stored key shows "Saved", an empty field means unchanged and an explicit checkbox clears it. A test posts secrets and greps every rendered page. `config.yaml` is written atomically with mode `0600`. |
+| All-or-nothing validation | `config/editing.py` | A settings form is validated as a whole against the pydantic models before anything is applied or written, so a bad value never leaves the app half-changed. Settings cannot be edited through any GET route. |
+| Vault confinement (S4) | `settings_ui.py`, `templates/manage.py` | The templates and attachments folders are confined to the vault; template files are addressed by a strict file-name pattern (no separators, no `..`) and written atomically with `vault_root` confinement. Deleting or resetting a template archives the old copy first. |
+| Voiceprint wipe | `settings_ui.py` | Deleting every voiceprint needs a second request carrying a single-use, five-minute token issued by the first (the same token store as the API). |
+| Hugging Face token test | `transcription/hf_check.py` | Two HTTPS requests to `huggingface.co`, only on pressing *Test*; the token goes in a header and never into the result, a log line or the page. Refused in offline mode. |
+| Exports contain no secrets | `exporting.py` | "Export all app data" writes `settings.json` masked and omits the voiceprint tables and all audio; a test asserts no secret value, voiceprint name or audio is in the zip. Export paths are confined to the vault; feedback CSV neutralises spreadsheet formulas. |
+| No telemetry | UI, `docs/PRIVACY.md` | Ratings are stored in the local SQLite database and leave only when you download the export. |
+| Opening folders | `settings_ui.py` | "Open the config folder" runs `xdg-open` with our own path as a fixed argument list (no shell), and is unavailable in Docker. |
+
 ### Implemented in Phase 03 (vault filesystem, S4)
 | Control | Where | Behaviour |
 |---|---|---|

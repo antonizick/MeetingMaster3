@@ -1,0 +1,30 @@
+{# Rating widget. Needs `fb`: mm3_id, kind ('stars' for a note, 'thumbs' for a section),
+   template_id, backend, model, section_id (empty for the whole note), current (a rating or none),
+   saved (bool). Stored on this computer only. #}
+<form class="feedback" hx-post="/ui/feedback" hx-target="this" hx-swap="outerHTML">
+  <input type="hidden" name="mm3_id" value="{{ fb.mm3_id }}">
+  <input type="hidden" name="kind" value="{{ fb.kind }}">
+  <input type="hidden" name="template_id" value="{{ fb.template_id or '' }}">
+  <input type="hidden" name="backend" value="{{ fb.backend or '' }}">
+  <input type="hidden" name="model" value="{{ fb.model or '' }}">
+  <input type="hidden" name="section_id" value="{{ fb.section_id or '' }}">
+  <div class="row">
+    <span class="feedback-label" id="fb-{{ fb.section_id or 'note' }}">{{ 'How good is this section?' if fb.section_id else 'How good is this note?' }}</span>
+    {% if fb.kind == 'stars' %}
+      {% for n in range(1, 6) %}
+      <button type="submit" name="value" value="{{ n }}" class="star" aria-label="{{ n }} of 5 stars"
+              aria-pressed="{{ 'true' if fb.current and fb.current.value >= n else 'false' }}">{{ '★' if fb.current and fb.current.value >= n else '☆' }}</button>
+      {% endfor %}
+    {% else %}
+      <button type="submit" name="value" value="1" aria-label="Good" aria-pressed="{{ 'true' if fb.current and fb.current.value == 1 else 'false' }}">👍</button>
+      <button type="submit" name="value" value="-1" aria-label="Not good" aria-pressed="{{ 'true' if fb.current and fb.current.value == -1 else 'false' }}">👎</button>
+    {% endif %}
+    {% if fb.saved %}<span class="ok" role="status">Thanks, saved on this computer.</span>{% endif %}
+  </div>
+  <details>
+    <summary>Add a comment</summary>
+    <label for="fbc-{{ fb.section_id or 'note' }}" class="sr-only">Comment</label>
+    <textarea id="fbc-{{ fb.section_id or 'note' }}" name="comment" rows="2" maxlength="2000" placeholder="What worked, what did not?">{{ fb.current.comment if fb.current else '' }}</textarea>
+    <p class="hint">Choose a rating to save your comment with it. Ratings stay on this computer; nothing is ever sent anywhere.</p>
+  </details>
+</form>

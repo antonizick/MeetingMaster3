@@ -236,6 +236,19 @@ def _read_manifest(path: Path) -> dict[str, str]:
     return {str(k): str(v) for k, v in files.items()} if isinstance(files, dict) else {}
 
 
+def record_installed(manifest_path: Path, file_name: str, data: bytes) -> None:
+    """Record that ``file_name`` now holds exactly the shipped ``data`` (after a reset), so a
+    later app update may refresh it while the user has not edited it again."""
+    manifest = _read_manifest(manifest_path)
+    manifest[file_name] = _sha(data)
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(
+        manifest_path,
+        json.dumps({"version": 1, "files": manifest}, indent=2, sort_keys=True) + "\n",
+        overwrite=True,
+    )
+
+
 def install_builtins(vault_root: Path, subfolder: str, manifest_path: Path) -> list[InstallResult]:
     """Copy the built-in templates into the vault's templates folder.
 

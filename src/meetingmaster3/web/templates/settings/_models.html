@@ -1,0 +1,36 @@
+<div id="models-panel"{% if download.running %} hx-get="/settings/transcription/models" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+  <p class="hint">Cache folder: <code>{{ models_dir }}</code></p>
+  <div class="table-wrap"><table>
+    <caption class="sr-only">Models and whether they are downloaded</caption>
+    <thead><tr><th scope="col">Model</th><th scope="col">Kind</th><th scope="col">Status</th></tr></thead>
+    <tbody>
+    {% for m in model_status %}
+      <tr><td><code>{{ m.name }}</code>{% if m.note %} <span class="muted">({{ m.note }})</span>{% endif %}</td><td>{{ m.kind }}</td>
+          <td>{% if m.cached %}<span class="ok">✓ downloaded</span>{% else %}not downloaded{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% if engine_missing %}
+    <div class="alert warn"><p>The transcription engine is not installed (missing: {{ engine_missing|join(', ') }}), so models cannot be downloaded yet. Run <code>uv sync --extra ml</code>.</p></div>
+  {% endif %}
+  {% if download.steps %}
+    <ul class="plain" aria-live="polite">
+      {% for i in download.steps %}
+      <li>{% if i.state == 'done' %}✓{% elif i.state == 'running' %}▶{% elif i.state == 'failed' %}✗{% else %}○{% endif %}
+          <code>{{ i.name }}</code> ({{ i.kind }}) · {{ i.state }}{% if i.message %}<br><span class="error-text">{{ i.message }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  {% if download.error and not download.steps %}<div class="alert error" role="alert"><p>{{ download.error.message }} {{ download.error.hint }}</p></div>{% endif %}
+  <form class="stack" hx-post="/settings/transcription/models/download" hx-target="#models-panel" hx-swap="outerHTML">
+    <div class="grid">
+      <div class="field"><label for="dl-whisper">Whisper model</label>
+        <select id="dl-whisper" name="whisper">{% for m in model_choices %}<option value="{{ m }}"{% if m == model_default %} selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="dl-align">Alignment language</label>
+        <input id="dl-align" name="align_language" type="text" value="en" maxlength="3"></div>
+    </div>
+    <label class="check"><input type="checkbox" name="diarization" value="1" checked> Also download the speaker (diarization) model</label>
+    <div><button type="submit"{% if download.running %} disabled{% endif %}>{% if download.running %}Downloading…{% else %}Download models{% endif %}</button>
+    <span class="hint">The same as <code>mm3 models download</code>.</span></div>
+  </form>
+</div>

@@ -1,0 +1,40 @@
+{% macro field(v) %}
+{% set f = v.spec %}
+{% set fid = 'f-' ~ f.path|replace('.', '-') %}
+<div class="field{% if v.error %} has-error{% endif %}">
+  {% if f.kind == 'bool' %}
+    <label class="check" for="{{ fid }}"><input id="{{ fid }}" type="checkbox" name="{{ f.path }}" value="1"{% if v.value %} checked{% endif %}{% if f.hint %} aria-describedby="{{ fid }}-hint"{% endif %}> {{ f.label }}</label>
+    {% if f.warning %}<p class="hint warn-text">⚠ {{ f.warning }}</p>{% endif %}
+  {% elif f.kind == 'select' %}
+    <label for="{{ fid }}">{{ f.label }}</label>
+    <select id="{{ fid }}" name="{{ f.path }}"{% if f.hint %} aria-describedby="{{ fid }}-hint"{% endif %}>
+      {% for c in v.choices %}<option value="{{ c }}"{% if c|string == v.value|string %} selected{% endif %}>{{ c }}</option>{% endfor %}
+    </select>
+  {% elif f.kind == 'secret' %}
+    <label for="{{ fid }}">{{ f.label }}</label>
+    <input id="{{ fid }}" type="password" name="{{ f.path }}" autocomplete="new-password" spellcheck="false"
+           placeholder="{{ 'Saved. Type a new value to replace it.' if v.secret_set else 'Not set' }}"{% if f.hint %} aria-describedby="{{ fid }}-hint"{% endif %}>
+    {% if v.secret_set %}
+      <label class="check"><input type="checkbox" name="clear:{{ f.path }}" value="1"> Remove the saved value</label>
+    {% endif %}
+  {% else %}
+    <label for="{{ fid }}">{{ f.label }}</label>
+    <input id="{{ fid }}" name="{{ f.path }}" autocomplete="off" spellcheck="false"
+           {% if f.kind in ('int', 'opt_int') %}type="number" step="1"{% elif f.kind == 'float' %}type="number" step="any"{% else %}type="text"{% endif %}
+           value="{{ v.value }}"{% if f.placeholder %} placeholder="{{ f.placeholder }}"{% endif %}{% if f.hint %} aria-describedby="{{ fid }}-hint"{% endif %}{% if v.error %} aria-invalid="true"{% endif %}>
+  {% endif %}
+  {% if f.hint %}<p class="hint" id="{{ fid }}-hint">{{ f.hint }}{% if f.restart %} <em>Needs a restart.</em>{% endif %}</p>{% endif %}
+  {% if v.env_override %}<p class="hint warn-text">The environment variable <code>{{ f.env_var }}</code> is set and outranks this value.</p>{% endif %}
+  {% if v.error %}<p class="error-text" role="alert">{{ v.error }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro status(state) %}
+<div aria-live="polite">
+  {% if state.errors %}<div class="alert error" role="alert"><p>Some values need fixing. Nothing was saved.</p></div>{% endif %}
+  {% if state.saved %}<p class="ok" role="status">✓ Saved.</p>{% endif %}
+  {% for n in state.notices %}<div class="alert info"><p>{{ n }}</p></div>{% endfor %}
+</div>
+{% endmacro %}
+
+{% macro check_icon(status) %}{% if status == 'ok' %}✓{% elif status == 'warn' %}!{% else %}✗{% endif %}{% endmacro %}

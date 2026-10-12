@@ -18,6 +18,21 @@ Every note starts with the title and a header (date and time, participants, tags
 from the meeting details, not by the AI. **AI Recommendations** is always the last section and only
 draws on what was said.
 
+## The template library
+**Templates** in the top bar lists every template with its description, tags, whether it is built in or your own, and whether it is valid. You can:
+
+* **Star** a template to make it a favourite (favourites come first). The star is stored in the template file itself (`favorite: true`), so it travels with your vault.
+* **Preview** it: the sections and the instructions the model receives for each.
+* **Edit** it in the app. Saving checks the file first and shows errors with line numbers; nothing is written until it is valid. (Editing a built-in
+  template copies it into your vault, where it takes precedence.)
+* **Duplicate** it (a new id and the name "… (copy)"), or **Create** a new one from a small skeleton.
+* **Delete** one of your own templates (a copy is kept in `<templates folder>/Archive/`). Built-in templates cannot be deleted; **Reset to default**
+  restores the shipped version and keeps your current copy in the Archive folder.
+* **Open in Obsidian**, and filter by tag or search by name and description.
+
+The library reads the vault each time, so a template you edit in Obsidian shows up here when you reload, and the other way round. Files that are not valid
+templates are listed with their errors instead of being hidden. The format is in [`../dev-guide/template-format.md`](../dev-guide/template-format.md).
+
 ## What a note looks like
 ```markdown
 # Atlas Launch Sync
