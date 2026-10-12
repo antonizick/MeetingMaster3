@@ -24,6 +24,11 @@ Then choose:
 - **Template** (favourites first; invalid templates are listed but disabled, with the first problem).
 - **Language model** and model. The badge says `local` or `cloud: <provider>`. Choosing a cloud backend opens a
   dialog explaining that the transcript text (not the audio) would be sent; *Use a local model* goes back.
+  For a local backend the list only offers models that can write notes. Embedding models (such as
+  `nomic-embed-text`, used for search) and models whose context window is too small are left out. When no
+  default model is set, a tested model (`qwen3:8b`) is picked if it is installed. A model typed in by hand is
+  checked too: the page says why it will not work and does not start. The server checks again when the meeting
+  is submitted, so an unusable model never costs you a transcription.
 - **Speakers**: separate speakers or not, and optionally the fewest and most speakers.
 - **Hardware**: what was detected, the recommended Whisper model, and how long it should take for this file.
   *Advanced* lets you override the transcription model, compute type and batch size. Leave it alone to accept the
@@ -36,6 +41,12 @@ The job page lists every stage with a bar, message, time spent and an ETA, and u
 or close the tab; the page always shows the real state. *Cancel* stops the job (finished stages are kept and
 *Resume* continues). If something fails you see what happened and what to do:
 - **Retry**, or **Retry with smaller model** after a GPU out-of-memory error.
+- If **writing the notes** fails (the model is unsuitable, its context window is too small, it timed out, and so
+  on), a **Try another model** box lists every model you can use: installed local models, with their context
+  size, and each cloud backend's default model. Models that cannot write notes are shown greyed out with the
+  reason, and a recommended model is pre-selected. *Write the notes with this model* keeps the transcript and
+  speaker names and only writes the notes again. *Use this model for new meetings too* (on by default) saves it
+  as that backend's default model. A cloud model still asks for consent first.
 - "Transcription engine not installed" shows the install command.
 - Warnings, such as speakers not separated because no Hugging Face token is set, appear in a yellow box.
 - For a recording that does not sound like English you are asked whether to continue, treat it as English, or stop.

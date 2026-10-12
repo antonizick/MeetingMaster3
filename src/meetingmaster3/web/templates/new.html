@@ -65,9 +65,11 @@
       </div>
       <div class="field"><label for="model">Model</label>
         <input id="model" name="model" type="text" list="model-list" autocomplete="off" spellcheck="false"
-               value="{{ default_backend.default_model or '' }}">
+               value="{{ default_backend.default_model or '' }}" aria-describedby="model-note"
+               x-on:input="modelChanged" x-on:change="modelChanged"
+               x-bind:aria-invalid="modelProblem ? 'true' : 'false'">
         <datalist id="model-list"></datalist>
-        <p class="hint" x-text="modelNote"></p>
+        <p id="model-note" class="hint" aria-live="polite" x-bind:class="modelProblem && 'error-text'" x-text="modelNote"></p>
       </div>
     </div>
     <details>

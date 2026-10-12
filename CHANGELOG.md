@@ -8,6 +8,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Model choice that cannot fail late: for Ollama the app reads each model's capabilities and context length.
+  The new-meeting picker leaves out embedding models and models whose context window is too small, pre-selects
+  a tested model when no default is set, and explains a bad typed-in model before starting. The upload API and
+  `mm3 process` refuse such a model before transcription (`E_LLM_MODEL_UNSUITABLE`, `E_LLM_CONTEXT`). When
+  writing the notes fails, the job page offers **Try another model**: pick any usable local or cloud model, keep
+  the transcript and speaker names, write only the notes again, and optionally save the choice as the
+  backend's default. `/api/llm/backends/{name}/models` reports `can_generate`, `usable` and `suggested`.
 - Recent: "Notes in your vault" entries can be removed from the list one at a time, and entries whose note is
   missing or outside the configured vault are marked (*File not found*, *Not in your vault*, with no dead links)
   and can be removed together. Only the list entry is removed, never the file.
@@ -107,6 +114,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   makes no network calls (verified with a socket audit).
 
 ### Fixed
+- With no default model set for Ollama, the new-meeting page filled in the first installed model, which could be
+  an embedding model such as `nomic-embed-text` (2,048-token window). The job then failed at *Generating notes*
+  with a context error, after the whole transcription, and the error's advice (raise `generation.max_context`)
+  could not help. Context errors now say whether the model or the setting is the limit, and point at the
+  matching fix.
 - Workspace section-marker labels had too little contrast (axe-core, WCAG AA).
 - The board-governance template's vote line contradicted its own instruction to copy the chair's
   words ("carried unanimously").

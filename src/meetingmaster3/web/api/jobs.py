@@ -28,6 +28,7 @@ from meetingmaster3.errors import MM3Error
 from meetingmaster3.jobs.files import check_job_id, job_dir, new_job_id, remove_job_dir
 from meetingmaster3.jobs.models import FINAL, JobOptions, JobStatus, ProgressEvent
 from meetingmaster3.jobs.runner import JobRunner
+from meetingmaster3.templates.model_check import preflight
 
 router = APIRouter(prefix="/api/jobs")
 
@@ -196,6 +197,9 @@ async def create_job(request: Request) -> dict[str, Any]:
         folder = job_dir(runner.jobs_root, job_id)
         filename = display_filename(upload.filename)
         options = _parse_options(upload.options, filename)
+        await preflight(
+            request.app.state.llm_registry, runner.settings, options.backend, options.model
+        )
         info = await asyncio.to_thread(probe, folder / audio_name)
         runner.create_job(
             job_id,

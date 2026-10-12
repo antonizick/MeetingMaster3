@@ -168,6 +168,7 @@ def failure_of(job: dict[str, Any]) -> dict[str, Any] | None:
             details = detail.get("details") or {}
             error.setdefault("code", detail.get("error_code") or detail.get("code"))
             error["stage"] = stage.get("display_name") or stage["stage"]
+            error["stage_id"] = stage["stage"]
             error["suggested_overrides"] = details.get("suggested_overrides") or {}
             break
     error.setdefault("suggested_overrides", {})

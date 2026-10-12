@@ -59,6 +59,7 @@ class OllamaBackend:
             self._headers["Authorization"] = f"Bearer {api_key}"
         self._override_ctx = context_window
         self._ctx: dict[str, int] = {}
+        self._caps: dict[str, frozenset[str]] = {}
 
     # -- plumbing ----------------------------------------------------------------------
 
@@ -168,6 +169,9 @@ class OllamaBackend:
         )
 
     async def list_models(self) -> list[ModelInfo]:
+        """Installed models, with each one's context window and whether it can write text."""
+        names = [m.id for m in await self._list_models()]
+        await asyncio.gather(*(self.warm(n) for n in names))
         return await self._list_models()
 
     async def _list_models(self, attempts: int = MAX_ATTEMPTS) -> list[ModelInfo]:
@@ -180,6 +184,7 @@ class OllamaBackend:
                     name=m["name"],
                     size_bytes=m.get("size"),
                     context_window=self._ctx.get(m["name"]),
+                    can_generate=self.can_generate(m["name"]),
                 )
                 for m in items
             ]
@@ -217,17 +222,28 @@ class OllamaBackend:
     def context_window(self, model: str) -> int | None:
         return self._override_ctx or self._ctx.get(model)
 
+    def can_generate(self, model: str) -> bool | None:
+        """False for an embedding-only model (Ollama lists its capabilities); None if unknown."""
+        caps = self._caps.get(model)
+        return None if caps is None else "completion" in caps
+
     async def warm(self, model: str) -> None:
-        """Read the model's maximum context length from ``/api/show``."""
-        if model in self._ctx:
+        """Read the model's maximum context length and capabilities from ``/api/show``."""
+        if model in self._ctx or model in self._caps:
             return
         try:
             resp = await self._call(
                 "POST", "/api/show", timeout=PROBE_TIMEOUT_S, body={"model": model}
             )
-            info = resp.json().get("model_info", {})
-        except (MM3Error, ValueError):
+            data = resp.json()
+            info = data.get("model_info") or {}
+        except (MM3Error, ValueError, AttributeError):
             return
+        if not isinstance(info, dict):
+            info = {}
+        caps = data.get("capabilities")
+        if isinstance(caps, list):  # older Ollama versions do not report them
+            self._caps[model] = frozenset(str(c) for c in caps)
         for key, value in info.items():
             if key.endswith(".context_length") and isinstance(value, int):
                 self._ctx[model] = value

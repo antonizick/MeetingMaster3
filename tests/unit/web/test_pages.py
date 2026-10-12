@@ -503,3 +503,111 @@ def test_recent_notes_can_be_removed_and_orphans_pruned(
     assert [m.title for m in repo.recent()] == ["Kept"] and outside.is_file()
     page = ui.get("/meetings").text
     assert "missing or outside your vault" not in page and "Kept" in page
+
+
+# -- choosing a model that can write notes ---------------------------------------------------------
+
+
+@pytest.fixture
+def fake_models(ui: TestClient, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    """The registry's backends replaced by offline fakes: Ollama has a chat model, an embedding
+    model and a chat model whose window is too small to summarise anything."""
+    from meetingmaster3.llm.fake import FakeLLMBackend
+
+    class Local(FakeLLMBackend):
+        def context_window(self, model: str) -> int | None:
+            return 2048 if model == "tiny:1" else 40960
+
+        async def list_models(self) -> list[Any]:
+            found = await super().list_models()
+            return [
+                type(m)(m.id, m.name, self.context_window(m.id), None, m.can_generate)
+                for m in found
+            ]
+
+    fakes = {
+        "ollama": Local(id="ollama", models=("tiny:1", "good:1"), embedding_models=("embed:1",)),
+        "openrouter": FakeLLMBackend(id="openrouter", is_local=False),
+    }
+    registry = ui.app.state.llm_registry  # type: ignore[attr-defined]
+    monkeypatch.setattr(registry, "get", lambda name=None: fakes[name or "ollama"])
+    return fakes
+
+
+@requires_ffmpeg
+def test_unusable_models_are_refused_before_transcription(
+    ui: TestClient, tone: Path, fake_models: dict[str, Any]
+) -> None:
+    r = upload(ui, tone, {"backend": "ollama", "model": "embed:1"})
+    assert r.status_code == 422
+    assert r.json()["code"] == "E_LLM_MODEL_UNSUITABLE"
+    assert "embedding model" in r.json()["message"]
+    r = upload(ui, tone, {"backend": "ollama", "model": "tiny:1"})
+    assert r.status_code == 422 and r.json()["code"] == "E_LLM_CONTEXT"
+    assert "can only read 2,048 tokens" in r.json()["message"]
+    assert ui.get("/api/jobs").json()["jobs"] == []  # nothing was queued
+
+
+def test_model_list_marks_unusable_models_and_suggests_one(
+    ui: TestClient, fake_models: dict[str, Any]
+) -> None:
+    body = ui.get("/api/llm/backends/ollama/models").json()
+    usable = {m["id"]: m["usable"] for m in body["models"]}
+    assert usable == {"tiny:1": False, "good:1": True, "embed:1": False}
+    assert body["suggested"] == "good:1"
+    assert next(m for m in body["models"] if m["id"] == "embed:1")["can_generate"] is False
+    # The Settings datalist leaves embedding models out.
+    assert 'value="embed:1"' not in ui.get("/settings/llm/ollama/models").text
+
+
+@requires_ffmpeg
+def test_failed_notes_can_be_retried_with_another_model(
+    ui: TestClient, tone: Path, fake_models: dict[str, Any], settings: Settings
+) -> None:
+    job = upload(ui, tone, {"backend": "openrouter", "model": "x/y"}).json()
+    wait(ui, job["id"], "waiting_for_input")
+    ui.post(f"/ui/jobs/{job['id']}/speakers", data={"name__SPEAKER_00": "Alice"})
+    wait(ui, job["id"], "waiting_for_input")
+    ui.post(f"/ui/jobs/{job['id']}/consent", data={"choice": "deny"})
+    wait(ui, job["id"], "failed")  # failed while writing the notes
+
+    panel_html = ui.get(f"/ui/jobs/{job['id']}/panel").text
+    assert f'hx-get="/ui/jobs/{job["id"]}/model-choice"' in panel_html
+    assert "Retry with the same model" in panel_html
+    form = ui.get(f"/ui/jobs/{job['id']}/model-choice").text
+    assert "Try another model" in form and "transcript and speaker names are kept" in form
+    assert '<option value="ollama:good:1" selected>good:1 · 40,960 tokens · recommended<' in form
+    assert '<option value="ollama:embed:1" disabled>' in form
+    assert "write notes (embedding model)" in form
+    assert "write notes (context too small)" in form
+
+    assert (
+        ui.post(f"/ui/jobs/{job['id']}/retry-model", data={"choice": "nope:x"}).status_code == 422
+    )
+    bad = ui.post(f"/ui/jobs/{job['id']}/retry-model", data={"choice": "ollama:embed:1"})
+    assert bad.status_code == 422 and "E_LLM_MODEL_UNSUITABLE" in bad.text
+    r = ui.post(
+        f"/ui/jobs/{job['id']}/retry-model", data={"choice": "ollama:good:1", "make_default": "1"}
+    )
+    assert r.status_code == 200
+    done = wait(ui, job["id"], "written")
+    assert done["options"]["backend"] == "ollama"  # type: ignore[index]
+    assert done["options"]["model"] == "good:1"  # type: ignore[index]
+    assert settings.llm.backends["ollama"].default_model == "good:1"
+    saved = (ui.app.state.paths.config_file).read_text()  # type: ignore[attr-defined]
+    assert "default_model: good:1" in saved
+
+
+def test_panel_offers_another_model_only_when_the_notes_failed() -> None:
+    failure = {
+        "code": "E_LLM_CONTEXT",
+        "message": "Too small.",
+        "hint": "",
+        "stage": "Generating notes",
+        "stage_id": "generate",
+        "suggested_overrides": {},
+    }
+    html = panel({"status": "failed", "id": "j1"}, failure=failure)
+    assert 'hx-get="/ui/jobs/j1/model-choice"' in html and "Retry with the same model" in html
+    other = panel({"status": "failed", "id": "j1"}, failure={**failure, "stage_id": "transcribe"})
+    assert "model-choice" not in other and ">Retry</button>" in other

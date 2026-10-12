@@ -18,7 +18,13 @@ from meetingmaster3.domain.meeting import MeetingMeta
 from meetingmaster3.domain.note import Note, Section
 from meetingmaster3.domain.transcript import Transcript
 from meetingmaster3.errors import MM3Error
-from meetingmaster3.llm.base import GenerateRequest, LLMBackend, Message
+from meetingmaster3.llm.base import (
+    E_LLM_CONTEXT,
+    E_LLM_MODEL_UNSUITABLE,
+    GenerateRequest,
+    LLMBackend,
+    Message,
+)
 from meetingmaster3.llm.budget import (
     Chunk,
     chunk_transcript,
@@ -55,6 +61,55 @@ MIN_NUM_CTX = 4096
 REQUEST_TIMEOUT_S = 900.0
 MAP_SHARE = 0.6
 """Share of the progress bar given to the map step in map-reduce mode."""
+
+
+def map_budget(window: int) -> int:
+    """Tokens of transcript one map-reduce extraction call can hold in ``window``."""
+    overhead = estimate_tokens(EXTRACTION_SYSTEM + extraction_prompt(99, 99, ""))
+    cue_room = min(CUE_TOKENS, usable_tokens(window) // 10)
+    return usable_tokens(window) - overhead - EXTRACTION_MAX_TOKENS - cue_room
+
+
+def window_is_workable(window: int) -> bool:
+    """True when a meeting of any length can be summarised within ``window`` tokens."""
+    return map_budget(window) >= MIN_CHUNK_TOKENS
+
+
+def can_generate(backend: LLMBackend, model: str) -> bool | None:
+    """False when the backend knows ``model`` cannot write text (an embedding model)."""
+    probe = getattr(backend, "can_generate", None)
+    answer = probe(model) if callable(probe) else None
+    return answer if isinstance(answer, bool) else None
+
+
+def unsuitable_model_error(model: str) -> MM3Error:
+    return MM3Error(
+        E_LLM_MODEL_UNSUITABLE,
+        f"“{model}” cannot write notes: it is an embedding model, which turns text into "
+        "numbers for search instead of writing text.",
+        "Choose a chat model, such as qwen3:8b.",
+        status_code=422,
+    )
+
+
+def context_error(model: str, window: int, model_window: int | None) -> MM3Error:
+    """Explain a too-small window: the setting's cap, or the model itself."""
+    if model_window is not None and model_window > window:
+        return MM3Error(
+            E_LLM_CONTEXT,
+            f"Your settings limit local models to {window:,} tokens of context, too few to "
+            "summarise a meeting.",
+            "Raise “Largest context for local models” in Settings → Notes (16,384 suits an "
+            "8 GB GPU), then retry.",
+            status_code=422,
+        )
+    return MM3Error(
+        E_LLM_CONTEXT,
+        f"“{model}” can only read {window:,} tokens at a time, too few to summarise a meeting.",
+        "Choose a model with a larger context window (8,192 tokens or more).",
+        status_code=422,
+    )
+
 
 ProgressFn = Callable[[float, str], None]
 CancelFn = Callable[[], None]
@@ -197,6 +252,8 @@ class NoteGenerator:
         cues = tuple(assembler.task_cues(turns, hours=hours))
         context = assembler.context_block(assembler.format_turns(turns, hours=hours))
         window = await self._window()
+        if can_generate(self.backend, self.model) is False:
+            raise unsuitable_model_error(self.model)
         tail, reserve = self._sections_overhead(sections, cues)
         prompt_tokens = estimate_tokens(system + "\n" + context) + tail
         if fits_window(window, system + "\n" + context, reserve + tail):
@@ -211,17 +268,10 @@ class NoteGenerator:
             )
 
         # Map: chunk on speaker turns so each extraction call fits the budget.
-        overhead = estimate_tokens(EXTRACTION_SYSTEM + extraction_prompt(99, 99, ""))
         cue_room = min(CUE_TOKENS, usable_tokens(window) // 10)
-        budget = usable_tokens(window) - overhead - EXTRACTION_MAX_TOKENS - cue_room
+        budget = map_budget(window)
         if budget < MIN_CHUNK_TOKENS:
-            raise MM3Error(
-                "E_LLM_CONTEXT",
-                f"The model's context window ({window} tokens) is too small to summarise this "
-                "meeting.",
-                "Choose a model with a larger context window, or raise generation.max_context.",
-                status_code=422,
-            )
+            raise context_error(self.model, window, self.backend.context_window(self.model))
         chunks = chunk_transcript(turns, budget)
         num_ctx = self._num_ctx(window, usable_tokens(window) + reserve)
         start, end = map_progress

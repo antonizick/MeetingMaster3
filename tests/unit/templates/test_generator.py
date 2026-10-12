@@ -229,6 +229,29 @@ async def test_window_too_small_for_map_reduce() -> None:
     assert err.value.code == "E_LLM_CONTEXT"
 
 
+async def test_window_errors_name_the_real_limit() -> None:
+    with pytest.raises(MM3Error) as err:
+        await generator(FakeLLMBackend(window=2048)).generate(meta(), transcript(repeat=60))
+    assert "“fake-model” can only read 2,048 tokens" in err.value.message
+    assert "larger context window" in err.value.hint
+    # When the setting, not the model, is the limit, the hint points at the setting.
+    with pytest.raises(MM3Error) as err:
+        await generator(FakeLLMBackend(window=131072), max_context=2048).generate(
+            meta(), transcript(repeat=60)
+        )
+    assert "Your settings limit local models to 2,048 tokens" in err.value.message
+    assert "Settings → Notes" in err.value.hint
+
+
+async def test_embedding_model_is_refused_before_any_call() -> None:
+    backend = FakeLLMBackend(models=(), embedding_models=("fake-model",))
+    with pytest.raises(MM3Error) as err:
+        await generator(backend).generate(meta(), transcript())
+    assert err.value.code == "E_LLM_MODEL_UNSUITABLE"
+    assert "embedding model" in err.value.message
+    assert backend.calls == []
+
+
 async def test_max_context_caps_local_models_only() -> None:
     local = FakeLLMBackend(window=131072)
     result = await generator(local, max_context=4096).generate(meta(), transcript(repeat=60))

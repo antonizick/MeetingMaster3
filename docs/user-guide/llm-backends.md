@@ -28,7 +28,11 @@ llm:
       default_model: qwen3:8b
 ```
 The app sizes Ollama's context window from the prompt, and asks Ollama to unload its models before
-transcription so an 8 GB GPU is not out of memory.
+transcription so an 8 GB GPU is not out of memory. It also reads each model's capabilities and context length
+from Ollama (`/api/show`). Embedding-only models, and models with too little context to summarise a meeting
+(below about 4,096 tokens, after the *Largest context for local models* cap), are not offered. A job that names
+one is refused when it is submitted, with `E_LLM_MODEL_UNSUITABLE` or `E_LLM_CONTEXT`. Setting
+`default_model`, or ticking *Use this model for new meetings too* after a failure, saves you choosing each time.
 
 In Docker, point `base_url` at `http://host.docker.internal:11434`; Ollama must listen on an address the container can reach.
 

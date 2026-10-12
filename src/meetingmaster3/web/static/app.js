@@ -115,6 +115,9 @@
       needsConsent: false,
       consented: "",
       modelNote: "",
+      modelProblem: "",
+      models: {},
+      suggestedModel: "",
       templateHint: "",
 
       dateEdited: false,
@@ -240,7 +243,10 @@
       async listModels(name, isLocal) {
         const list = document.getElementById("model-list");
         list.replaceChildren();
+        this.models = {};
+        this.suggestedModel = "";
         this.modelNote = "";
+        this.modelProblem = "";
         if (!isLocal) {
           this.modelNote = "Type the model id this provider should use.";
           return;
@@ -250,16 +256,44 @@
           const body = await res.json();
           if (!res.ok) throw new Error(body.hint || body.message);
           for (const m of body.models) {
+            this.models[m.id] = m;
+            if (!m.usable) continue; // embedding models and tiny windows cannot write notes
             const o = document.createElement("option");
             o.value = m.id;
+            if (m.context_window) o.label = m.context_window.toLocaleString() + "-token context";
             list.append(o);
           }
+          this.suggestedModel = body.suggested || "";
           const input = this.field("model");
-          if (!input.value && body.models.length) input.value = body.models[0].id;
+          const current = this.models[input.value];
+          if ((!input.value || (current && !current.usable)) && this.suggestedModel) {
+            input.value = this.suggestedModel;
+          }
           if (!body.models.length) this.modelNote = "No models are installed for this backend yet.";
+          else if (!this.suggestedModel) {
+            this.modelNote = "None of the installed models can write notes. Install a chat " +
+              "model, for example: ollama pull qwen3:8b";
+          } else this.modelChanged();
         } catch (e) {
           this.modelNote = "Could not list models (" + e.message + "). You can type a model name.";
         }
+      },
+
+      modelChanged() {
+        const id = this.field("model").value.trim();
+        const m = this.models[id] || this.models[id + ":latest"];
+        this.modelProblem = "";
+        if (!m) { this.modelNote = ""; return; }
+        const better = this.suggestedModel ? " Try " + this.suggestedModel + "." : "";
+        if (m.can_generate === false) {
+          this.modelProblem = id + " is an embedding model (used for search), so it cannot " +
+            "write notes." + better;
+        } else if (!m.usable) {
+          this.modelProblem = id + " can only read " + m.context_window.toLocaleString() +
+            " tokens at a time, too few to summarise a meeting." + better;
+        }
+        this.modelNote = this.modelProblem || (m.context_window
+          ? "Reads up to " + m.context_window.toLocaleString() + " tokens at a time." : "");
       },
 
       options() {
@@ -296,6 +330,12 @@
         if (this.file === null || this.uploading) return;
         if (this.needsConsent && this.consented !== this.backendName) {
           this.$refs.consent.showModal();
+          return;
+        }
+        if (this.modelProblem) {
+          this.error = "Choose another model before starting.";
+          this.errorHint = this.modelProblem;
+          this.field("model").focus();
           return;
         }
         this.error = "";

@@ -116,11 +116,36 @@ async def test_list_models_and_context_window_from_show() -> None:
         json={"model_info": {"general.architecture": "qwen3", "qwen3.context_length": 40960}}
     )
     b = backend()
-    models = await b.list_models()
-    assert [(m.id, m.size_bytes) for m in models] == [("qwen3:8b", 5_200_000_000)]
     assert b.context_window("qwen3:8b") is None
-    await b.warm("qwen3:8b")
+    models = await b.list_models()
+    assert [(m.id, m.size_bytes, m.context_window) for m in models] == [
+        ("qwen3:8b", 5_200_000_000, 40960)
+    ]
     assert b.context_window("qwen3:8b") == 40960
+    assert models[0].can_generate is None  # this (older) Ollama does not report capabilities
+
+
+@respx.mock
+async def test_list_models_flags_embedding_models() -> None:
+    respx.get(f"{BASE}/api/tags").respond(
+        json={"models": [{"name": "nomic-embed-text:latest"}, {"name": "qwen3:8b"}]}
+    )
+
+    def show(request: httpx.Request) -> httpx.Response:
+        if json.loads(request.content)["model"].startswith("nomic"):
+            info = {"nomic-bert.context_length": 2048}
+            return httpx.Response(200, json={"capabilities": ["embedding"], "model_info": info})
+        info = {"qwen3.context_length": 40960}
+        caps = ["completion", "tools", "thinking"]
+        return httpx.Response(200, json={"capabilities": caps, "model_info": info})
+
+    respx.post(f"{BASE}/api/show").mock(side_effect=show)
+    b = backend()
+    models = {m.id: m for m in await b.list_models()}
+    assert models["nomic-embed-text:latest"].can_generate is False
+    assert models["nomic-embed-text:latest"].context_window == 2048
+    assert models["qwen3:8b"].can_generate is True
+    assert b.can_generate("unknown:1") is None
 
 
 @respx.mock

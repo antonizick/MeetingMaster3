@@ -486,6 +486,7 @@ async def backend_models(
 ) -> HTMLResponse:
     try:
         found = await _registry(request).get(name).list_models()
+        found = [m for m in found if m.can_generate is not False]  # not embedding models
         error = ""
     except MM3Error as exc:
         found, error = [], exc.message

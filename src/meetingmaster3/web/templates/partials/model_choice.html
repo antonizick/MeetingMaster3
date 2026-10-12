@@ -1,0 +1,31 @@
+<form class="stack model-choice" hx-post="/ui/jobs/{{ job.id }}/retry-model" hx-target="#job-panel" hx-swap="innerHTML">
+  <h2 id="h-model-choice">Try another model</h2>
+  <p>Your transcript and speaker names are kept, so only the notes are written again.</p>
+  {% if usable_count %}
+  <div class="field">
+    <label for="retry-choice">Model</label>
+    <select id="retry-choice" name="choice" required>
+      {% for g in groups %}
+      <optgroup label="{{ g.name }} ({{ 'on this computer' if g.local else 'cloud: asks before sending' }})">
+        {% for m in g.models %}
+        {% set value = g.name ~ ':' ~ m.id %}
+        {% set is_selected = selected and selected[0] == g.name and selected[1] == m.id %}
+        <option value="{{ value }}"{% if m.why %} disabled{% endif %}{% if is_selected %} selected{% endif %}>
+          {{- m.id }}{% if m.window %} · {{ '{:,}'.format(m.window) }} tokens{% endif %}
+          {%- if m.why %} · can’t write notes ({{ m.why }}){% elif g.suggested == m.id %} · recommended{% endif %}
+          {%- if failed[0] == g.name and failed[1] == m.id %} · used last time{% endif -%}
+        </option>
+        {% endfor %}
+      </optgroup>
+      {% endfor %}
+    </select>
+  </div>
+  <label class="check"><input type="checkbox" name="make_default" value="1" checked>
+    Use this model for new meetings too</label>
+  <div class="row"><button type="submit" class="primary">Write the notes with this model</button></div>
+  {% else %}
+  <p>No installed model can write notes. Install a chat model, for example
+    <code>ollama pull qwen3:8b</code>, then reload this page.</p>
+  {% endif %}
+  {% for g in groups if g.error %}<p class="hint error-text">{{ g.name }}: {{ g.error }}</p>{% endfor %}
+</form>

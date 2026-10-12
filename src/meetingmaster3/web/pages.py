@@ -19,6 +19,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from meetingmaster3 import __version__
+from meetingmaster3.config.editing import save_settings
 from meetingmaster3.domain.filenames import parse_filename
 from meetingmaster3.errors import MM3Error
 from meetingmaster3.feedback.context import feedback_context
@@ -31,6 +32,7 @@ from meetingmaster3.llm.registry import BackendRegistry
 from meetingmaster3.speakers.stages import SPEAKERS_FILE, normalise_answer
 from meetingmaster3.speakers.store import VoiceprintStore
 from meetingmaster3.storage.repositories import RecentMeetingsRepository
+from meetingmaster3.templates import model_check
 from meetingmaster3.templates.loader import MANIFEST_NAME, install_builtins
 from meetingmaster3.templates.stages import WRITTEN_FILE, template_library
 from meetingmaster3.vault.io import read_text
@@ -301,6 +303,101 @@ async def job_retry(request: Request, job_id: str) -> HTMLResponse:
             except ValueError as exc:
                 raise MM3Error("E_BODY_INVALID", f"{name} must be a number.", "") from exc
     runner.resume(check_job_id(job_id), overrides)
+    return _panel(request, job_id)
+
+
+async def _model_choices(request: Request) -> list[dict[str, Any]]:
+    """Every backend with the models a failed job could be retried with. Local backends list
+    their installed models (unusable ones are shown disabled, with the reason); cloud backends
+    offer their default model, and are asked for consent again before anything is sent."""
+    registry: BackendRegistry = request.app.state.llm_registry
+    cap = _settings(request).generation.max_context
+    groups: list[dict[str, Any]] = []
+    for name in registry.names():
+        backend = registry.get(name)
+        cfg = registry.config(name)
+        group: dict[str, Any] = {
+            "name": name,
+            "local": backend.is_local,
+            "models": [],
+            "suggested": None,
+            "error": "",
+        }
+        if backend.is_local:
+            try:
+                found = await backend.list_models()
+            except MM3Error as exc:
+                group["error"] = exc.message
+                found = []
+            group["suggested"] = model_check.suggest(found, backend, cap)
+            for m in found:
+                ok = model_check.usable(m, backend, cap)
+                why = (
+                    ""
+                    if ok
+                    else ("embedding model" if m.can_generate is False else "context too small")
+                )
+                group["models"].append({"id": m.id, "window": m.context_window, "why": why})
+        elif cfg.default_model:
+            group["models"].append({"id": cfg.default_model, "window": None, "why": ""})
+        if group["models"] or group["error"]:
+            groups.append(group)
+    return groups
+
+
+@router.get("/ui/jobs/{job_id}/model-choice", response_class=HTMLResponse)
+async def job_model_choice(request: Request, job_id: str) -> HTMLResponse:
+    """The "try another model" form shown when writing the notes failed."""
+    job = get_runner(request).describe(check_job_id(job_id))
+    registry: BackendRegistry = request.app.state.llm_registry
+    groups = await _model_choices(request)
+    failed = (job["options"].get("backend") or registry.default_name, job["options"].get("model"))
+    selected = next(
+        (
+            (g["name"], g["suggested"])
+            for g in groups
+            if g["suggested"] and (g["name"], g["suggested"]) != failed
+        ),
+        None,
+    )
+    return render(
+        request,
+        "partials/model_choice.html",
+        {
+            "job": job,
+            "groups": groups,
+            "selected": selected,
+            "failed": failed,
+            "usable_count": sum(not m["why"] for g in groups for m in g["models"]),
+        },
+    )
+
+
+@router.post("/ui/jobs/{job_id}/retry-model", response_class=HTMLResponse)
+async def job_retry_model(
+    request: Request,
+    job_id: str,
+    choice: str = Form(...),
+    make_default: str = Form(""),
+) -> HTMLResponse:
+    """Retry a failed job with another backend/model (``choice`` is ``backend:model``); the
+    finished transcript and speaker names are kept, so only the notes are written again."""
+    check_job_id(job_id)
+    registry: BackendRegistry = request.app.state.llm_registry
+    settings = _settings(request)
+    name, _, model = choice.partition(":")
+    model = model.strip()
+    if name not in registry.names() or not model:
+        raise MM3Error("E_BODY_INVALID", "Choose one of the listed models.", "", status_code=422)
+    await model_check.preflight(registry, settings, name, model)
+    if make_default:
+        backends = dict(settings.llm.backends)
+        cfg = registry.config(name)
+        backends[name] = cfg.model_copy(update={"default_model": model})
+        settings.llm.backends = backends
+        save_settings(settings, request.app.state.paths.config_file)
+        registry.invalidate()
+    get_runner(request).resume(job_id, {"backend": name, "model": model})
     return _panel(request, job_id)
 
 

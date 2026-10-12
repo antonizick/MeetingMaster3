@@ -601,3 +601,31 @@ choice.
 **Status.** Accepted (2026-10-12, Phase 15).
 **Consequences.** Re-run `scripts/pip_audit_ml.sh` and the GPU socket audit after any ML dependency change; the
 `ml` advisories stay accepted until WhisperX lifts its pins (ADR-0014).
+
+## ADR-0029: Check that a model can write notes before any work, and recover in place
+**Context.** In Nick's first real run, no default Ollama model was set, so the new-meeting page filled in the
+first installed model: `nomic-embed-text`, an embedding model with a 2,048-token window. The job transcribed for
+15 minutes and then failed at *Generating notes* with `E_LLM_CONTEXT`. The hint ("raise
+`generation.max_context`") could not help, and the UI had no way to change the model of a failed job.
+**Options considered.**
+
+| Option | Pros | Cons |
+|---|---|---|
+| Better error text only | Smallest change | Still fails late; the user still cannot change the model from the UI |
+| Validate before work, and offer recovery on failure (chosen) | The common mistake never starts; any late failure is fixed in two clicks without re-transcribing | More code; needs the backend to report model capabilities |
+| Hide every model without a known window | Simple | Hides usable cloud/OpenAI-compatible models whose window is unknown |
+
+**Decision.** For Ollama, read `capabilities` and `*.context_length` from `/api/show` (`ModelInfo.can_generate`).
+A model is *usable* unless it is known to be embedding-only, or its window is known and too small after the
+`generation.max_context` cap (`window_is_workable`, the same budget the map-reduce step uses). Unknown means
+usable, and only local backends are probed, so nothing leaves the machine before consent. Usability is enforced
+in four places: the picker (filters, plus a suggested model, preferring the measured `qwen3:8b`), the submission
+(`/api/jobs` and `mm3 process` refuse with `E_LLM_MODEL_UNSUITABLE` or `E_LLM_CONTEXT`), the generator itself, and
+the failed-job panel. For any failure in the generate stage, that panel offers **Try another model**
+(`POST /ui/jobs/{id}/retry-model`), which resumes from the generate stage with `backend`/`model` overrides and can
+save the choice as the backend's `default_model`. Context errors now say whether the model or the setting is the
+limit.
+**Status.** Accepted (2026-10-12, pre-release fix outside the phase table).
+**Consequences.** Opening the model list costs one `/api/show` call per installed model (cached per backend).
+Older Ollama versions report no capabilities; their embedding models then fail at generation, with the same
+recovery panel.

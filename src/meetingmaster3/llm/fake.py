@@ -98,6 +98,8 @@ class FakeLLMBackend:
     responder: Responder | None = None
     calls: list[GenerateRequest] = field(default_factory=list)
     models: tuple[str, ...] = ("fake-model",)
+    embedding_models: tuple[str, ...] = ()
+    """Models that cannot write text, like Ollama's embedding models."""
 
     async def generate(self, req: GenerateRequest) -> GenerateResult:
         self.calls.append(req)
@@ -118,7 +120,13 @@ class FakeLLMBackend:
         yield result.text
 
     async def list_models(self) -> list[ModelInfo]:
-        return [ModelInfo(id=m, context_window=self.window) for m in self.models]
+        return [
+            ModelInfo(id=m, context_window=self.window, can_generate=self.can_generate(m))
+            for m in (*self.models, *self.embedding_models)
+        ]
+
+    def can_generate(self, model: str) -> bool:
+        return model not in self.embedding_models
 
     async def test_connection(self) -> ConnectionStatus:
         return ConnectionStatus(ok=True, message="Fake backend (offline)", models=len(self.models))

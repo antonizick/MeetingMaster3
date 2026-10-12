@@ -101,6 +101,7 @@ file-only protocol whitelist. Measured speed and memory on the 8 GB reference GP
 | `templates/schema.py`, `loader.py` | Template file parser with line-numbered validation; library of built-ins (`starter_templates/*.md`) and vault templates (override by id); non-clobbering install with a hash manifest. |
 | `templates/assembler.py`, `cues.py` | Prompt assembly (global rules, template, meeting facts, `[mm:ss] Name: text` transcript); tagged task candidates and the owner guard. |
 | `templates/generator.py`, `mapreduce.py`, `postprocess.py` | `NoteGenerator` (consent, fit check, per-section calls, map-reduce, checkpoints, `regenerate_section`); chunk extraction, JSON repair, merge; output clean-up and deadline dates. |
+| `templates/model_check.py` | Whether a model can write notes (embedding-only, or too little context), checked when a job is submitted, the model the UI suggests, and the models offered by **Try another model** on a failed job (ADR-0029). |
 | `templates/stages.py`, `regenerate.py` | The `generate` and `write` stages; preview of one section's regeneration for a vault note. |
 | `web/api/templates.py` | `GET /api/templates`, `POST /api/templates/install`, `POST /api/jobs/{id}/generate`, `POST /api/notes/regenerate-section`. |
 | `markdown/editing.py` | Split a note into editable parts (frontmatter, user text around sections, section contents) and join edited parts back with the original marker lines and line endings (ADR-0024). |

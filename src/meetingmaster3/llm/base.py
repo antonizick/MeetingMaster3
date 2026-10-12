@@ -19,6 +19,7 @@ E_LLM_BAD_RESPONSE = "E_LLM_BAD_RESPONSE"
 E_LLM_UNKNOWN_BACKEND = "E_LLM_UNKNOWN_BACKEND"
 E_LLM_CONFIG = "E_LLM_CONFIG"
 E_CONSENT_REQUIRED = "E_CONSENT_REQUIRED"
+E_LLM_MODEL_UNSUITABLE = "E_LLM_MODEL_UNSUITABLE"
 
 LOCAL_HOSTNAMES = frozenset({"localhost", "host.docker.internal"})
 
@@ -102,6 +103,8 @@ class ModelInfo:
     name: str | None = None
     context_window: int | None = None
     size_bytes: int | None = None
+    can_generate: bool | None = None
+    """False for models that cannot write text (embedding models); None when unknown."""
 
 
 @dataclass(frozen=True)

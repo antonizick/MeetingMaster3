@@ -17,8 +17,9 @@
   <p><strong>{{ failure.message or 'The job failed.' }}</strong></p>
   {% if failure.hint %}<p>{{ failure.hint }}</p>{% endif %}
   <p class="muted"><code>{{ failure.code }}</code>{% if failure.stage %} · in “{{ failure.stage }}”{% endif %}</p>
+  {% set model_failure = failure.stage_id == 'generate' %}
   <div class="row">
-    <button class="primary" hx-post="/ui/jobs/{{ job.id }}/retry" hx-target="#job-panel" hx-swap="innerHTML">Retry</button>
+    <button class="{{ '' if model_failure else 'primary' }}" hx-post="/ui/jobs/{{ job.id }}/retry" hx-target="#job-panel" hx-swap="innerHTML">Retry{% if model_failure %} with the same model{% endif %}</button>
     {% if failure.code == 'E_OOM' and failure.suggested_overrides %}
     <form hx-post="/ui/jobs/{{ job.id }}/retry" hx-target="#job-panel" hx-swap="innerHTML">
       {% for k, v in failure.suggested_overrides.items() %}<input type="hidden" name="o_{{ k }}" value="{{ v }}">{% endfor %}
@@ -27,6 +28,13 @@
     {% endif %}
   </div>
 </div>
+{% if model_failure %}
+<section class="card stack attention" aria-labelledby="h-model-choice">
+  <div hx-get="/ui/jobs/{{ job.id }}/model-choice" hx-trigger="load" hx-swap="outerHTML">
+    <p class="muted">Looking for models that can write the notes…</p>
+  </div>
+</section>
+{% endif %}
 {% elif job.status in ('cancelled', 'interrupted') %}
 <div class="alert warn" role="status">
   <p>{{ 'This job was cancelled.' if job.status == 'cancelled' else 'The server stopped while this job was running.' }}

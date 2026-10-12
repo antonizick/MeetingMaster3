@@ -171,7 +171,16 @@ def test_test_and_models_endpoints(api: TestClient) -> None:
     )
     assert r.status_code == 200 and r.json()["ok"] and r.json()["default_model_present"] is True
     models = api.get("/api/llm/backends/or_/models").json()["models"]
-    assert models == [{"id": "v/m", "name": None, "context_window": 32000, "size_bytes": None}]
+    assert models == [
+        {
+            "id": "v/m",
+            "name": None,
+            "context_window": 32000,
+            "size_bytes": None,
+            "can_generate": None,
+            "usable": True,
+        }
+    ]
 
 
 def test_unknown_backend_is_404_with_code(api: TestClient) -> None:

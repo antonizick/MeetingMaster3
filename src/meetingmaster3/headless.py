@@ -120,10 +120,15 @@ async def process(
     from meetingmaster3.audio.ingest import probe, safe_extension
     from meetingmaster3.jobs.files import job_dir, new_job_id, remove_job_dir
     from meetingmaster3.jobs.runner import JobRunner
+    from meetingmaster3.llm.registry import BackendRegistry
     from meetingmaster3.storage.db import Database
+    from meetingmaster3.templates.model_check import preflight
 
     if not request.audio.is_file():
         raise MM3Error("E_AUDIO_MISSING", f"No audio file at {str(request.audio)!r}.", "")
+    await preflight(
+        BackendRegistry(settings), settings, request.options.backend, request.options.model
+    )
     paths.ensure()
     db = Database.open(paths.database)
     kwargs: dict[str, Any] = {}

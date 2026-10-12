@@ -8,6 +8,7 @@ from fastapi import APIRouter, Request
 
 from meetingmaster3.llm import recommendations
 from meetingmaster3.llm.registry import BackendRegistry
+from meetingmaster3.templates import model_check
 
 router = APIRouter(prefix="/api/llm", tags=["llm"])
 
@@ -31,15 +32,22 @@ async def test_backend(name: str, request: Request) -> dict[str, object]:
 
 @router.get("/backends/{name}/models")
 async def backend_models(name: str, request: Request) -> dict[str, Any]:
-    models = await registry_for(request).get(name).list_models()
+    """Installed models; ``usable`` is false for ones that cannot write notes (embedding models,
+    or a context window too small), and ``suggested`` is the one to pre-select."""
+    backend = registry_for(request).get(name)
+    models = await backend.list_models()
+    cap = request.app.state.settings.generation.max_context
     return {
         "backend": name,
+        "suggested": model_check.suggest(models, backend, cap),
         "models": [
             {
                 "id": m.id,
                 "name": m.name,
                 "context_window": m.context_window,
                 "size_bytes": m.size_bytes,
+                "can_generate": m.can_generate,
+                "usable": model_check.usable(m, backend, cap),
             }
             for m in models
         ],
