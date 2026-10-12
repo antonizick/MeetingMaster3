@@ -51,6 +51,8 @@ h2 { font-size: 1.15rem; margin: 0 0 0.5rem; }
 .skip-link { position: absolute; left: -999px; top: 0; background: var(--surface); padding: 0.5rem 1rem; z-index: 10; }
 .skip-link:focus { left: 0; }
 .muted, .hint { color: var(--muted); }
+.leave-note { color: var(--muted); font-size: 0.875rem; margin: 0.25rem 0 0; }
+.leave-icon { font-style: normal; margin-right: 0.15rem; }
 .hint { font-size: 0.875rem; margin: 0.25rem 0 0; }
 .ok { color: var(--ok); }
 

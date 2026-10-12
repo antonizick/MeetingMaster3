@@ -266,6 +266,8 @@ def _job_context(request: Request, job_id: str) -> dict[str, Any]:
         "current": current,
         "final": JobStatus(job["status"]) in FINAL,
         "cancellable": job["status"] in views.CANCELLABLE,
+        "leave_note": views.leave_note(job),
+        "tab_title": views.tab_title(job, current),
     }
 
 

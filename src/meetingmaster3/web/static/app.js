@@ -87,6 +87,8 @@
 
     panel.addEventListener("htmx:afterSwap", () => {
       const m = marker();
+      // The tab title follows the job, so a background tab shows its state (no announcement).
+      if (m && m.dataset.title && document.title !== m.dataset.title) document.title = m.dataset.title;
       if (m && live && m.dataset.live !== lastLive) {
         lastLive = m.dataset.live;
         live.textContent = lastLive;

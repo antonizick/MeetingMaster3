@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ title }} · MeetingMaster3{% endblock %}
+{% block title %}{{ tab_title }}{% endblock %}
 {% block content %}
 <div id="job-panel" data-job-id="{{ job.id }}" data-final="{{ 'true' if final else 'false' }}"
      data-events-url="/api/jobs/{{ job.id }}/events"

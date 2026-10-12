@@ -1,8 +1,15 @@
-<div data-status="{{ job.status }}" data-live="{{ STATUS_LABELS.get(job.status, job.status) }}{% if current %}: {{ current.display_name }}{% endif %}" data-final="{{ 'true' if final else 'false' }}" hidden></div>
+<div data-status="{{ job.status }}" data-live="{{ STATUS_LABELS.get(job.status, job.status) }}{% if current %}: {{ current.display_name }}{% endif %}" data-final="{{ 'true' if final else 'false' }}" data-title="{{ tab_title }}" hidden></div>
 <header class="job-head">
   <h1>{{ title }}</h1>
   <p class="muted">{{ job.source_filename }}{% if job.duration_seconds %} · {{ job.duration_seconds|duration }}{% endif %}{% if job.meeting_date %} · {{ job.meeting_date }}{% endif %}</p>
   <p><span class="badge status-{{ job.status }}">{{ STATUS_LABELS.get(job.status, job.status) }}</span></p>
+  {% if leave_note == 'running' %}
+  <p class="leave-note"><span class="leave-icon" aria-hidden="true">ⓘ</span> You can leave this page or close the browser: processing continues on this computer, and you can come back any time from <a href="/meetings">Recent</a>. It stops only if MeetingMaster3 stops or the computer shuts down; you can then resume it from the last finished step. Sleep pauses it until the computer wakes.</p>
+  {% elif leave_note == 'speakers' %}
+  <p class="leave-note"><span class="leave-icon" aria-hidden="true">ⓘ</span> The job is paused until you name the speakers. You can leave and come back later from <a href="/meetings">Recent</a>.</p>
+  {% elif leave_note == 'waiting' %}
+  <p class="leave-note"><span class="leave-icon" aria-hidden="true">ⓘ</span> The job is paused until you answer below. You can leave and come back later from <a href="/meetings">Recent</a>.</p>
+  {% endif %}
 </header>
 
 {% if job.warnings %}

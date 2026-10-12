@@ -25,6 +25,37 @@ STATUS_LABELS = {
     "cancelled": "Cancelled",
     "written": "Written to vault",
 }
+APP_NAME = "MeetingMaster3"
+
+
+def leave_note(job: dict[str, Any]) -> str | None:
+    """Which "can I leave this page?" line the job page shows (Phase 15a), or ``None``:
+    ``running`` (queued or running), ``speakers`` (waiting for names), ``waiting`` (another
+    question). Final states have their own banners."""
+    status = job.get("status")
+    if status in ("queued", "running"):
+        return "running"
+    if status == "waiting_for_input":
+        wf = job.get("waiting_for") or {}
+        return "speakers" if wf.get("kind") == "speaker_confirmation" else "waiting"
+    return None
+
+
+def tab_title(job: dict[str, Any], current: dict[str, Any] | None) -> str:
+    """The browser tab title, so a tab left in the background shows the job's state."""
+    status = job.get("status")
+    if status == "written":
+        return f"✓ Notes ready · {APP_NAME}"
+    if status == "waiting_for_input":
+        return f"Waiting for you · {APP_NAME}"
+    if status == "running" and current is not None:
+        fraction = current.get("fraction")
+        stage = current.get("display_name") or "Running"
+        pct = f"{round(fraction * 100)}% · " if isinstance(fraction, int | float) else ""
+        return f"{pct}{stage} · {APP_NAME}"
+    return f"{STATUS_LABELS.get(str(status), str(status))} · {APP_NAME}"
+
+
 STAGE_ICONS = {
     "pending": ("○", "Waiting"),
     "running": ("▶", "Running"),

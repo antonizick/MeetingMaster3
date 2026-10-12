@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from collections.abc import Iterator
 from pathlib import Path
@@ -15,6 +16,7 @@ from fastapi.testclient import TestClient
 from meetingmaster3.app import create_app
 from meetingmaster3.config.settings import BackendConfig, Settings
 from meetingmaster3.hardware.detect import GPUInfo, HardwareInfo
+from meetingmaster3.web import views
 from meetingmaster3.web.pages import templates as jinja
 from tests.unit.jobs.helpers import make_tone, requires_ffmpeg
 from tests.unit.jobs.test_jobs_api import upload, wait
@@ -323,8 +325,49 @@ def panel(job: dict[str, Any], **extra: Any) -> str:
         "current": stages[0],
         "final": False,
         "cancellable": True,
+        "leave_note": views.leave_note(job),
+        "tab_title": views.tab_title(job, stages[0] if job["status"] == "running" else None),
     }
     return jinja.env.get_template("partials/job_panel.html").render(**ctx, **extra)
+
+
+LEAVE = "You can leave this page or close the browser"
+
+
+@pytest.mark.parametrize(
+    ("status", "waiting_for", "expected", "title"),
+    [
+        ("queued", None, LEAVE, "Queued · MeetingMaster3"),
+        ("running", None, LEAVE, "42% · Transcribing · MeetingMaster3"),
+        (
+            "waiting_for_input",
+            {"kind": "speaker_confirmation"},
+            "paused until you name the speakers",
+            "Waiting for you · MeetingMaster3",
+        ),
+        (
+            "waiting_for_input",
+            {"kind": "cloud_consent", "backend": "x", "badge": "cloud", "message": "m"},
+            "paused until you answer below",
+            "Waiting for you · MeetingMaster3",
+        ),
+        ("written", None, None, "✓ Notes ready · MeetingMaster3"),
+        ("failed", None, None, "Failed · MeetingMaster3"),
+        ("cancelled", None, None, "Cancelled · MeetingMaster3"),
+        ("interrupted", None, None, "Interrupted · MeetingMaster3"),
+    ],
+)
+def test_panel_says_whether_leaving_is_safe(
+    status: str, waiting_for: dict[str, Any] | None, expected: str | None, title: str
+) -> None:
+    html = panel({"status": status, "waiting_for": waiting_for})
+    notes = re.findall(r'<p class="leave-note">(.*?)</p>', html, re.S)
+    if expected is None:
+        assert notes == []
+    else:
+        assert len(notes) == 1 and expected in notes[0] and 'href="/meetings"' in notes[0]
+        assert 'aria-hidden="true">ⓘ' in notes[0] and "role=" not in notes[0]  # quiet
+    assert f'data-title="{title}"' in html
 
 
 def test_panel_shows_stage_progress_with_aria_labels() -> None:
@@ -611,3 +654,19 @@ def test_panel_offers_another_model_only_when_the_notes_failed() -> None:
     assert 'hx-get="/ui/jobs/j1/model-choice"' in html and "Retry with the same model" in html
     other = panel({"status": "failed", "id": "j1"}, failure={**failure, "stage_id": "transcribe"})
     assert "model-choice" not in other and ">Retry</button>" in other
+
+
+def test_parse_filename_fills_a_month_day_date_and_the_form_has_the_hint(ui: TestClient) -> None:
+    import datetime as dt
+
+    name = "09-22 Interview_ Nick Antoncic - SOC Manager _ Cyber Defense Candidate.mp3"
+    guess = ui.get("/ui/parse-filename", params={"name": name}).json()
+    today = dt.date.today()
+    year = (
+        today.year if dt.date(today.year, 9, 22) <= today + dt.timedelta(days=1) else today.year - 1
+    )
+    assert guess["date"] == f"{year}-09-22"
+    assert guess["title"] == "Interview Nick Antoncic - SOC Manager - Cyber Defense Candidate"
+    page = ui.get("/").text
+    assert 'id="date-hint"' in page and 'x-show="dateFromName"' in page
+    assert "From the file name" in page and 'aria-describedby="date-hint"' in page
