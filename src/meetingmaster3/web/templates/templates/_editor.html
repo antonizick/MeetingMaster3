@@ -1,0 +1,24 @@
+<form id="editor" class="card stack" hx-post="/templates/{{ file|urlencode }}/edit" hx-target="#editor" hx-swap="outerHTML">
+  <p><code>{{ file }}</code>{% if source != 'vault' %} <span class="muted">(built-in; saving copies it into your vault, where it takes precedence)</span>{% endif %}
+    {% if is_builtin_file %}<span class="badge">built-in</span>{% endif %}</p>
+  <label for="template-text">Template file</label>
+  <textarea id="template-text" name="text" rows="32" spellcheck="false" wrap="off" class="code" aria-describedby="editor-issues">{{ text }}</textarea>
+  <p class="hint">Frontmatter (between the <code>---</code> lines) lists the sections; each <code>&lt;!-- mm3:prompt:section-id --&gt;</code> line starts that section’s prompt. See <code>docs/dev-guide/template-format.md</code>.</p>
+  <div id="editor-issues" aria-live="polite">
+    {% if saved %}<p class="ok" role="status">✓ Saved. The file is valid.</p>{% endif %}
+    {% set errs = issues|selectattr('severity', 'equalto', 'error')|list %}
+    {% set warns = issues|selectattr('severity', 'equalto', 'warning')|list %}
+    {% if errs %}
+      <div class="alert error" role="alert"><p><strong>Not saved.</strong> Fix these first:</p>
+        <ul>{% for i in errs %}<li>{% if i.line %}<strong>Line {{ i.line }}:</strong> {% endif %}{{ i.message }}</li>{% endfor %}</ul></div>
+    {% endif %}
+    {% if warns %}
+      <div class="alert warn"><ul>{% for i in warns %}<li>{% if i.line %}Line {{ i.line }}: {% endif %}{{ i.message }}</li>{% endfor %}</ul></div>
+    {% endif %}
+  </div>
+  <div class="row">
+    <button type="submit" class="primary">Save</button>
+    <a class="button" href="/templates/{{ file|urlencode }}/preview">Preview</a>
+    {% if obsidian_link %}<a class="button" href="{{ obsidian_link }}">Open in Obsidian</a>{% endif %}
+  </div>
+</form>

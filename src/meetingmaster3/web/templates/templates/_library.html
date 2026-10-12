@@ -1,0 +1,42 @@
+{% if not cards %}<p class="muted">No templates match.</p>{% endif %}
+<ul class="plain cards">
+  {% for c in cards %}
+  {% set f = c.file|urlencode %}
+  <li class="card">
+    <div class="row between">
+      <h2>{{ c.name or 'Invalid template' }}</h2>
+      <form hx-post="/templates/{{ f }}/favorite" hx-target="#library" hx-swap="innerHTML">
+        <input type="hidden" name="favorite" value="{{ '0' if c.favorite else '1' }}">
+        <input type="hidden" name="tag" value="{{ tag }}"><input type="hidden" name="q" value="{{ q }}">
+        <button type="submit" class="star" aria-pressed="{{ 'true' if c.favorite else 'false' }}" aria-label="{{ 'Remove ' ~ c.name ~ ' from favourites' if c.favorite else 'Add ' ~ c.name ~ ' to favourites' }}">{{ '★' if c.favorite else '☆' }}</button>
+      </form>
+    </div>
+    <p>
+      <span class="badge">{{ 'built-in' if c.is_builtin_file else 'custom' }}</span>
+      {% if c.is_default %}<span class="badge">default</span>{% endif %}
+      {% if c.overrides_builtin and not c.is_builtin_file %}<span class="badge">replaces a built-in</span>{% endif %}
+      {% if c.valid %}<span class="badge local">✓ valid</span>{% else %}<span class="badge status-failed">✗ invalid</span>{% endif %}
+    </p>
+    {% if c.valid %}
+      <p>{{ c.description }}</p>
+      <p class="muted">{{ c.sections|length }} sections{% if c.tags %} · {{ c.tags|join(', ') }}{% endif %}</p>
+    {% else %}
+      <div class="alert error" role="alert">
+        <p><code>{{ c.file }}</code> cannot be used until it is fixed:</p>
+        <ul>{% for i in c.issues if i.severity == 'error' %}<li>{% if i.line %}Line {{ i.line }}: {% endif %}{{ i.message }}</li>{% endfor %}</ul>
+      </div>
+    {% endif %}
+    <div class="row">
+      {% if c.valid %}<a class="button" href="/templates/{{ f }}/preview">Preview</a>{% endif %}
+      <a class="button" href="/templates/{{ f }}/edit">{{ 'Edit' if c.source == 'vault' else 'Customise' }}</a>
+      {% if c.valid %}<button hx-post="/templates/{{ f }}/duplicate" hx-target="#library" hx-swap="innerHTML">Duplicate</button>{% endif %}
+      {% if c.is_builtin_file %}
+        <button hx-post="/templates/{{ f }}/reset" hx-target="#library" hx-swap="innerHTML" hx-confirm="Restore the shipped version of “{{ c.name }}”? Your current copy is kept in the Archive folder.">Reset to default</button>
+      {% else %}
+        <button class="danger" hx-post="/templates/{{ f }}/delete" hx-target="#library" hx-swap="innerHTML" hx-confirm="Delete “{{ c.name }}”? A copy is kept in the Archive folder.">Delete</button>
+      {% endif %}
+      {% if c.obsidian_link %}<a class="button" href="{{ c.obsidian_link }}">Open in Obsidian</a>{% endif %}
+    </div>
+  </li>
+  {% endfor %}
+</ul>

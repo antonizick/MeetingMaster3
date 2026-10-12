@@ -13,6 +13,7 @@ from meetingmaster3.templates.loader import (
     install_builtins,
     load_library,
 )
+from tests.unit.templates.builtin_ids import BUILTIN_IDS
 
 SUB = "MeetingMaster3/templates/"
 
@@ -30,13 +31,7 @@ def builtin_text(name: str = "executive-summary") -> str:
 
 def test_builtins_only_without_vault() -> None:
     lib = load_library()
-    assert set(lib.by_id()) == {
-        "executive-summary",
-        "technical-deep-dive",
-        "decision-log",
-        "action-focused",
-        "just-the-facts",
-    }
+    assert set(lib.by_id()) == set(BUILTIN_IDS)
     assert lib.get("decision-log").name == "Decision Log"
     with pytest.raises(MM3Error) as err:
         lib.get("nope")
@@ -114,7 +109,7 @@ def test_templates_folder_cannot_escape(vault: Path) -> None:
 def test_install_never_overwrites_user_edits(vault: Path, tmp_path: Path) -> None:
     manifest = tmp_path / "data" / "templates.installed.json"
     first = install_builtins(vault, SUB, manifest)
-    assert {r.action for r in first} == {"installed"} and len(first) == 5
+    assert {r.action for r in first} == {"installed"} and len(first) == 22
     folder = vault / SUB
     assert (folder / "executive-summary.md").read_text("utf-8") == builtin_text()
 

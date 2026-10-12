@@ -502,3 +502,28 @@ def test_actions_cannot_target_files_outside_the_vault(ui: TestClient, fixture_n
             headers=JSON,
         )
         assert r.status_code in (400, 404), (path, r.text)
+
+
+def test_workspace_embeds_feedback_and_downloads(ui: TestClient, fixture_note: Path) -> None:
+    ws = Workspace(ui, open_url(ui, f"Meetings/2026/{NOTE}"))
+    sections = len(split_document(read_text(fixture_note)).sections)
+    assert ws.html.count('hx-post="/ui/feedback"') == sections + 1
+    assert "How good is this note?" in ws.html and "How good is this section?" in ws.html
+    form = {
+        "mm3_id": FIXTURE_ID,
+        "kind": "thumbs",
+        "template_id": "executive-summary",
+        "backend": "ollama",
+        "model": "qwen3:8b",
+        "section_id": "summary",
+        "value": "1",
+        "comment": "",
+    }
+    r = ui.post("/ui/feedback", data=form, headers={"HX-Request": "true"})
+    assert r.status_code == 200, r.text
+    again = Workspace(ui, open_url(ui, f"Meetings/2026/{NOTE}"))
+    assert 'aria-label="Good" aria-pressed="true"' in again.html
+    link = re.search(r'href="(/api/export/meeting\?note=[^"]+kind=note)"', again.html)
+    assert link
+    download = ui.get(link.group(1).replace("&amp;", "&"))
+    assert download.status_code == 200 and download.text == read_text(fixture_note)

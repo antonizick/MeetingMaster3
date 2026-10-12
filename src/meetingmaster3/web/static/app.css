@@ -211,6 +211,11 @@ kbd { font-family: ui-monospace, monospace; font-size: 0.8em; border: 1px solid 
 .nsec-title { margin-right: auto; font-weight: 600; font-size: 0.9rem; color: var(--muted); }
 .nsec-tools button { font-size: 0.85rem; padding: 0.25rem 0.6rem; }
 .feedback-slot:empty { display: none; }
+.feedback-slot form.feedback { margin: 0.25rem 0 0; font-size: 0.875rem; }
+.feedback-slot form.feedback button:not(.star) { font-size: 0.85rem; padding: 0.15rem 0.5rem; }
+.feedback-slot form.feedback details { margin-top: 0.15rem; }
+.ws-actions .download-menu { position: relative; margin: 0; }
+.ws-actions .download-menu ul { position: absolute; right: 0; z-index: 5; background: var(--surface); border: 1px solid var(--border); border-radius: 0.375rem; padding: 0.5rem 0.75rem; min-width: 16rem; }
 .marker-warn { margin: 0.25rem 0; font-size: 0.9rem; }
 .fm { margin: 0 0 0.5rem; }
 .fm textarea { min-height: 6rem; }
@@ -231,3 +236,26 @@ kbd { font-family: ui-monospace, monospace; font-size: 0.8em; border: 1px solid 
 button.link { background: none; border: none; color: var(--accent); padding: 0.1rem 0; text-align: left; }
 button.link:hover { text-decoration: underline; }
 .picker-path { margin-bottom: 0.5rem; }
+
+/* Settings, template library, feedback (Phase 12) */
+.tabs ul { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; list-style: none; margin: 0 0 1rem; padding: 0; border-bottom: 1px solid var(--border); }
+.tabs a { display: inline-block; padding: 0.4rem 0.1rem; text-decoration: none; border-bottom: 3px solid transparent; }
+.tabs a[aria-current="page"] { border-bottom-color: var(--accent); font-weight: 600; }
+.has-error input, .has-error select { border-color: var(--danger); }
+.error-text { color: var(--danger); margin: 0.25rem 0 0; }
+.warn-text { color: var(--warn-text); background: var(--warn-bg); padding: 0.15rem 0.5rem; border-radius: 0.25rem; }
+.row.between { justify-content: space-between; }
+.cards .card h2 { margin: 0; }
+button.star { font-size: 1.25rem; line-height: 1; padding: 0.2rem 0.5rem; background: transparent; border-color: transparent; }
+button.small { font-size: 0.8rem; padding: 0.1rem 0.5rem; }
+textarea.code, pre.prompt { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.85rem; }
+pre.prompt { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg); border: 1px solid var(--border); border-radius: 0.375rem; padding: 0.6rem 0.8rem; }
+.download-menu ul { margin: 0.25rem 0 0; }
+form.feedback { margin-top: 0.75rem; }
+.feedback-label { font-weight: 600; }
+.check-warn { color: var(--warn-text); }
+.check-fail { color: var(--danger); }
+input[type="search"] { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 0.375rem; padding: 0.45rem 0.6rem; }
+ul.cards li.card { padding: 1rem; }
+.row > input[type="text"], .row > input[type="search"], .row > select { width: auto; flex: 1 1 14rem; max-width: 24rem; }
+form.row { margin: 0; }

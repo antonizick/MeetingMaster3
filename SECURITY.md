@@ -60,7 +60,7 @@ The full baseline is in [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) section
 | Repo hygiene | pre-commit, CI | gitleaks, audio-file guard, large-file guard, `pip-audit`. |
 
 Phase 10 tightened the CSP and settled the CSRF question (see below). Phase 11 added the review
-workspace without loosening the CSP (no editor library, ADR-0020). Still for Phase 15: review the CSP
+workspace without loosening the CSP (no editor library, ADR-0024). Still for Phase 15: review the CSP
 and the workspace's endpoints in the threat model.
 
 ### Implemented in Phase 10 (web UI, S2/S3)
@@ -76,13 +76,24 @@ and the workspace's endpoints in the threat model.
 ### Implemented in Phase 11 (review workspace)
 | Control | Where | Behaviour |
 |---|---|---|
-| Same CSP, no new script sources | `static/js/transcript.js`, `static/js/review.js` | Plain scripts from `'self'`; the editor is `<textarea>`s (ADR-0020). Page data is a `<script type="application/json">` block (Jinja `tojson`, not executed). Sizes and the splitter use CSSOM (`element.style`), which `style-src 'self'` allows; templates contain no `style` attributes. |
+| Same CSP, no new script sources | `static/js/transcript.js`, `static/js/review.js` | Plain scripts from `'self'`; the editor is `<textarea>`s (ADR-0024). Page data is a `<script type="application/json">` block (Jinja `tojson`, not executed). Sizes and the splitter use CSSOM (`element.style`), which `style-src 'self'` allows; templates contain no `style` attributes. |
 | CSRF | `web/review.py` | Every workspace action is a `POST`/`DELETE` with the `X-CSRF-Token` header (tested for each route). |
 | Vault confinement (S4) | `web/review.py`, `review/workspace.py`, `vault/picker.py` | Every action names the note by its vault-relative path; it is re-resolved with `confine()` and must be a non-archived MM3 note whose `mm3-id` equals the workspace's. The picker lists folders inside the vault only (symlinks out are skipped; `..` and absolute paths are refused). "Link this transcript" accepts only a companion with the same `mm3-id` in the note's own folder. |
-| Atomic writes and lost-update protection | `review/save.py` | Saves, appends, template switches and renames write atomically and only if the file's SHA-256 still equals the version the editor was opened from; otherwise the user sees a diff and decides (ADR-0021). A change to `mm3-id` is refused. |
+| Atomic writes and lost-update protection | `review/save.py` | Saves, appends, template switches and renames write atomically and only if the file's SHA-256 still equals the version the editor was opened from; otherwise the user sees a diff and decides (ADR-0025). A change to `mm3-id` is refused. |
 | Marker protection (R11) | `markdown/editing.py` | Marker lines are re-inserted by the server and never taken from the browser; a marker typed into a section is refused; marker-like changes to user text need an explicit confirmation. |
 | Sanitised rendering (S3) | `web/render.py` | The workspace preview and the diffs use the same renderer (raw HTML escaped); `[mm:ss]` links are generated from escaped text. Diffs and transcript text are Jinja-escaped. |
 | Cloud consent (S6) | `templates/regenerate.py`, `review/switch.py` | Regeneration and template switches with a cloud backend need the per-request consent box (or remembered consent); without it nothing is sent. |
+### Implemented in Phase 12 (settings, template library, feedback, export)
+| Control | Where | Behaviour |
+|---|---|---|
+| Write-only secrets (S5) | `web/settings_fields.py`, `settings_ui.py` | No page, partial or API response contains a stored secret: password inputs have no `value`, a stored key shows "Saved", an empty field means unchanged and an explicit checkbox clears it. A test posts secrets and greps every rendered page. `config.yaml` is written atomically with mode `0600`. |
+| All-or-nothing validation | `config/editing.py` | A settings form is validated as a whole against the pydantic models before anything is applied or written, so a bad value never leaves the app half-changed. Settings cannot be edited through any GET route. |
+| Vault confinement (S4) | `settings_ui.py`, `templates/manage.py` | The templates and attachments folders are confined to the vault; template files are addressed by a strict file-name pattern (no separators, no `..`) and written atomically with `vault_root` confinement. Deleting or resetting a template archives the old copy first. |
+| Voiceprint wipe | `settings_ui.py` | Deleting every voiceprint needs a second request carrying a single-use, five-minute token issued by the first (the same token store as the API). |
+| Hugging Face token test | `transcription/hf_check.py` | Two HTTPS requests to `huggingface.co`, only on pressing *Test*; the token goes in a header and never into the result, a log line or the page. Refused in offline mode. |
+| Exports contain no secrets | `exporting.py` | "Export all app data" writes `settings.json` masked and omits the voiceprint tables and all audio; a test asserts no secret value, voiceprint name or audio is in the zip. Export paths are confined to the vault; feedback CSV neutralises spreadsheet formulas. |
+| No telemetry | UI, `docs/PRIVACY.md` | Ratings are stored in the local SQLite database and leave only when you download the export. |
+| Opening folders | `settings_ui.py` | "Open the config folder" runs `xdg-open` with our own path as a fixed argument list (no shell), and is unavailable in Docker. |
 
 ### Implemented in Phase 03 (vault filesystem, S4)
 | Control | Where | Behaviour |

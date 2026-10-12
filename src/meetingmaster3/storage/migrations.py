@@ -99,14 +99,31 @@ CREATE UNIQUE INDEX voiceprint_embeddings_source
     ON voiceprint_embeddings (person_id, model_id, source_job_id);
 """
 
-_V3_RECENT_JOB = """
+_V3_FEEDBACK = """
+CREATE TABLE feedback (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    mm3_id      TEXT NOT NULL,
+    template_id TEXT,
+    backend     TEXT,
+    model       TEXT,
+    section_id  TEXT,
+    rating_kind TEXT NOT NULL CHECK (rating_kind IN ('thumbs', 'stars')),
+    value       INTEGER NOT NULL,
+    comment     TEXT NOT NULL DEFAULT '',
+    created_at  TEXT NOT NULL
+);
+CREATE INDEX feedback_mm3_id ON feedback (mm3_id, section_id);
+"""
+
+_V4_RECENT_JOB = """
 ALTER TABLE recent_meetings ADD COLUMN job_id TEXT;
 """
 
 MIGRATIONS: list[Migration] = [
     Migration(1, "jobs, job stages and recent meetings", sql=_V1_JOBS),
     Migration(2, "voiceprints (opt-in speaker recognition)", sql=_V2_VOICEPRINTS),
-    Migration(3, "recent meetings remember their job (review audio)", sql=_V3_RECENT_JOB),
+    Migration(3, "feedback ratings (local only)", sql=_V3_FEEDBACK),
+    Migration(4, "recent meetings remember their job (review audio)", sql=_V4_RECENT_JOB),
 ]
 
 

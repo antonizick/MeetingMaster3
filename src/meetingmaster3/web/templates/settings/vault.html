@@ -1,0 +1,8 @@
+{% from "settings/_macros.html" import field, status %}
+<form class="card stack" hx-post="/settings/vault" hx-target="#tab-body" hx-swap="innerHTML">
+  <h2>Obsidian vault</h2>
+  <p class="hint">Notes and transcripts are written into your vault as plain Markdown. All folders below are inside the vault; nothing is ever written outside it.</p>
+  {% for v in views %}{{ field(v) }}{% endfor %}
+  {{ status(state) }}
+  <div><button type="submit" class="primary">Save</button></div>
+</form>

@@ -93,6 +93,13 @@ Archived versions go to an `Archive` folder next to the note:
 
 Archives carry an `mm3-archived` property, so they are not offered by **Open a note**.
 
+## Rating and downloading
+
+Rate the whole note with 1-5 stars (under the title) and each section with 👍 or 👎 (under the section),
+optionally with a comment. Ratings stay on this computer; see [settings](settings.md) to export them.
+**Download** in the header gives you the note as saved, the transcript (Markdown or plain text) or both
+in one zip.
+
 ## Switching the template
 
 **Switch template…** writes the whole note again with another template (this takes as long as

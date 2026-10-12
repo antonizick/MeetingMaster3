@@ -27,9 +27,20 @@
       <button type="button" id="btn-rename"{% if not ws.can_regenerate or not ws.transcript or not ws.transcript.speakers %} disabled title="Needs a transcript with separate speakers"{% endif %}>Rename speakers…</button>
       {% endif %}
       <a class="button" href="{{ obsidian_link }}">Open in Obsidian</a>
-      <div class="feedback-slot" data-feedback-scope="note" data-mm3-id="{{ ws.mm3_id }}"></div>
+      <details class="download-menu">
+        <summary class="button">Download</summary>
+        <ul class="plain">
+          <li><a href="/api/export/meeting?note={{ export_note }}&amp;kind=note" download>The note as saved (.md)</a></li>
+          {% if ws.companion %}
+          <li><a href="/api/export/meeting?note={{ export_note }}&amp;kind=transcript" download>The transcript (.md)</a></li>
+          <li><a href="/api/export/meeting?note={{ export_note }}&amp;kind=txt" download>The transcript as plain text (.txt)</a></li>
+          {% endif %}
+          <li><a href="/api/export/meeting?note={{ export_note }}&amp;kind=zip" download>Everything in one zip</a></li>
+        </ul>
+      </details>
     </div>
   </header>
+  {% if fb_note %}<div class="feedback-slot" data-feedback-scope="note" data-mm3-id="{{ ws.mm3_id }}">{% set fb = fb_note %}{% include "partials/feedback.html" %}</div>{% endif %}
 
   {% if ws.readonly %}<p class="alert info">{{ ws.readonly_reason }}</p>{% endif %}
   {% for w in ws.warnings %}<p class="alert warn">{{ w }}</p>{% endfor %}
@@ -137,12 +148,12 @@
           <div class="nsec-tools">
             <span class="nsec-title">{{ section.title }}</span>
             <button type="button" class="regen-btn" data-section-id="{{ section.id }}" data-title="{{ section.title }}"{% if not ws.can_regenerate %} disabled title="Needs the companion transcript"{% endif %}>Regenerate…</button>
-            <div class="feedback-slot" data-feedback-scope="section" data-section-id="{{ section.id }}"></div>
           </div>
           <textarea class="part sec" data-kind="section" data-id="{{ section.id }}" aria-label="Section {{ section.title }} (Markdown)">{{ "\n" }}{{ section.inner }}</textarea>
           <p class="marker-warn alert error" hidden></p>
           <div class="regen-result" data-section-id="{{ section.id }}"></div>
           <div class="marker"><code>&lt;!-- /mm3:section:{{ section.id }} --&gt;</code></div>
+          {% if fb_sections.get(section.id) %}<div class="feedback-slot" data-feedback-scope="section" data-section-id="{{ section.id }}">{% set fb = fb_sections[section.id] %}{% include "partials/feedback.html" %}</div>{% endif %}
         </section>
         {% endfor %}
         <textarea class="part text" data-kind="text" data-index="{{ ws.doc.sections|length }}" rows="1" aria-label="Your text after the last section" placeholder="Your own notes (outside the MeetingMaster3 sections)">{{ "\n" }}{{ ws.doc.texts[-1] }}</textarea>

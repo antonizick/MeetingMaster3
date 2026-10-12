@@ -15,14 +15,19 @@ from meetingmaster3.config.paths import AppPaths, resolve_paths
 from meetingmaster3.config.settings import Settings, load_settings
 from meetingmaster3.errors import MM3Error, install_error_handlers
 from meetingmaster3.llm.registry import BackendRegistry
+from meetingmaster3.web.api.export import router as export_router
+from meetingmaster3.web.api.feedback import router as feedback_router
 from meetingmaster3.web.api.jobs import router as jobs_router
 from meetingmaster3.web.api.speakers import speakers_router, voiceprints_router
 from meetingmaster3.web.api.templates import router as templates_router
+from meetingmaster3.web.feedback_ui import router as feedback_ui_router
 from meetingmaster3.web.hardware import router as hardware_router
 from meetingmaster3.web.llm import router as llm_router
 from meetingmaster3.web.pages import WEB_DIR, router
 from meetingmaster3.web.review import router as review_router
 from meetingmaster3.web.security import CSRFMiddleware, SecurityHeadersMiddleware
+from meetingmaster3.web.settings_ui import router as settings_router
+from meetingmaster3.web.templates_ui import router as templates_ui_router
 
 log = logging.getLogger(__name__)
 
@@ -83,6 +88,11 @@ def create_app(settings: Settings | None = None, paths: AppPaths | None = None) 
     app.include_router(speakers_router)
     app.include_router(voiceprints_router)
     app.include_router(templates_router)
+    app.include_router(feedback_router)
+    app.include_router(export_router)
+    app.include_router(feedback_ui_router)
+    app.include_router(settings_router)
+    app.include_router(templates_ui_router)
 
     # Added innermost-first: TrustedHost runs first, then headers, then CSRF.
     app.add_middleware(CSRFMiddleware, trusted_hosts=settings.trusted_hosts)

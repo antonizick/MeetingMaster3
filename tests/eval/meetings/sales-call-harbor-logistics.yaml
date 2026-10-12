@@ -1,0 +1,39 @@
+# Synthetic meeting written for MeetingMaster3's generation eval (Phase 13). Fictional people and
+# companies; no real recording. License: CC0. A discovery/follow-up sales call; a discount is
+# only "possible" and must not be recorded as firm (templates: sales-client-call).
+title: Harbor Logistics Follow-up Call
+date: 2026-10-06T11:00:00
+templates: [sales-client-call]
+speakers:
+  SPEAKER_00: Anika Shah
+  SPEAKER_01: Greg Tolliver
+  SPEAKER_02: Lena Fischer
+turns:
+  - [0, SPEAKER_00, "Thanks for making time again. Last week you told us dispatching is the pain. Where are you now?"]
+  - [9, SPEAKER_01, "Dispatchers still plan routes in spreadsheets. Last month two trucks went to the same site because nobody saw the other plan. We want that solved before the winter peak."]
+  - [24, SPEAKER_02, "We also need it to work with our existing fleet tracker. If it needs a new tracker we're out, that's a hard no from my side."]
+  - [35, SPEAKER_00, "It integrates with the tracker you use through the standard API, so no new hardware."]
+  - [43, SPEAKER_01, "The price is higher than what we pay for the spreadsheet add-on, obviously. And my director will want to see it work on our own routes first."]
+  - [55, SPEAKER_00, "We can run a four-week pilot on two of your depots at no charge. I'll send the pilot proposal by Friday."]
+  - [66, SPEAKER_01, "That would help. On price, could you do something for a three-year term?"]
+  - [72, SPEAKER_00, "A discount for a longer term is possible, but I'd need to check what I can offer. I'm not promising a number today."]
+  - [83, SPEAKER_02, "I'll send you the tracker's API documentation tomorrow so your team can confirm the integration."]
+  - [91, SPEAKER_01, "Good. Our director, Mr. Amadi, joins the next call. Can we do Thursday the fifteenth?"]
+  - [99, SPEAKER_00, "Thursday the fifteenth works. I'll send the invite."]
+expected:
+  decisions: []
+  actions:
+    - id: pilot-proposal
+      owner: Anika Shah
+      any: [["pilot", "proposal"]]
+    - id: api-docs
+      owner: Lena Fischer
+      any: [["API", "documentation"]]
+    - id: invite
+      owner: Anika Shah
+      any: [["invite"]]
+      optional: true
+  sections:
+    - {id: need-dispatch, section: pain-points, any: [["spreadsheet", "dispatch", "trucks"]], templates: [sales-client-call]}
+    - {id: obj-tracker, section: objections, any: [["tracker", "price", "director"]], templates: [sales-client-call]}
+    - {id: discount-tentative, section: commitments, any: [["tentative", "possible", "not promis", "check"]], templates: [sales-client-call]}

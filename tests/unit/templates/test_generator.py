@@ -27,6 +27,7 @@ from meetingmaster3.templates.mapreduce import (
     parse_extraction,
     render_notes,
 )
+from tests.unit.templates.builtin_ids import BUILTIN_IDS
 
 LINES = [
     ("SPEAKER_00", "Let's decide the launch date today."),
@@ -389,3 +390,19 @@ async def test_cut_off_extraction_asks_for_a_shorter_answer() -> None:
     await generator(backend).generate(meta(), transcript(repeat=60))
     retry = next(c for c in backend.calls if c.json_mode and len(c.messages) == 3)
     assert "cut off because it was too long" in retry.messages[2].content
+
+
+@pytest.mark.parametrize("template_id", BUILTIN_IDS)
+async def test_every_builtin_template_generates_a_valid_note(template_id: str) -> None:
+    template = load_library().get(template_id)
+    note_meta = meta().model_copy(update={"template_id": template_id, "model": "fake-model"})
+    result = await generator(FakeLLMBackend(), template_id).generate(note_meta, transcript())
+    text = render_note(build_note(note_meta, result.sections))
+    parsed = parse_note(text)
+    assert parsed.ok
+    assert [s.id for s in parsed.note.sections] == [s.id for s in template.sections]
+    assert text.startswith("---\n") and "# Launch" in text  # frontmatter and Appendix B header
+    assert "**Participants:** Priya, Marcus" in text
+    assert f"mm3-template: {template_id}" in text
+    if template.params.ai_recommendations:
+        assert parsed.note.sections[-1].id == "ai-recommendations"

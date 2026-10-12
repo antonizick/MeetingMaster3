@@ -23,6 +23,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from meetingmaster3.config.settings import Settings
 from meetingmaster3.errors import MM3Error
+from meetingmaster3.feedback.context import feedback_context
+from meetingmaster3.feedback.store import FeedbackStore
 from meetingmaster3.jobs.files import job_dir, new_job_id
 from meetingmaster3.jobs.models import JobOptions
 from meetingmaster3.jobs.pipeline import fake_pipeline_enabled
@@ -255,6 +257,18 @@ async def workspace_page(request: Request, mm3_id: str, path: str | None = None)
     library = await asyncio.to_thread(
         template_library, _settings(request), request.app.state.paths.data_dir
     )
+    feedback = FeedbackStore(runner.db)
+
+    def fb(section_id: str | None = None) -> dict[str, Any]:
+        return feedback_context(
+            feedback,
+            mm3_id,
+            template_id=meta.template_id if meta else None,
+            backend=meta.backend if meta else None,
+            model=meta.model if meta else None,
+            section_id=section_id,
+        )
+
     data = {
         "mm3_id": mm3_id,
         "path": ws.relative,
@@ -281,6 +295,9 @@ async def workspace_page(request: Request, mm3_id: str, path: str | None = None)
             or _settings(request).llm.default_backend,
             "note_model": (meta.model if meta else None) or "",
             "draft": data["draft"],
+            "fb_note": fb() if meta else None,
+            "fb_sections": {s.id: fb(s.id) for s in ws.doc.sections} if meta else {},
+            "export_note": quote(ws.relative, safe=""),
             "lf": lambda s: s.replace("\r\n", "\n"),
         },
     )

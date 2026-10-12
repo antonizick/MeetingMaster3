@@ -398,8 +398,78 @@ sanitiser (an extra native dependency for no gain while HTML is escaped).
 **Status.** Accepted (2026-10-11, Phase 10).
 **Consequences.** Firefox is expected to work (standard APIs only) but only Chromium was exercised here.
 
+## ADR-0020: Settings screen: declarative fields, all-or-nothing validation, write-only secrets
+**Context.** Phase 12 puts every setting in the UI and must round-trip to `config.yaml` (Phase 02 uses PyYAML, which
+does not keep comments), keep secrets out of every response, and respect the strict CSP (no inline script or style, header-only CSRF).
+**Decision.**
+1. The editable settings are described once, as data (`web/settings_fields.py`: path, label, kind, choices, hint). One Jinja macro renders them and one
+   function parses a submitted form into a patch, so a new setting is one line. The LLM backends, voiceprints, model downloads and diagnostics are
+   custom panels.
+2. A patch is validated per section with the pydantic models (`config/editing.py`) and applied only if every value is valid; the response re-renders the
+   tab with inline errors and what the user typed. Validation does not go through `Settings(...)`, so environment overrides are not copied into the
+   file by the validation step. Saving dumps the live settings, so an environment-supplied value is written too; the screen flags such fields.
+3. Secrets are write-only: no value is ever rendered; empty means unchanged; a checkbox clears. Backend API keys follow the same rule.
+4. Each tab is a form posted with HTMX (`hx-post`, so the CSRF header is sent) and answered with the tab fragment. Tabs are separate URLs (`/settings/<tab>`), so
+   the screen works with a reload and without script. Long-running work (model downloads) runs in a daemon thread and is polled every two seconds.
+5. UI saves normalise `config.yaml` (comments and key order are lost). Adopting `ruamel.yaml` to preserve them was weighed and not done: it is a new
+   dependency for a file the UI now owns, and the file stays human-readable.
+6. A single-use confirmation token (the Phase 07 token store) guards "delete all voiceprints" in the UI as in the API.
+**Alternatives.** Hand-written forms per tab (more markup, easy to forget validation on a field); client-side validation and JSON PATCH (needs script and
+duplicates the pydantic rules); ruamel.yaml round-tripping (extra dependency).
+**Status.** Accepted (2026-10-11, Phase 12).
+**Consequences.** `jobs.max_concurrent` and `jobs.prune_interval_hours` are read at start-up and still need a restart (the field says so). The settings
+object is mutated in place, so the runner and registry see changes at once; `BackendRegistry.invalidate()` is called after each save.
 
-## ADR-0020: Review editor: textareas per note part instead of CodeMirror 6
+## ADR-0021: Feedback ratings and data export
+**Context.** Spec §3 step 9 wants ratings for a future improvement loop, and the design notes want the user to own their data. Both must stay local.
+**Decision.**
+1. Table `feedback` (migration 3): meeting id, template, backend, model, optional section id, kind (`thumbs` -1/1 or `stars` 1-5), value, comment (at most
+   2000 characters), timestamp. A new rating of the same kind for the same note or section replaces the old one, so the table holds the current opinion; the
+   history is not kept (nothing consumes it yet, and replacing avoids double counting).
+2. The note is rated with stars and a section with thumbs, through one reusable widget (`partials/feedback.html` plus `feedback_context`) that the review
+   workspace embeds per section. Export is `GET /api/feedback/export` as JSON or CSV; CSV neutralises leading `=`, `+`, `-`, `@`.
+3. Meeting export builds note, transcript, plain-text transcript or a zip in memory from vault files (confined) and, for a job, the retained audio.
+   "Export all app data" is a zip of the settings (masked), the tables `jobs`, `job_stages`, `recent_meetings` and `feedback` as JSON and each job's small
+   artifacts. It excludes secrets, audio and voiceprints (biometric data is managed in the app, not exported by default).
+**Alternatives.** Keep every rating event (more storage, needs an aggregation rule); include voiceprints in the export (a portable biometric file is a new risk).
+**Status.** Accepted (2026-10-11, Phase 12).
+**Consequences.** Anyone adding a table that holds user data must decide whether it joins `exporting.EXPORT_TABLES`; the voiceprint tables are absent by design.
+
+## ADR-0022: Optional copy of the retained audio into the vault (R8)
+**Context.** R8 promised an opt-in setting that copies the Opus audio into the vault so Obsidian can link it; Phases 04 to 11 did not build it, and Phase 12 adds
+the setting to the UI.
+**Decision.** `privacy.copy_audio_to_vault` (default off) and `vault.attachments_subfolder` (default `Meetings/attachments/`). After a job reaches `written`
+and its audio is compressed, `jobs/vault_audio.copy_audio_to_vault` copies `audio.opus` to `<attachments>/<note stem>.opus` (temp file and rename, confined to the
+vault) and sets the note's `mm3-audio` property through the note round-trip (`parse_note` / `render_note` with the parsed base, so the rest of the file is untouched).
+A failure is logged and never fails the job. The copy is not removed by retention (it is the user's file); the UI warns about vault size and sync.
+**Status.** Accepted (2026-10-11, Phase 12).
+
+## ADR-0023: Stage-2 template library: shared section ids, one exception to AI Recommendations, type-aware eval
+**Context.** Phase 13 adds the 17 remaining templates (spec A3). They have to stay consistent so
+regeneration, ratings and the library UI treat them alike, and several handle sensitive material
+(hiring, coaching, formal minutes).
+**Decision.**
+1. Templates reuse the common section ids and share the task-section structure, owner rule and "nothing
+   here" sentences taught in Phase 09; type-specific ids are added where a section has no common
+   equivalent. Prompts are written once per template; there is no inheritance or include mechanism
+   (templates stay plain, editable Markdown files, ADR-0016/0017).
+2. Exactly one built-in, `board-governance-minutes`, sets `params.ai_recommendations: false`: a legal
+   record must not carry generated commentary. The exception is listed in the test that enforces the
+   rule, so a new exception has to be added on purpose.
+3. Guardrails for sensitive templates live in their `_system` blocks and are asserted by tests (the
+   phrases that carry them), and checked on live output by the eval: `expected.forbidden` fails an
+   interview note that mentions family status; `expected.sections` fails board minutes that guess a
+   vote count.
+4. The eval gains type-specific meetings (`templates:` in the YAML): a meeting only runs against the
+   templates it is meant for, so adding templates does not multiply the run time. Meetings without the
+   key still run against every template.
+5. The template catalogue is generated from the files by a script and checked in CI, so it cannot drift.
+**Consequences.** Small local models were checked on the five type-specific meetings and on the
+other twelve templates with the general launch meeting (see the Phase 13 log). A prompt fix found by
+the eval (copy the chair's own words for a vote result) is in the board template. Per-template quality
+on real meetings is still Nick's judgement; templates can be edited in the vault without a release.
+
+## ADR-0024: Review editor: textareas per note part instead of CodeMirror 6
 **Context.** Phase 11 needs a Markdown editor for the whole note in which the section-marker lines are
 de-emphasised and protected (R11), under the strict CSP of ADR-0019 (`script-src 'self'`,
 `style-src 'self'`, no `eval`) and without a build step (ADR-0002). The phase prompt suggested vendoring a
@@ -421,7 +491,7 @@ example while repairing a damaged section) needs an explicit "Save anyway". A re
 **Status.** Accepted (2026-10-11, Phase 11).
 **Consequences.** No new third-party code. Highlighting can be added later without changing the save model.
 
-## ADR-0021: Review workspace save model: base snapshots, conflict check, accept-then-save
+## ADR-0025: Review workspace save model: base snapshots, conflict check, accept-then-save
 **Context.** Edits made in the browser must reach the vault atomically, never overwrite changes made
 elsewhere (Obsidian, sync, another tab) without asking, survive a closed tab, and keep text outside the
 markers byte-identical through regeneration and template switches (R11, R12).

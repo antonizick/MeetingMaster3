@@ -147,13 +147,20 @@ async def main(argv: list[str] | None = None) -> int:
 
     jobs: list[tuple[Template, Meeting, int]]
     if args.long:
-        meeting = long_meeting(load_meetings(), 3 * args.long_window)
+        meeting = long_meeting(
+            [m for m in load_meetings() if m.templates is None], 3 * args.long_window
+        )
         tokens = estimate_tokens(format_turns(transcript_turns(meeting.named())))
         print(f"Long meeting: {tokens} estimated tokens, window {args.long_window} "
               f"({tokens / args.long_window:.1f}x)")  # fmt: skip
         jobs = [(t, meeting, args.long_window) for t in templates[:1]]
     else:
-        jobs = [(t, m, args.max_context) for m in meetings for t in templates]
+        jobs = [
+            (t, m, args.max_context)
+            for m in meetings
+            for t in templates
+            if m.templates is None or t.id in m.templates
+        ]
 
     scores: list[Score] = []
     modes: list[str] = []

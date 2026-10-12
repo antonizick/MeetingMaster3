@@ -1,22 +1,47 @@
 # Templates and note generation
 
-A **template** decides which sections a meeting note has and how each one is written. MeetingMaster3
-ships five templates now (17 more arrive with Phase 13) and you can change them or write your own in
+A **template** decides which sections a meeting note has and how each one is written.
+MeetingMaster3 ships **22 built-in templates** and you can change them or write your own in
 Obsidian. The file format is specified in
 [`../dev-guide/template-format.md`](../dev-guide/template-format.md).
 
 ## The built-in templates
-| Template (`id`) | Use it for | Sections |
-|---|---|---|
-| **Executive Summary** (`executive-summary`, the default) | A one-minute brief for people who were not there | Summary, Decisions Made, Action Items, Open Questions, Next Steps, AI Recommendations |
-| **Technical Deep-Dive** (`technical-deep-dive`) | Design reviews, architecture discussions, incident reviews | Summary, Problem & Context, Technical Details, Options Considered, Decisions Made, Risks & Concerns, Action Items, Open Questions, AI Recommendations |
-| **Decision Log** (`decision-log`) | Meetings whose output is choices: what, why, alternatives, who | Summary, Decisions, Deferred Decisions, Action Items, AI Recommendations |
-| **Action-Focused** (`action-focused`) | Who does what by when, grouped by owner | Summary, Action Items, Blockers & Dependencies, Decisions Made, Next Steps, AI Recommendations |
-| **Just the Facts** (`just-the-facts`) | Neutral minutes to share widely, no interpretation | Key Points, Decisions Made, Action Items, AI Recommendations |
+The full list, with when to use each one and its sections, is the generated
+[template catalogue](template-catalogue.md). A quick guide to choosing:
+
+| If the meeting is... | Try |
+|---|---|
+| Anything, and you want a short brief (the default) | **Executive Summary** (`executive-summary`) |
+| Anything, and you want a neutral overview | **General Discussion Summary**, **Just the Facts**, or **Key Takeaways & Next Steps** for the shortest version |
+| A full record, to be consulted later | **Detailed Meeting Minutes**, **Chronological Timeline**, or **Speaker-Attributed Notes** |
+| About who does what | **Action-Focused**, **Project Team Sync**, or **Agile Stand-up** |
+| About choices | **Decision Log** or **Strategic Meeting Summary** |
+| Technical | **Technical Deep-Dive** or **Risks, Issues & Mitigations** |
+| A formal board or governance meeting | **Board & Governance Minutes** (motions and votes recorded exactly as stated; no AI Recommendations section) |
+| A hiring interview | **Job Interview Notes** (job-relevant evidence only; the recommendation is advisory) |
+| A one-on-one or coaching session | **One-on-One & Coaching** (respectful, non-judgmental tone) |
+| A sales or client call | **Sales & Client Call** |
+| A brainstorm, workshop, training or review | **Brainstorming & Ideation**, **Workshop & Training Recap**, **Retrospective & Lessons Learned** |
+| Mostly questions and answers | **Q&A Extraction** |
 
 Every note starts with the title and a header (date and time, participants, tags, location) built
-from the meeting details, not by the AI. **AI Recommendations** is always the last section and only
-draws on what was said.
+from the meeting details, not by the AI. **AI Recommendations** is the last section of every template except Board & Governance Minutes,
+and it only draws on what was said.
+
+## The template library
+**Templates** in the top bar lists every template with its description, tags, whether it is built in or your own, and whether it is valid. You can:
+
+* **Star** a template to make it a favourite (favourites come first). The star is stored in the template file itself (`favorite: true`), so it travels with your vault.
+* **Preview** it: the sections and the instructions the model receives for each.
+* **Edit** it in the app. Saving checks the file first and shows errors with line numbers; nothing is written until it is valid. (Editing a built-in
+  template copies it into your vault, where it takes precedence.)
+* **Duplicate** it (a new id and the name "… (copy)"), or **Create** a new one from a small skeleton.
+* **Delete** one of your own templates (a copy is kept in `<templates folder>/Archive/`). Built-in templates cannot be deleted; **Reset to default**
+  restores the shipped version and keeps your current copy in the Archive folder.
+* **Open in Obsidian**, and filter by tag or search by name and description.
+
+The library reads the vault each time, so a template you edit in Obsidian shows up here when you reload, and the other way round. Files that are not valid
+templates are listed with their errors instead of being hidden. The format is in [`../dev-guide/template-format.md`](../dev-guide/template-format.md).
 
 ## What a note looks like
 ```markdown
@@ -46,7 +71,7 @@ draws on what was said.
   (see "Process a recording headlessly" in the [README](../../README.md#quickstart)).
 * **API:** the upload's `options` take `template`, `backend` and `model`; `POST /api/jobs/{id}/generate`
   changes them before the notes are generated, or re-generates the notes of a failed job.
-* **Web UI:** a template picker arrives with Phase 10.
+* **Web UI:** the template picker on the upload page and the template library in Settings.
 
 Without a model, the backend's `default_model` is used (set it in `config.yaml`, see
 [`configuration.md`](configuration.md)). On an 8 GB GPU, a 7-9B model such as `qwen3:8b` is a good

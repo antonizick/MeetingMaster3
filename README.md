@@ -7,11 +7,11 @@
 
 > ⚠️ **Pre-alpha, under construction.** The whole flow works in the browser and headlessly (audio →
 > transcript → named speakers → structured note in your vault → review, edit and regenerate), but
-> settings, the full template library, Docker and the security review arrive in the phases listed in
-> the [plan](IMPLEMENTATION_PLAN.md).
+> Docker deployment, the security review and the release arrive in the phases listed in the
+> [plan](IMPLEMENTATION_PLAN.md).
 
 ## Status
-Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-11 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, transcription and diarization, speaker naming and voiceprints, LLM backends, templates and note generation, the web UI's core flow, and the review workspace: synced audio and transcript, note editor, per-section regeneration with diffs and archives, template switching, renaming speakers and re-opening notes from the vault; see [reviewing and editing](docs/user-guide/reviewing-and-editing.md)).
+Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-13 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, transcription and diarization, speaker naming and voiceprints, LLM backends, templates and note generation, the web UI's core flow, and the review workspace: synced audio and transcript, note editor, per-section regeneration with diffs and archives, template switching, renaming speakers and re-opening notes from the vault (see [reviewing and editing](docs/user-guide/reviewing-and-editing.md)), the Settings screen, template library management, local feedback ratings and export, and all 22 built-in templates).
 The CI badge above is a placeholder until the repository is published (Phase 16).
 
 ## Planned features (MVP)
@@ -96,11 +96,14 @@ Optional voice recognition (`privacy.voiceprints_enabled: true`, off by default)
 you choose and suggests their names in later meetings; `uv run mm3 voiceprints list|delete|wipe`
 manages what is stored. Guide: [`docs/user-guide/speakers.md`](docs/user-guide/speakers.md).
 
-**Notes and templates.** Five built-in templates (Executive Summary, Technical Deep-Dive, Decision
-Log, Action-Focused, Just the Facts) are copied into your vault's `MeetingMaster3/templates/` folder,
+**Notes and templates.** 22 built-in templates (Executive Summary, Decision Log, Action-Focused,
+Job Interview Notes, Board Minutes, Stand-up, Retrospective and more; see the
+[catalogue](docs/user-guide/template-catalogue.md)) are copied into your vault's `MeetingMaster3/templates/` folder,
 where you can edit them or add your own. Action items are Obsidian checkboxes with an owner only when
 someone actually took the task on; long meetings are summarised in parts so nothing is skipped. Cloud
 models are used only after you confirm. Guide: [`docs/user-guide/templates.md`](docs/user-guide/templates.md).
+
+**Settings, templates and your data.** The **Settings** screen edits everything in `config.yaml` (vault, transcription, language-model backends with write-only API keys and connection tests, audio retention, voiceprints, diagnostics). The **Templates** screen lets you star, preview, edit, duplicate, create and reset templates, which stay plain files in your vault. Rate notes and sections (stored only on your computer), download a note, transcript or zip, and export all your data. Guide: [`docs/user-guide/settings.md`](docs/user-guide/settings.md).
 
 ## Configuration
 Settings come from `config.yaml`, overridden by `MM3_*` environment variables. Run `uv run mm3 config path`

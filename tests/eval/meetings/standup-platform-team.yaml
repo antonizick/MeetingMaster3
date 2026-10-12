@@ -1,0 +1,27 @@
+# Synthetic meeting written for MeetingMaster3's generation eval (Phase 13). Fictional people;
+# no real recording. License: CC0. A short stand-up (templates: agile-standup).
+title: Platform Team Stand-up
+date: 2026-10-08T09:15:00
+templates: [agile-standup]
+speakers:
+  SPEAKER_00: Jo Alvarez
+  SPEAKER_01: Kemal Aydin
+  SPEAKER_02: Nora Lindqvist
+turns:
+  - [0, SPEAKER_00, "Morning. Kemal, you first."]
+  - [3, SPEAKER_01, "Yesterday I finished the certificate renewal script. Today I'll test it on staging. No blockers."]
+  - [14, SPEAKER_00, "Great. Nora?"]
+  - [16, SPEAKER_02, "I closed the alert-noise ticket yesterday. Today I'm starting the log retention change. I'm blocked on access to the production log bucket, I still don't have permissions."]
+  - [30, SPEAKER_00, "I'll ask the security team about your access today."]
+  - [35, SPEAKER_01, "Also, the staging cluster was down for an hour yesterday afternoon, if anyone wondered."]
+  - [42, SPEAKER_00, "Thanks. I spent yesterday on the quarterly capacity report and I'll finish it today. My only blocker is waiting for cost numbers from finance."]
+  - [55, SPEAKER_00, "Okay, that's it. Have a good day."]
+expected:
+  decisions: []
+  actions:
+    - id: ask-security
+      owner: Jo Alvarez
+      any: [["security", "access"]]
+  sections:
+    - {id: nora-blocker, section: blockers, any: [["Nora"], ["access", "permission", "bucket"]], templates: [agile-standup]}
+    - {id: kemal-update, section: updates, any: [["Kemal"], ["certificate", "renewal"]], templates: [agile-standup]}

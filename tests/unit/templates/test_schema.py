@@ -12,6 +12,7 @@ from meetingmaster3.templates.schema import (
     parse_template,
     parse_template_file,
 )
+from tests.unit.templates.builtin_ids import BUILTIN_IDS
 
 GOOD = """\
 ---
@@ -73,25 +74,51 @@ def test_template_wide_temperature_override() -> None:
     assert t.temperature(t.sections[1]) == 0.1  # the section's own value still wins
 
 
+AI_RECOMMENDATIONS_EXCEPTIONS = {"board-governance-minutes"}  # formal record, no AI commentary
+
+
 @pytest.mark.parametrize("path", builtin_files(), ids=lambda p: p.stem)
 def test_builtin_templates_are_valid(path: Path) -> None:
     report = parse_template_file(path)
     assert report.ok, [str(i) for i in report.issues]
+    assert not report.warnings, [str(i) for i in report.warnings]
     t = report.template
     assert t is not None and t.id == path.stem
-    assert t.sections[-1].id == "ai-recommendations"
-    assert any(s.format == "tasks" for s in t.sections if s.id == "action-items")
-    assert set(t.prompts) == {s.id for s in t.sections}
+    ids = [s.id for s in t.sections]
+    assert len(ids) == len(set(ids))  # unique section ids
+    assert set(t.prompts) == set(ids)
+    if t.params.ai_recommendations:
+        assert ids[-1] == "ai-recommendations"
+    else:
+        assert "ai-recommendations" not in ids and t.id in AI_RECOMMENDATIONS_EXCEPTIONS
+    for section in t.sections:
+        assert t.prompts[section.id].strip(), section.id
+        if section.id == "action-items":
+            assert section.format == "tasks"
+        if section.format == "tasks":
+            assert "**Unassigned:**" in t.prompts[section.id]  # the owner-guard structure line
+    assert t.system_prompt.strip()
 
 
-def test_five_stage_one_templates_ship() -> None:
-    assert {p.stem for p in builtin_files()} == {
-        "executive-summary",
-        "technical-deep-dive",
-        "decision-log",
-        "action-focused",
-        "just-the-facts",
-    }
+def test_builtin_library_has_22_templates() -> None:
+    assert sorted(p.stem for p in builtin_files()) == sorted(BUILTIN_IDS)
+    assert len(BUILTIN_IDS) == 22
+
+
+def test_sensitive_templates_keep_their_guardrails() -> None:
+    interview = parse_template_file(
+        next(p for p in builtin_files() if p.stem == "job-interview-notes")
+    ).template
+    assert interview is not None
+    text = interview.system_prompt.casefold()
+    assert "protected characteristics" in text and "advisory" in text
+    assert "advisory only" in interview.prompts["hiring-recommendation"].casefold()
+    board = parse_template_file(
+        next(p for p in builtin_files() if p.stem == "board-governance-minutes")
+    ).template
+    assert board is not None
+    assert board.params.ai_recommendations is False
+    assert "never infer" in board.system_prompt.casefold()
 
 
 @pytest.mark.parametrize(

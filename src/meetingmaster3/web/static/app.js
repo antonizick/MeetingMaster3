@@ -22,6 +22,19 @@
   }
   window.mm3Toast = toast; // used by the review workspace (static/js/review.js)
 
+  // -- Copy-path buttons (Settings > About): <button data-copy="text"> -------------------------------
+  document.body.addEventListener("click", (evt) => {
+    const button = evt.target instanceof Element ? evt.target.closest("[data-copy]") : null;
+    if (!button) return;
+    const text = button.getAttribute("data-copy") || "";
+    const done = () => toast("info", "Copied.", text);
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done, () => toast("error", "Could not copy.", text));
+    } else {
+      toast("info", "Select and copy this path:", text);
+    }
+  });
+
   // -- HTMX: show failed requests as toasts instead of swapping them in -------------------------
   document.body.addEventListener("htmx:beforeSwap", (evt) => {
     const xhr = evt.detail.xhr;

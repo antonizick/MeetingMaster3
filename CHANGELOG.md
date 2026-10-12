@@ -19,9 +19,22 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (R11); whole-note template switch with an archive and "Preserved notes"; renaming speakers after the
   fact (transcript, properties, header and generated sections); **Open a note**: a vault browser and the
   Recent list; note-only mode when the transcript is missing (locate and link it, or transcribe the
-  retained recording again) and read-only mode for notes without markers. Feedback slots for Phase 12.
-  Guide: `docs/user-guide/reviewing-and-editing.md`. ADR-0020, ADR-0021, spec R23.
-- Database migration 3: `recent_meetings.job_id`.
+  retained recording again) and read-only mode for notes without markers. Phase 12's rating widget on the note and on every section.
+  Guide: `docs/user-guide/reviewing-and-editing.md`. ADR-0024, ADR-0025, spec R23.
+- Database migration 4: `recent_meetings.job_id`.
+- Expanded template library (Phase 13): the remaining 17 built-in templates, so 22 ship in total:
+  General Discussion Summary, Strategic Meeting Summary, Detailed Meeting Minutes, Job Interview Notes
+  (job-relevant evidence only, advisory recommendation), Project Team Sync, Brainstorming & Ideation,
+  Sales & Client Call, Agile Stand-up, One-on-One & Coaching, Board & Governance Minutes (motions and
+  votes exactly as stated; no AI Recommendations), Workshop & Training Recap, Retrospective & Lessons
+  Learned, Q&A Extraction, Speaker-Attributed Notes, Chronological Timeline, Risks, Issues &
+  Mitigations, and Key Takeaways & Next Steps. Each has a golden prompt snapshot; invariant tests cover
+  every template and the guardrails of the sensitive ones.
+- `docs/user-guide/template-catalogue.md`, generated from the template files by
+  `scripts/gen_template_catalogue.py` (checked in CI and by a unit test).
+- Five synthetic eval meetings for the type-specific templates (interview, stand-up, retrospective,
+  board meeting, sales call); the eval checker can require keywords in a section and forbid words
+  anywhere in a note.
 - Web UI, core flow (Phase 10): first-run vault setup with live validation and a preview of the output
   path, upload with drag and drop and progress, hardware confirmation with an ETA and advanced
   overrides, template and model pickers with a local/cloud badge and a cloud consent dialog, live job
@@ -30,6 +43,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   voice"), a completion page with an `obsidian://` link, a sanitised read-only note preview, and the
   Recent list (resume, delete). Vendored HTMX 2.0.11 and the CSP build of Alpine.js 3.17.4; no CDN and
   no build step. Playwright browser smoke test (`e2e` marker).
+- Settings, template library and feedback (Phase 12): a tabbed Settings screen (vault, transcription with a
+  Hugging Face token test and background model downloads, notes and jobs, language-model backends with
+  add/edit/remove, write-only API keys, connection tests, model lists, revocable cloud consent and the
+  recommendations panel, privacy with a retention preview and voiceprint management including the two-step
+  wipe, diagnostics with copy-path and export of all app data) that validates as a whole and writes
+  `config.yaml`; a template library screen (favourite stored in the template's frontmatter, preview, in-app
+  editor with line-numbered validation, duplicate, create, delete with archive, reset built-in with archive,
+  tag and text filter); local feedback ratings on notes and sections (migration 3, JSON/CSV export, no
+  telemetry); a Download menu per meeting (note, transcript, plain text, zip with the audio) and
+  `GET /api/export/all`; the optional copy of the retained audio into the vault (`privacy.copy_audio_to_vault`,
+  `vault.attachments_subfolder`, `mm3-audio` link). Playwright smoke test for settings and templates.
 - `markdown-it-py` is now a direct dependency (note preview); `playwright` is a dev dependency.
 
 ### Security

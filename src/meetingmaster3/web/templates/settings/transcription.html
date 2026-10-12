@@ -1,0 +1,20 @@
+{% from "settings/_macros.html" import field, status %}
+<form class="card stack" hx-post="/settings/transcription" hx-target="#tab-body" hx-swap="innerHTML">
+  <h2>Transcription</h2>
+  {% for v in views %}{{ field(v) }}{% endfor %}
+  <details>
+    <summary>Advanced</summary>
+    <div class="stack">{% for v in advanced_views %}{{ field(v) }}{% endfor %}</div>
+  </details>
+  <p class="hint">Diarization needs a free Hugging Face account: accept the model terms at <a href="{{ terms_url }}" target="_blank" rel="noopener noreferrer">{{ terms_url }}</a>, then create a read token at <a href="{{ token_url }}" target="_blank" rel="noopener noreferrer">{{ token_url }}</a>. The token is stored in <code>config.yaml</code> (readable only by you) and never shown again.</p>
+  {{ status(state) }}
+  <div class="row">
+    <button type="submit" class="primary">Save</button>
+    <button type="button" hx-post="/settings/transcription/hf-test" hx-target="#hf-result" hx-swap="innerHTML">Test saved token</button>
+    <span id="hf-result" aria-live="polite"></span>
+  </div>
+</form>
+<section class="card" aria-labelledby="h-models">
+  <h2 id="h-models">Models on this computer</h2>
+  {% include "settings/_models.html" %}
+</section>

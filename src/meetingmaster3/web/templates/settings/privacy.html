@@ -1,0 +1,60 @@
+{% from "settings/_macros.html" import field, status %}
+<form class="card stack" hx-post="/settings/privacy" hx-target="#tab-body" hx-swap="innerHTML">
+  <h2>Audio and voices</h2>
+  <p class="hint">Everything here stays on this computer. MeetingMaster3 has no telemetry and sends nothing anywhere except to the cloud backends you add yourself, and only after you consent.</p>
+  {% for v in views %}{{ field(v) }}{% endfor %}
+  <details>
+    <summary>Advanced: voice matching</summary>
+    <div class="stack">{% for v in advanced_views %}{{ field(v) }}{% endfor %}</div>
+  </details>
+  {{ status(state) }}
+  <div><button type="submit" class="primary">Save</button></div>
+</form>
+
+<section class="card stack" aria-labelledby="h-retention">
+  <h2 id="h-retention">What the retention setting would delete</h2>
+  {% if prune_preview %}
+    <p>{{ prune_preview|length }} meeting(s), {{ (prune_bytes / 1048576)|round(1) }} MB of audio is past its time and will be deleted at the next check (every day, and at start-up). Pinned meetings are never deleted.</p>
+    <ul class="plain">{% for p in prune_preview %}<li>{{ p.title or p.job_id }} · {{ (p.bytes / 1048576)|round(1) }} MB</li>{% endfor %}</ul>
+    <div><button class="danger" hx-post="/settings/privacy/prune" hx-target="#tab-body" hx-swap="innerHTML" hx-confirm="Delete this audio now? The notes and transcripts stay.">Delete it now</button></div>
+  {% else %}<p class="muted">Nothing is due for deletion.</p>{% endif %}
+  <p class="hint">Pin or unpin a meeting’s audio on the meeting’s own page.</p>
+</section>
+
+<section class="card stack" aria-labelledby="h-voices">
+  <h2 id="h-voices">Voiceprints</h2>
+  {% if not voiceprints_on %}<p class="muted">Voice recognition is off. Stored voiceprints (if any) are listed below and can still be deleted.</p>{% endif %}
+  {% if people %}
+    <div class="table-wrap"><table>
+      <caption class="sr-only">Stored voiceprints</caption>
+      <thead><tr><th scope="col">Name</th><th scope="col">Last seen</th><th scope="col">Samples</th><th scope="col">Speech</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+      {% for p in people %}
+        <tr><td>{{ p.name }}</td><td>{{ p.last_seen }}</td><td>{{ p.samples }}</td><td>{{ (p.total_seconds / 60)|round(1) }} min</td>
+          <td class="actions"><button class="danger" hx-post="/settings/privacy/voiceprints/{{ p.person_id }}/delete" hx-target="#tab-body" hx-swap="innerHTML" hx-confirm="Delete the voiceprint of {{ p.name }}?">Delete</button></td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% if confirm_token %}
+      <div class="alert error" role="alertdialog" aria-labelledby="wipe-title" aria-describedby="wipe-text">
+        <p id="wipe-title"><strong>Delete every voiceprint?</strong></p>
+        <p id="wipe-text">This erases the voices of {{ wipe_count }} people and cannot be undone. Meetings and notes are not affected.</p>
+        <form class="row" hx-post="/settings/privacy/voiceprints/wipe/confirm" hx-target="#tab-body" hx-swap="innerHTML">
+          <input type="hidden" name="confirm_token" value="{{ confirm_token }}">
+          <button type="submit" class="danger">Yes, delete all voiceprints</button>
+          <button type="button" hx-post="/settings/privacy/voiceprints/wipe/cancel" hx-target="#tab-body" hx-swap="innerHTML">Cancel</button>
+        </form>
+      </div>
+    {% else %}
+      <div><button class="danger" hx-post="/settings/privacy/voiceprints/wipe" hx-target="#tab-body" hx-swap="innerHTML">Delete all voiceprints…</button></div>
+    {% endif %}
+  {% else %}<p class="muted">No voiceprints are stored.</p>{% endif %}
+</section>
+
+<section class="card stack" aria-labelledby="h-bind">
+  <h2 id="h-bind">Network exposure</h2>
+  <dl class="facts"><dt>Listening on</dt><dd><code>{{ host }}</code></dd></dl>
+  {% if loopback %}<p class="ok">✓ Only this computer can reach MeetingMaster3.</p>
+  {% else %}<div class="alert warn" role="alert"><p>The app listens on a non-loopback address, so other devices on your network may reach it, including your transcripts. There is no login. Use this only on a network you trust.</p></div>{% endif %}
+  <p class="hint">This can only be changed by editing <code>server.host</code> in the config file, on purpose.</p>
+</section>

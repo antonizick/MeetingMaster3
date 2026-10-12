@@ -21,6 +21,8 @@ from fastapi.templating import Jinja2Templates
 from meetingmaster3 import __version__
 from meetingmaster3.domain.filenames import parse_filename
 from meetingmaster3.errors import MM3Error
+from meetingmaster3.feedback.context import feedback_context
+from meetingmaster3.feedback.store import FeedbackStore
 from meetingmaster3.hardware.detect import get_hardware
 from meetingmaster3.hardware.recommend import format_eta, recommend
 from meetingmaster3.jobs.files import check_job_id, job_dir
@@ -235,6 +237,13 @@ def _job_context(request: Request, job_id: str) -> dict[str, Any]:
         if written and written.get("note_path"):
             written["obsidian_link"] = views.obsidian_link(written["note_path"])
             written["preview_link"] = review_link(written)
+            written["feedback"] = feedback_context(
+                FeedbackStore(runner.db),
+                str(written.get("mm3_id") or ""),
+                template_id=written.get("template"),
+                backend=job["options"].get("backend") or _settings(request).llm.default_backend,
+                model=job["options"].get("model"),
+            )
     current = next((s for s in job["stages"] if s["status"] in {"running", "waiting"}), None)
     return {
         "job": job,
@@ -437,7 +446,7 @@ async def recent_delete(request: Request, job_id: str) -> HTMLResponse:
     return HTMLResponse("")
 
 
-# -- preview, templates, settings ------------------------------------------------------------------
+# -- preview ------------------------------------------------------------------
 
 
 @router.get("/preview", response_class=HTMLResponse)
@@ -473,36 +482,5 @@ async def preview_note(request: Request, path: str) -> HTMLResponse:
             "name": note.stem,
             "rendered": render_markdown(text),
             "obsidian_link": views.obsidian_link(str(note)),
-        },
-    )
-
-
-@router.get("/templates", response_class=HTMLResponse)
-async def templates_page(request: Request) -> HTMLResponse:
-    settings = _settings(request)
-    library = await asyncio.to_thread(template_library, settings, request.app.state.paths.data_dir)
-    return render(
-        request,
-        "templates_list.html",
-        {
-            "active": "templates",
-            "templates_list": [e.to_dict() for e in library.listing()],
-            "default_template": settings.generation.default_template,
-            "folder": settings.vault.templates_subfolder,
-        },
-    )
-
-
-@router.get("/settings", response_class=HTMLResponse)
-async def settings_page(request: Request) -> HTMLResponse:
-    settings = _settings(request)
-    return render(
-        request,
-        "settings.html",
-        {
-            "active": "settings",
-            "vault": settings.vault.path,
-            "subfolder": settings.vault.output_subfolder,
-            "default_backend": settings.llm.default_backend,
         },
     )
