@@ -1,10 +1,12 @@
 ---
-description: Start or resume a MeetingMaster3 build phase (e.g. /phase 03, /phase next, /phase status)
-argument-hint: "[NN | next | status]"
+description: Start or resume a MeetingMaster3 build phase (e.g. /phase 03, /phase 15a, /phase next, /phase status)
+argument-hint: "[NN | NNa | next | status]"
 ---
 You are executing a MeetingMaster3 build phase. Argument: `$ARGUMENTS` (empty means `next`).
 
 Other agents may be running other phases at the same time. The Status column **on `main`** is how they know what is taken, so read it from `main` (`git show main:IMPLEMENTATION_PLAN.md`), not from a phase branch or worktree.
+
+Phase IDs are two digits, optionally followed by a lower-case letter for an interim tuning round (ADR-0030): `15a` comes after `15` and before `16`. Wherever `NN` appears below, it means the full ID (`15a`), including in branch, worktree and `grep` patterns.
 
 1. Read `CLAUDE.md`, `IMPLEMENTATION_PLAN.md` and `prompts/_shared-instructions.md`.
 2. Pick the phase:

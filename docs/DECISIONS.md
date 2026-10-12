@@ -629,3 +629,25 @@ limit.
 **Consequences.** Opening the model list costs one `/api/show` call per installed model (cached per backend).
 Older Ollama versions report no capabilities; their embedding models then fail at generation, with the same
 recovery panel.
+
+## ADR-0030: Interim tuning rounds between hardening and release are numbered 15a, 15b, 15c…
+**Context.** After Phase 15, Nick processed real meetings and asked for an iterative series of tweaks before
+GitHub publication (Phase 16), run through the same `/phase` model: prompt, plan row, claim, worktree, close-out.
+The phase table had integer IDs only, and `/phase`, the claim protocol and branch names assumed `NN`.
+**Options considered.**
+
+| Option | Pros | Cons |
+|---|---|---|
+| `15.001`, `15.002`… | Room for many rounds | Noisy to type (`/phase 15.001`); dots in branch and worktree names; reads like a version |
+| `15.1`, `15.2`… | Familiar | Ambiguous as numbers (`15.10` = `15.1`), so a tenth round sorts wrongly; reads like a version |
+| `15a`, `15b`, `15c`… (chosen) | Short (`/phase 15a`); sorts correctly as text and by rule; clean branch and worktree names; clearly "between 15 and 16" | 26 rounds at most (ample) |
+| Renumber 16 and insert new integer phases | No new ID shape | Rewrites history and every reference to Phase 16 |
+
+**Decision.** A phase ID is two digits plus an optional lower-case letter. An interim round is a normal
+phase: its row sits between 15 and 16, its prompt is `prompts/phase-15x-pre-op-tuning-N.md`, its branch
+`phase-15x-pre-op-tuning`, and its worktree `../MeetingMaster3-phase-15x`. Each round depends on the
+previous one, and Phase 16 depends on the last round. `/phase` and `prompts/_shared-instructions.md`
+document the ID shape and the ordering (`15` < `15a` < `15b` < `16`).
+**Status.** Accepted (2026-10-12).
+**Consequences.** Adding a round means adding a row and a prompt, and moving Phase 16's "Depends on" to the
+new round. The `phased-project` skill and the method note describe the same convention for other projects.

@@ -1,9 +1,11 @@
 # Phase 16: Release v0.1.0 & GitHub Publication
 
-**Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 15 · **Branch:** `phase-16-release`
+**Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 15, 15a (and any later tuning round, ADR-0030) · **Branch:** `phase-16-release`
 
 ## Read first
 `CLAUDE.md`, `prompts/_shared-instructions.md`, `IMPLEMENTATION_PLAN.md` (the MVP definition of done and all Phase Log entries), and `docs/SPECIFICATION.md` §1, §12 and §15.4. Open question Q3 (GitHub owner, name and visibility).
+
+**Tuning rounds (15a…):** read their Phase Log entries. Round 1 adds a logo (owner question Q6 decides whether it is published and under what notice), a readable vault transcript, two summaries per template and an "Update older notes" action; screenshots and the README should show them.
 
 **Phase 15 notes:** the "Deferred to the roadmap" bullets in the Phase 15 Phase Log entry are the input for
 `docs/ROADMAP.md`. Before tagging, repeat the scans listed in `docs/dev-guide/setup.md` (gitleaks over the full

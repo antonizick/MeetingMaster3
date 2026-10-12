@@ -2,6 +2,8 @@
 
 Read this file in full before starting any phase. Each phase prompt assumes it.
 
+**Phase IDs.** `NN` in this file is the phase ID: two digits, optionally with a lower-case letter suffix for an interim tuning round between hardening and release (`15a`, `15b`…; ADR-0030). A round is a normal phase: it is claimed, gets its own branch `phase-15a-<slug>` and worktree `../MeetingMaster3-phase-15a`, and closes out with the full checklist. `15a` sorts after `15` and before `16`.
+
 ## 1. Orientation and claim (every phase, before writing code)
 1. Read `CLAUDE.md`, `IMPLEMENTATION_PLAN.md` (including the Phase Log) and the sections of `docs/SPECIFICATION.md` named in your phase prompt. Always read §15.
 2. Confirm that every phase listed under "Depends on" is `✅ Complete`. If one is not, stop and tell Nick.

@@ -1,14 +1,14 @@
 # MeetingMaster3: Implementation Plan
 
 **Spec:** [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) (v1.1). **Decisions:** [`docs/DECISIONS.md`](docs/DECISIONS.md). **Agent rules:** [`CLAUDE.md`](CLAUDE.md). **Shared phase instructions:** [`prompts/_shared-instructions.md`](prompts/_shared-instructions.md)
-**Last updated:** 2026-10-12 (Phase 15 complete; pre-release fixes: Recent list removal, model choice)
+**Last updated:** 2026-10-12 (Phase 15 complete; pre-release fixes: Recent list removal, model choice; interim tuning round 15a planned)
 
 > ⚠️ **Mandatory:** every agent that works on this project keeps this file accurate. **Before doing any other work, set your phase to `🔄 In progress` and commit that change to `main`** (claim protocol: `prompts/_shared-instructions.md` §1a). Other agents read this table from `main`. At the end, set it to `✅ Complete` or `⛔ Blocked` and add a Phase Log entry. See `CLAUDE.md`.
 
 ## How to run a phase
 Open Claude Code in `/home/nick/Work/MeetingMaster3` and type one of:
 - `/phase`: run the next eligible phase. It checks dependencies, tells you if you're on the wrong model, resumes an `In progress` phase, and asks about any open questions it needs.
-- `/phase 03`: run a specific phase.
+- `/phase 03`: run a specific phase. Interim tuning rounds have a letter suffix: `/phase 15a`.
 - `/phase status`: show progress and what's next, without doing any work.
 
 The command lives in `.claude/commands/phase.md`. Under the hood it reads `CLAUDE.md`, this file and `prompts/_shared-instructions.md`, then executes `prompts/phase-NN-*.md`. You never need to paste a prompt. Review the agent's close-out summary. Completed phases are merged into `main` automatically (the phase branch is then deleted); nothing is pushed without your confirmation.
@@ -37,7 +37,8 @@ Phases run in order. Phases whose dependencies are all complete may run in paral
 | 13 | Expanded template library | Author the remaining 17 templates (22 total), with validation and prompt-assembly golden tests | Sonnet 5.5 | 09 | ✅ Complete | [phase-13-template-library.md](prompts/phase-13-template-library.md) |
 | 14 | Docker & deployment | Multi-stage GPU and CPU images, compose with volumes and GPU reservation, host Ollama connectivity, non-root user, size budget, install docs | Sonnet 5.5 | 11, 12 | ✅ Complete | [phase-14-docker-deployment.md](prompts/phase-14-docker-deployment.md) |
 | 15 | Hardening, security review & QA | Threat model, security review and fixes, dependency and licence audit, E2E tests, measured performance on 8 GB, accessibility pass | Opus 5.5 | 13, 14 | ✅ Complete | [phase-15-hardening-qa.md](prompts/phase-15-hardening-qa.md) |
-| 16 | Release v0.1.0 & GitHub publication | Final docs, screenshots, CHANGELOG, version and tag, release notes, GitHub repo creation (with confirmation), MVP sign-off | Sonnet 5.5 | 15 | ⬜ Not started | [phase-16-release.md](prompts/phase-16-release.md) |
+| 15a | Pre-operational tuning, round 1 | Nick's feedback from real use: readable vault transcript with coloured speakers, month-day dates from file names, Summary Succinct + Summary Detailed in every template (backfilled into existing notes), "can I leave this page?" note, logo | Opus 5.5 | 15 | ⬜ Not started | [phase-15a-pre-op-tuning-1.md](prompts/phase-15a-pre-op-tuning-1.md) |
+| 16 | Release v0.1.0 & GitHub publication | Final docs, screenshots, CHANGELOG, version and tag, release notes, GitHub repo creation (with confirmation), MVP sign-off | Sonnet 5.5 | 15, 15a | ⬜ Not started | [phase-16-release.md](prompts/phase-16-release.md) |
 
 ### Model rationale
 - **Opus 5.5** (`/model claude-opus-5-5`) handles phases with subtle correctness or design risk: the round-trip parser, job state machine, ML pipeline and VRAM handling, voiceprint matching, prompt engineering, the interactive review workspace, and security review.
@@ -49,8 +50,10 @@ Phases run in order. Phases whose dependencies are all complete may run in paral
               ├→ 05 ───────┴→ 06 → 07 ─┐
               └→ 08 ───────────────────┴→ 09 ─┬→ 10 ─┬→ 11 ─┐
                                               │      └→ 12 ─┴→ 14 ─┐
-                                              └→ 13 ────────────────┴→ 15 → 16
+                                              └→ 13 ────────────────┴→ 15 → 15a → 16
 ```
+
+**Interim tuning rounds (ADR-0030).** Between hardening (15) and release (16), Nick's feedback from real use is handled in rounds numbered `15a`, `15b`, `15c`…, each a normal phase (row, prompt `prompts/phase-15x-pre-op-tuning-N.md`, branch `phase-15x-pre-op-tuning`, worktree `../MeetingMaster3-phase-15x`, claim commit, Phase Log entry). A round depends on the previous one, and Phase 16 depends on the last round. Adding a round means adding its row and prompt and moving Phase 16's dependency to it.
 
 ### MVP definition of done (checked in Phase 16)
 - [ ] Upload audio → diarized transcript → named speakers → structured note written to the Obsidian vault, all on the 8 GB reference machine with Ollama, fully offline after model download.
@@ -68,6 +71,7 @@ Phases run in order. Phases whose dependencies are all complete may run in paral
 | Q3 | GitHub owner, repo name, visibility | **Deferred:** Nick provides these during Phase 16 | Phase 16 |
 | Q4 | Test audio source | **Decided 2026-10-11:** a CC clip plus Nick's own shareable recordings. Short clips are committed as `*.fixture.*`; long ones stay out of git. Phase 06: an AMI Meeting Corpus clip (CC-BY-4.0) is committed; Nick's two recordings are used only privately via `MM3_PRIVATE_TEST_AUDIO` (no publication consent requested) | Phase 06 |
 | Q5 | Personal machine details in `CLAUDE.md` before publishing | **Deferred to Phase 16:** move them to an untracked `CLAUDE.local.md` | Phase 16 |
+| Q6 | The logo is made from `~/Pictures/wiz.jpg` (a photo-composite of Nick). Commit it to the repo, so it becomes public in Phase 16, or keep it local-only behind a setting with a neutral default logo in the repo? Under what licence or notice? | **Open.** Proposed: commit the cropped logo only (never the original), excluded from Apache-2.0 with a notice in `NOTICE` ("logo © Nick Antonizick, all rights reserved"), if Nick confirms he holds the rights to the image | Phase 15a (Task 6), Phase 16 |
 
 ## Phase Log
 Newest entries at the bottom. Format: `### YYYY-MM-DD: Phase NN: <title> (<status>)`, then bullets: built, deviations, follow-ups, tests.
@@ -206,3 +210,8 @@ Newest entries at the bottom. Format: `### YYYY-MM-DD: Phase NN: <title> (<statu
 - Built: a **Remove from list** button on every entry (`POST /ui/recent/remove`, CSRF-checked) and, when entries point to a note that is missing or outside the configured vault, a marked badge (*File not found* / *Not in your vault*, no dead links) plus one button that removes them all (`POST /ui/recent/prune`). Only the database row goes; note files are never touched, and an entry returns when the note is opened again. Tests: `tests/unit/web/test_pages.py::test_recent_notes_can_be_removed_and_orphans_pruned`, `tests/e2e/test_qa_flows.py::test_orphaned_recent_notes_can_be_removed`. Docs: getting-started guide, CHANGELOG.
 - **Root cause of the Phase 11 follow-up (config overwrite), now known:** on 2026-10-11 at 19:42 the Phase 10 session ran a one-off screenshot script (for `docs/assets/*.png`) outside pytest, so `tests/conftest.py`'s XDG isolation did not apply; it saved its temp vault `MyVault` into the real `config.yaml` and recorded its note in the real `mm3.db`. That one row was the only leftover (no jobs, voiceprints or feedback). Phase 15's "most likely a manual session" is superseded by this. `docs/dev-guide/setup.md` now says to set `MM3_CONFIG_DIR`/`MM3_DATA_DIR` for scripts run outside pytest.
 - Verification: 937 unit/integration tests pass (6 skipped), e2e 13/13 in Chromium, ruff, mypy and pre-commit clean.
+
+### 2026-10-12: Planning: interim tuning round 15a inserted (Planned)
+- After his first real meetings, Nick asked for a series of tuning rounds before publication. Added row **15a** (Opus 5.5, depends on 15) and prompt `prompts/phase-15a-pre-op-tuning-1.md`; Phase 16 now depends on 15 and 15a. Numbering is decided in ADR-0030: letter suffixes, because decimals are ambiguous (`15.10` equals `15.1` as a number) and `15.001` is noisy.
+- Round 1 scope: readable vault transcript with colour-highlighted speakers; month-day dates in file names (current year, previous year if the date would be in the future); Summary Succinct (renamed `summary`) plus a new Summary Detailed (2-4 paragraphs) in all 22 templates, with an "Update older notes" backfill; a quiet "can I leave this page?" note; a logo from `wiz.jpg`, hidden on meeting pages.
+- New owner question Q6 (whether the logo, which shows Nick, is committed and published). `/phase` and `prompts/_shared-instructions.md` now accept phase IDs with a letter suffix.
