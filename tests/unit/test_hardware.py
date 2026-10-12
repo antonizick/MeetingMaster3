@@ -193,7 +193,7 @@ def test_eta_estimate() -> None:
     t = recommend(info_for(SMI_2070)).transcription
     assert t.estimate(1560) == (97.5, 120.0)  # measured 13-16x (Phase 15)
     llm = recommend(info_for(SMI_2070)).llm
-    assert llm.status == "measured" and llm.estimate(3600) == (3600 / 21, 240.0)
+    assert llm.status == "measured" and llm.estimate(3600) == (200.0, 300.0)  # 12-18x, Phase 15a
     assert recommend(info_for(SMI_2070)).to_dict()["llm"]["notes_rtf"] == [15.0, 21.0]
 
 
