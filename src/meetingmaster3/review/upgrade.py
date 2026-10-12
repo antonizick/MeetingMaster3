@@ -146,18 +146,20 @@ class NoteResult:
         return asdict(self)
 
 
-SECONDS_PER_SECTION = 12.0
-SECTION_SECONDS_PER_MEETING_MINUTE = 0.6
-"""Time estimate for one generated section with qwen3:8b on the 8 GB reference GPU: a fixed part
-plus a part that grows with the transcript (measured in Phase 15a, docs/PERFORMANCE.md)."""
+FULL_CONTEXT_MINUTES = 40.0
+"""Meetings longer than this go through map-reduce with the default 16k context on 8 GB."""
+EXTRA_SECTION_SECONDS = 25.0
 
 
 def estimate_note_seconds(plan: NotePlan) -> int:
+    """qwen3:8b on the 8 GB reference GPU (Phase 15a, docs/PERFORMANCE.md): the first new section
+    costs reading the whole transcript (31 min: 66 s); a long meeting is read again through
+    map-reduce (72 min: 317 s). Further sections of the same note reuse that context."""
     if not plan.needs_model:
         return 1
     minutes = (plan.duration or 1800.0) / 60
-    per_section = SECONDS_PER_SECTION + SECTION_SECONDS_PER_MEETING_MINUTE * minutes
-    return round(per_section * len(plan.add_sections))
+    first = 15 + 1.7 * minutes if minutes <= FULL_CONTEXT_MINUTES else 4.4 * minutes
+    return round(first + EXTRA_SECTION_SECONDS * (len(plan.add_sections) - 1))
 
 
 # -- scanning and planning ---------------------------------------------------------------------
