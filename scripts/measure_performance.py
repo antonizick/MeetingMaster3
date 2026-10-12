@@ -47,6 +47,7 @@ def _rss_kib(pid: int) -> int:
 
 
 def _ollama_pids() -> list[int]:
+    """The Ollama daemon and its model runners (``llama-server`` / ``ollama runner``)."""
     pids = []
     for entry in Path("/proc").iterdir():
         if entry.name.isdigit():
@@ -54,66 +55,72 @@ def _ollama_pids() -> list[int]:
                 comm = (entry / "comm").read_text().strip()
             except OSError:
                 continue
-            if comm.startswith("ollama"):
+            if comm.startswith(("ollama", "llama-server")):
                 pids.append(int(entry.name))
     return pids
 
 
+def _smi(*query: str) -> list[list[str]]:
+    try:
+        proc = subprocess.run(  # noqa: S603 - fixed argument list
+            ["nvidia-smi", *query, "--format=csv,noheader,nounits"],  # noqa: S607 - from PATH
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return [[c.strip() for c in line.split(",")] for line in proc.stdout.splitlines() if line]
+
+
 class Sampler:
-    """Background sampling of GPU memory (MiB) and RSS (MiB) with wall-clock timestamps."""
+    """Background sampling, every 500 ms, of GPU memory (whole GPU, this process, Ollama) and
+    resident memory (this process, Ollama), in MiB, with wall-clock timestamps."""
+
+    FIELDS = ("gpu_total", "app_vram", "ollama_vram", "app_rss", "ollama_rss")
 
     def __init__(self) -> None:
-        self.samples: list[tuple[float, int, int, int]] = []  # (t, vram, app_rss, ollama_rss)
+        self.samples: list[tuple[float, dict[str, int]]] = []
         self._stop = threading.Event()
-        self._vram = 0
-        self._smi: subprocess.Popen[str] | None = None
 
     def start(self) -> None:
-        try:
-            self._smi = subprocess.Popen(  # noqa: S603 - fixed argument list
-                # nvidia-smi from PATH, like hardware.detect
-                [  # noqa: S607
-                    "nvidia-smi",
-                    "--query-gpu=memory.used",
-                    "--format=csv,noheader,nounits",
-                    f"-lms={int(SAMPLE_SECONDS * 1000)}",
-                ],
-                stdout=subprocess.PIPE,
-                text=True,
-            )
-            threading.Thread(target=self._read_smi, daemon=True).start()
-        except FileNotFoundError:
-            self._smi = None
         threading.Thread(target=self._loop, daemon=True).start()
 
-    def _read_smi(self) -> None:
-        if self._smi is None or self._smi.stdout is None:
-            return
-        for line in self._smi.stdout:
-            try:
-                self._vram = int(line.strip().split(",")[0])
-            except ValueError:
+    def _sample(self, me: int) -> dict[str, int]:
+        ollama = set(_ollama_pids())
+        total = sum(int(r[0]) for r in _smi("--query-gpu=memory.used") if r[0].isdigit())
+        app_vram = ollama_vram = 0
+        for row in _smi("--query-compute-apps=pid,used_memory"):
+            if len(row) < 2 or not row[0].isdigit() or not row[1].isdigit():
                 continue
+            pid, used = int(row[0]), int(row[1])
+            if pid == me:
+                app_vram += used
+            elif pid in ollama:
+                ollama_vram += used
+        return {
+            "gpu_total": total,
+            "app_vram": app_vram,
+            "ollama_vram": ollama_vram,
+            "app_rss": _rss_kib(me) // 1024,
+            "ollama_rss": sum(_rss_kib(p) for p in ollama) // 1024,
+        }
 
     def _loop(self) -> None:
         me = os.getpid()
         while not self._stop.is_set():
-            ollama = sum(_rss_kib(p) for p in _ollama_pids()) // 1024
-            self.samples.append((time.time(), self._vram, _rss_kib(me) // 1024, ollama))
+            self.samples.append((time.time(), self._sample(me)))
             self._stop.wait(SAMPLE_SECONDS)
 
     def stop(self) -> None:
         self._stop.set()
-        if self._smi is not None:
-            self._smi.terminate()
 
     def peaks(self, start: float, end: float) -> dict[str, int]:
-        window = [s for s in self.samples if start <= s[0] <= end] or self.samples[-1:]
-        return {
-            "peak_vram_mib": max((s[1] for s in window), default=0),
-            "peak_app_rss_mib": max((s[2] for s in window), default=0),
-            "peak_ollama_rss_mib": max((s[3] for s in window), default=0),
-        }
+        window = [v for t, v in self.samples if start <= t <= end] or [
+            v for _, v in self.samples[-1:]
+        ]
+        return {f"peak_{k}_mib": max((v[k] for v in window), default=0) for k in self.FIELDS}
 
 
 def _ts(text: str | None) -> float | None:
@@ -229,7 +236,9 @@ def main() -> None:
                 results.append(data)
                 print(
                     f"{data['label']} {model}: {data['status']} in {data['total_wall_s']} s "
-                    f"(RTF {data['total_rtf']}), peak VRAM {data['run_peak_vram_mib']} MiB",
+                    f"(RTF {data['total_rtf']}), "
+                    f"peak app VRAM {data['run_peak_app_vram_mib']} MiB, "
+                    f"Ollama {data['run_peak_ollama_vram_mib']} MiB",
                     flush=True,
                 )
                 args.out.write_text(json.dumps(results, indent=2) + "\n", encoding="utf-8")

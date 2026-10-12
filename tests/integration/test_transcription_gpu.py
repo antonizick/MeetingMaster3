@@ -136,6 +136,36 @@ async def test_fixture_end_to_end_with_diarization(
     assert any(s.words for s in t.segments)  # word-level alignment happened
 
 
+async def test_cached_models_make_no_network_calls(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """S6 / T-TELEMETRY: a full diarized job with cached models opens no socket to anything but
+    loopback (no Hugging Face lookups, no pyannote telemetry). Re-run after ML upgrades."""
+    import ipaddress
+    import socket
+
+    contacted: list[object] = []
+    real_connect = socket.socket.connect
+
+    def audit(self: socket.socket, address: object) -> object:
+        contacted.append(address)
+        return real_connect(self, address)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(socket.socket, "connect", audit)
+    t, *_ = await transcribe_file(tmp_path, monkeypatch, FIXTURE, timeout=600)
+    assert t.segments
+
+    def remote(address: object) -> bool:
+        if not (isinstance(address, tuple) and address):
+            return False
+        try:
+            return not ipaddress.ip_address(str(address[0])).is_loopback
+        except ValueError:
+            return str(address[0]) != "localhost"
+
+    assert [a for a in contacted if remote(a)] == []
+
+
 @pytest.mark.slow
 async def test_private_recordings(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, record_property: pytest.RecordProperty
