@@ -23,7 +23,7 @@ notes") re-reads the transcript: 66 s for the 31-minute meeting and 317 s for th
 map step runs again; caching the map notes is on the roadmap). The eval (71 notes) took 47 s per note
 on average (max 95 s), against 33 s before.
 
-complete job, including notes written by a local 8B model, takes **about 8-9 minutes**. With a
+complete job, including notes written by a local 8B model, takes **about 8-10 minutes** (8-9 before Summary Detailed). With a
 cloud LLM the notes take seconds instead (not measured here; that depends on the provider).
 
 - `medium` is **not faster** than `large-v3-turbo` on this GPU (turbo has 4 decoder layers) and
