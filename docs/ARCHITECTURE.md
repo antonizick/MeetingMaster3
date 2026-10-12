@@ -41,7 +41,14 @@ Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, ins
 `docker/Dockerfile` builds `runtime-gpu` and `runtime-cpu` from the same locked environment; compose adds the
 vault bind mount, the `/config`, `/data` and `/models` volumes, a GPU reservation and the loopback-only port.
 The app reaches the host's Ollama by `host.docker.internal` or, with `compose.host-network.yaml`, by `127.0.0.1`.
-See ADR-0026 and `docs/user-guide/install-docker.md`.
+See ADR-0026 and `docs/user-guide/install-docker.md`. Since Phase 15 the base is Debian 13 (`python:3.12-slim-trixie`)
+without curl or system pip (ADR-0027).
+
+## Security and performance (Phase 15)
+The threat model, with trust boundaries and every mitigation mapped to code and a test, is
+[`THREAT_MODEL.md`](THREAT_MODEL.md); the control → test table and scan results are in `SECURITY.md`. Vault YAML is
+read through `markdown.frontmatter.load_untrusted` (capped alias expansion); media goes through `audio.ingest` with a
+file-only protocol whitelist. Measured speed and memory on the 8 GB reference GPU: [`PERFORMANCE.md`](PERFORMANCE.md).
 
 ## Implemented so far (Phases 02 to 11)
 | Module | Responsibility |

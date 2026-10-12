@@ -5,13 +5,13 @@
 [![CI](https://img.shields.io/badge/CI-pending-lightgrey)](#status)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-> ⚠️ **Pre-alpha, under construction.** The whole flow works in the browser and headlessly (audio →
-> transcript → named speakers → structured note in your vault → review, edit and regenerate), but
-> Docker deployment, the security review and the release arrive in the phases listed in the
+> ⚠️ **Pre-alpha.** The whole flow works in the browser, headlessly and in Docker (audio →
+> transcript → named speakers → structured note in your vault → review, edit and regenerate), and it
+> has had a security review (Phase 15). The first release is Phase 16 of the
 > [plan](IMPLEMENTATION_PLAN.md).
 
 ## Status
-Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-13 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, transcription and diarization, speaker naming and voiceprints, LLM backends, templates and note generation, the web UI's core flow, and the review workspace: synced audio and transcript, note editor, per-section regeneration with diffs and archives, template switching, renaming speakers and re-opening notes from the vault (see [reviewing and editing](docs/user-guide/reviewing-and-editing.md)), the Settings screen, template library management, local feedback ratings and export, and all 22 built-in templates).
+Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-13 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, transcription and diarization, speaker naming and voiceprints, LLM backends, templates and note generation, the web UI's core flow, and the review workspace: synced audio and transcript, note editor, per-section regeneration with diffs and archives, template switching, renaming speakers and re-opening notes from the vault (see [reviewing and editing](docs/user-guide/reviewing-and-editing.md)), the Settings screen, template library management, local feedback ratings and export, and all 22 built-in templates), Docker images (Phase 14), and hardening: a [threat model](docs/THREAT_MODEL.md), a security review with fixes, fuzzing, end-to-end and accessibility tests, a licence audit and [measured performance](docs/PERFORMANCE.md) (Phase 15).
 The CI badge above is a placeholder until the repository is published (Phase 16).
 
 ## Planned features (MVP)
@@ -123,19 +123,33 @@ to see where files live. Every setting is documented in
 
 ## Hardware guidance
 MeetingMaster3 detects your GPU and recommends settings; run `uv run mm3 doctor` to see them for your
-machine. The 8 GB row is **measured** on the reference laptop (RTX 2070 Max-Q); the others are
-**estimates** from the specification until Phase 15 measures them. Details:
-[`docs/user-guide/hardware.md`](docs/user-guide/hardware.md).
+machine. The 8 GB row is **measured** on the reference laptop (RTX 2070 Max-Q, Phase 15); the others
+are **estimates** from the specification (no such hardware was available to measure). Method and raw
+numbers: [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md); settings: [`docs/user-guide/hardware.md`](docs/user-guide/hardware.md).
 
 | Profile | Whisper model | Diarization | Speed (x real time) | Local LLM (Ollama) |
 |---|---|---|---|---|
 | CPU only | small / medium, int8 | optional | 0.5-2 (estimated) | 3-4B, or a cloud backend |
-| 8 GB VRAM | large-v3-turbo, int8_float16 | yes | 14-16 (measured: 60 min in about 4-5 min) | 7-9B at Q4_K_M |
+| 8 GB VRAM | large-v3-turbo, int8_float16 | yes | 13-16 (measured: 60 min in about 4-5 min) | 7-9B at Q4_K_M (measured: qwen3:8b adds 3-4 min per hour) |
 | 16 GB VRAM | large-v3, float16 | yes | 30-50 (estimated) | 12-14B at Q4_K_M |
 | 24 GB+ VRAM | large-v3, float16 | yes | 40-70 (estimated) | about 30B at Q4_K_M |
 
-On 8 GB, transcription and the LLM take turns on the GPU. Override auto-detection with
-`hardware.profile` in `config.yaml`.
+On 8 GB, transcription and the LLM take turns on the GPU (peak 2.8 GB for transcription, 5.8 GB for
+qwen3:8b). A 60-minute meeting goes from upload to a finished note in about 8-9 minutes with a local
+8B model. Override auto-detection with `hardware.profile` in `config.yaml`.
+
+## Known limitations
+- **No login.** Single user on `127.0.0.1`; do not expose the port (use an SSH tunnel for remote
+  access). See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for the residual risks.
+- **English-first.** Other languages are transcribed (with a warning), but the templates and the
+  task-owner cues are English; note quality in other languages is not evaluated.
+- **The ML stack carries known advisories** (torch 2.8, transformers 4.57, nltk) that WhisperX's pins
+  block; they concern loading untrusted model files, which the app does not do (ADR-0014).
+- **Local notes on long meetings are slower than transcription**: about 4-5 minutes per hour of audio
+  with an 8B model on 8 GB (map-reduce); regenerating one section of a long meeting repeats that work.
+- **Voice recognition** was tuned on a few recordings (threshold 0.6); suggestions always need your
+  confirmation.
+- Only measured on one 8 GB laptop GPU; tested in Chromium (Firefox and Safari not tested).
 
 ## FAQ
 _Coming in Phase 16._

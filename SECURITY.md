@@ -22,7 +22,9 @@ Out of scope: vulnerabilities in third-party models or dependencies (report upst
 that require an attacker who already has local shell access as the same user.
 
 ## Security model summary
-The full baseline is in [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) section 15.3.
+The full baseline is in [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) section 15.3. The threat model
+(assets, trust boundaries, STRIDE per boundary, mitigations mapped to code and tests, residual risks)
+is [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
 - **Local only by default.** The server binds `127.0.0.1`. Binding elsewhere needs an explicit
   setting and shows a warning. There is **no authentication in the MVP** (single user), so network
@@ -60,8 +62,8 @@ The full baseline is in [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) section
 | Repo hygiene | pre-commit, CI | gitleaks, audio-file guard, large-file guard, `pip-audit`. |
 
 Phase 10 tightened the CSP and settled the CSRF question (see below). Phase 11 added the review
-workspace without loosening the CSP (no editor library, ADR-0024). Still for Phase 15: review the CSP
-and the workspace's endpoints in the threat model.
+workspace without loosening the CSP (no editor library, ADR-0024). Phase 15 reviewed the CSP and the
+workspace's endpoints (threat model T-XSS, T-CSRF, T-PATH): unchanged, no findings.
 
 ### Implemented in Phase 10 (web UI, S2/S3)
 | Control | Where | Behaviour |
@@ -105,6 +107,51 @@ and the workspace's endpoints in the threat model.
 | Ollama exposure | `docs/user-guide/install-docker.md` | The host-network option needs no change to Ollama. Making Ollama listen on `0.0.0.0` exposes an unauthenticated API to the LAN unless firewalled, so it is documented as the less safe choice. A bundled Ollama is published on `127.0.0.1` only. |
 | GPU access | NVIDIA Container Toolkit | Grants the container the GPU only; no `--privileged`. |
 
+### Phase 15: security review, scans and the control → test map
+**Scans (2026-10-11/12).** Outputs were summarised here and in the Phase Log; raw outputs are not committed.
+
+| Scanner | Scope | Result |
+|---|---|---|
+| `pip-audit` 2.10 | Locked base dependencies | No known vulnerabilities |
+| `pip-audit` | `ml` + `bedrock` extras | 18 advisories in torch 2.8.0, transformers 4.57.6, nltk 3.10.3: all blocked by WhisperX 3.8.6's pins; accepted (ADR-0014, residual risk in the threat model), ignored by id in CI |
+| `bandit` 1.8.6 | `src/` (17 131 lines) | 0 high; 4 medium, all false positives: 3 × B608 (SQL built from allowlisted column/table names, never user input), 1 × B704 (`Markup` around markdown-it output with HTML disabled); 10 low (subprocess with fixed argument lists, `random` for fixtures) |
+| `gitleaks` 8.28 | Full git history (52 commits) and the working tree | 1 hit: an obviously fake key in a unit test (`sk-secret-key-123456`), now allowlisted in `.gitleaks.toml`. No real secrets |
+| `trivy` 0.67 | `meetingmaster3:gpu` and `:cpu` images | Python: only the ADR-0014 packages above (system `pip` 25.0.1, 5 medium, removed from the image). OS (Debian 12): 8 critical / 253 high / 492 medium, none with a fixed package. Moving the base to Debian 13 (ADR-0027) cut this to 1 critical / about 215 high / about 297 medium, still none fixable; `curl` was removed too. No secrets in either image |
+| Manual review + `/code-review high` | Whole codebase, focused on the HTTP surface, file writes, consent, voiceprints, exports | Findings below |
+
+**Findings fixed (high and medium).**
+
+| Severity | Finding | Fix | Test |
+|---|---|---|---|
+| High | **Cloud consent bypass (S6).** Choosing "use a local model" at the cloud question stored `{"consent": true}`, which a later retry with a cloud backend consumed, sending the transcript without asking | The consent check consumes every answer; resume clears answers of the stages it resets; reprocessed meetings do not inherit consent | `tests/unit/templates/test_stages.py::test_a_local_switch_never_leaves_consent_for_a_later_cloud_backend`, `::test_resume_from_a_stage_clears_its_stale_answers`, `tests/unit/web/test_review.py::test_reprocess_and_missing_audio` |
+| Medium | **Voice embeddings in "Export all app data" (S7).** A job waiting for speaker confirmation (or cancelled there) kept `speaker_embeddings.json`, and the export zipped it although it promises no voiceprints | Excluded from exports; deleted by retention pruning and by "delete all voiceprints" | `tests/unit/test_exporting.py::test_export_all_has_no_secrets_audio_or_voiceprints`, `tests/unit/jobs/test_retention.py::test_stale_unfinished_jobs_are_pruned_too`, `tests/unit/speakers/test_speakers_api.py::test_delete_and_two_step_wipe` |
+| Medium | **YAML alias bomb (DoS).** A 550-byte note or template frontmatter hung the parser for minutes; `date: 2026-13-45` raised HTTP 500 | Vault YAML has capped alias expansion (10 000 nodes); construction errors are frontmatter errors | `tests/unit/test_fuzz.py` (Hypothesis fuzzing of every parser) |
+| Medium | **Proxy credentials in clear (S5).** Backend `headers` (e.g. `Authorization`) and passwords in `base_url` were not masked in exports, `mm3 config show` or the API, nor redacted from logs | Masked and registered for redaction (attribution headers excepted) | `tests/unit/test_settings.py::test_backend_headers_and_url_credentials_are_masked_and_redacted` |
+| Medium | **Silent overwrite in the vault (S4).** The optional audio copy used `os.replace` onto `<attachments>/<note>.opus` | Non-clobbering hard-link placement with ` (2)` suffixes; idempotent on re-runs | `tests/unit/jobs/test_vault_audio.py::test_an_existing_file_is_never_replaced_and_reruns_are_idempotent` |
+| Medium | **Reprocessed audio escaped retention (R8, privacy).** Stored as `upload.<ext>`, which retention did not know | Stored as `original.<ext>` | `tests/unit/web/test_review.py::test_reprocess_and_missing_audio` |
+| Medium (hardening) | **Media parsing could be pointed elsewhere.** ffmpeg 5.1/9 already refuse HLS/concat tricks with our server-chosen names, but nothing in the app enforced it | `-protocol_whitelist file` on every ffmpeg/ffprobe input; playlist and list demuxers refused; errors no longer echo server paths | `tests/unit/jobs/test_ingest.py::test_probe_refuses_playlists_and_indirection`, `::test_media_commands_only_allow_local_files` |
+| Medium (image) | `pip` and `curl` in the runtime image with known CVEs | Removed (healthcheck uses Python); base moved to Debian 13 | trivy rescan (above) |
+
+**Low findings recorded, not changed.** IPv6 loopback bind (`::1`) is refused by the Host check (fails
+closed; use `127.0.0.1`). `GET /open/note` adds an existing MM3 note to the Recent list (harmless
+cross-site side effect). The CSRF `Origin` check compares host names, not ports (the token check is
+the control; a cross-origin page cannot set the header). `JobRunner.describe()` rebuilds the pipeline
+on every poll (efficiency, roadmap). A stage stuck in native code cannot be killed (threads).
+
+**Control → test map (S1-S8, spec §15.3).** Each control has at least one automated test; the threat
+model links every mitigation to its code.
+
+| Control | What is verified | Tests |
+|---|---|---|
+| S1 Network exposure | Default bind `127.0.0.1`; any other host prints the no-auth warning; Docker publishes loopback only | `tests/unit/test_security_controls.py::test_s1_default_bind_is_loopback_and_other_hosts_warn`, `tests/unit/test_settings.py::test_defaults`, `tests/unit/web/test_settings_ui.py::test_privacy_save_and_bind_host_warning` |
+| S2 Browser-origin attacks | Host allowlist (DNS rebinding), CSRF token and Origin on every state-changing route, `SameSite=Strict` | `tests/unit/test_web.py` (`test_foreign_host_rejected`, `test_post_without_token_rejected`, `test_post_with_wrong_token_rejected`, `test_post_with_foreign_origin_rejected`, `test_csrf_cookie_is_samesite_strict`), per-router CSRF tests in `tests/unit/web/test_review.py`, `test_pages.py`, `test_settings_ui.py`, `tests/unit/jobs/test_jobs_api.py` |
+| S3 Output rendering | Sanitised Markdown and escaped transcript text; strict CSP; no third-party requests | `tests/unit/test_fuzz.py::test_rendered_markdown_never_contains_live_markup`, `tests/unit/web/test_pages.py::test_preview_is_sanitised_and_confined_to_the_vault`, `::test_panel_escapes_untrusted_text`, `::test_vendored_assets_and_csp`; every e2e test fails on a request to another host |
+| S4 Filesystem | Vault confinement (`..`, symlinks, absolute, `~`, NUL), atomic non-clobbering writes, hostile vault files | `tests/unit/test_vault.py`, `tests/unit/test_fuzz.py::test_confined_paths_never_leave_the_vault`, `tests/unit/test_review_logic.py::test_browse_cannot_escape_the_vault`, `tests/unit/jobs/test_vault_audio.py`, `tests/unit/jobs/test_ingest.py::test_job_paths_are_confined` |
+| S5 Secrets | `0600` config; masked everywhere; write-only UI; redacted logs; no secret in vault, job folders, logs or exports after a whole job | `tests/unit/test_security_controls.py::test_s5_s6_a_whole_job_leaks_no_secret_and_contacts_no_host`, `tests/unit/test_settings.py::test_save_is_0600_and_roundtrips`, `::test_backend_headers_and_url_credentials_are_masked_and_redacted`, `tests/unit/web/test_settings_ui.py::test_no_secret_appears_in_any_rendered_page`, `tests/unit/test_logging.py` |
+| S6 Cloud egress consent, no telemetry | Consent before any cloud request, per job, never reused; telemetry off; a whole job contacts only loopback | `tests/unit/templates/test_stages.py` (consent tests), `tests/unit/templates/test_generator.py::test_consent_is_enforced_before_any_call`, `tests/e2e/test_qa_flows.py::test_cloud_consent_dialog_can_switch_to_a_local_model`, `tests/unit/test_security_controls.py::test_s5_s6_a_whole_job_leaks_no_secret_and_contacts_no_host`, GPU: `tests/integration/test_transcription_gpu.py::test_cached_models_make_no_network_calls` |
+| S7 Voiceprints | Opt-in, never in API/logs/vault/exports, physical deletion, two-step wipe, per-job embeddings removed | `tests/unit/speakers/test_store.py` (`test_wipe_removes_everything_from_the_database_file`, `test_public_view_never_contains_vectors`, `test_wipe_tokens_are_single_use_and_expire`), `tests/unit/speakers/test_speakers_api.py::test_delete_and_two_step_wipe`, `tests/unit/test_exporting.py::test_export_all_has_no_secrets_audio_or_voiceprints` |
+| S8 Supply chain | Locked deps, `pip-audit` of base and `ml` extra, gitleaks, licence policy | CI `ci.yml` (`pip-audit`, `scripts/pip_audit_ml.sh`, gitleaks job), `scripts/gen_third_party.py --check`, `.pre-commit-config.yaml` |
+
 ### Implemented in Phase 03 (vault filesystem, S4)
 | Control | Where | Behaviour |
 |---|---|---|
@@ -124,7 +171,7 @@ and the workspace's endpoints in the threat model.
 | No telemetry (S6) | `transcription/models.py` `disable_telemetry` | pyannote.audio 4 sends OpenTelemetry traces to `otel.pyannote.ai` by default. `PYANNOTE_METRICS_ENABLED=false`, `HF_HUB_DISABLE_TELEMETRY=1` and `DO_NOT_TRACK=1` are forced before any ML library loads. |
 | Minimal network use | `transcription/stages.py` | Cached whisper models load with `local_files_only`, and a cached diarization pipeline is loaded from its folder, so a job makes no network calls (verified with a socket audit hook). `transcription.offline` forbids downloads entirely. |
 | ML library logs | `transcription/engine.py` | WhisperX's own stdout handler is suppressed so its records go through the app's redaction filter; library INFO chatter is silenced (transcript text is not logged at INFO). |
-| Known dependency advisories | `ml` extra | torch 2.8.0, transformers 4.57.6 and nltk 3.10.3 have published advisories, mostly about loading malicious model or checkpoint files. They cannot be upgraded while WhisperX 3.8.6 pins torch 2.8 and huggingface-hub below 1.0 (ADR-0014). The app loads model files only from fixed, well-known sources. Do not point `transcription.model` at untrusted repositories or folders. Tracked for Phase 15. |
+| Known dependency advisories | `ml` extra | torch 2.8.0, transformers 4.57.6 and nltk 3.10.3 have published advisories, mostly about loading malicious model or checkpoint files. They cannot be upgraded while WhisperX 3.8.6 pins torch 2.8 and huggingface-hub below 1.0 (ADR-0014). The app loads model files only from fixed, well-known sources. Do not point `transcription.model` at untrusted repositories or folders. Phase 15: still blocked (WhisperX 3.8.6 is the latest release); CI now audits the `ml` extra with these advisories ignored by id (`scripts/pip_audit_ml.sh`), so a new one fails. |
 | Job options | `jobs/models.py` | `transcription_model` and `language` are pattern-checked; `compute_type`, `batch_size` and `on_non_english` are enumerated or bounded. A model name may be a local folder path (single-user app; Phase 15 threat model). |
 
 ### Implemented in Phase 07 (speakers and voiceprints, S7)
@@ -149,7 +196,7 @@ and the workspace's endpoints in the threat model.
 | No transcript text in logs | `templates/generator.py` | Prompts and answers are not logged; the owner guard logs only the changed task line at INFO. |
 
 ## Data the app stores and where
-_To be completed as phases land. Final version in Phase 15._
+Final inventory (Phase 15); the user-facing version is [`docs/PRIVACY.md`](docs/PRIVACY.md).
 
 | Data | Location | Added in | Leaves the machine? |
 |---|---|---|---|
@@ -162,3 +209,7 @@ _To be completed as phases land. Final version in Phase 15._
 | Generation checkpoints and drafts | Job folder: `notes.draft.md`, `generation.json`, `generate.partial.json`, `written.json` | Phase 09 (done) | No |
 | Template install record | `$XDG_DATA_HOME/meetingmaster3/templates.installed.json` (file hashes only) | Phase 09 (done) | No |
 | Review workspace working copies | `$XDG_DATA_HOME/meetingmaster3/reviews/<mm3-id>/` (folder `0700`): the last 5 opened versions of the note (`base-<sha256>.md`), the unsaved draft (`draft.json`, removed on save) and a pending template switch | Phase 11 (done) | No |
+| Per-meeting voice embeddings (voiceprints on) | Job folder `speaker_embeddings.json` until speaker confirmation; deleted then, with the audio by retention, or by "delete all voiceprints"; never exported | Phase 07, Phase 15 | No |
+| Feedback ratings | `mm3.db` `feedback` table | Phase 12 | Only in an export you download |
+| Optional audio copy | Vault attachments folder (`privacy.copy_audio_to_vault`, off by default) | Phase 12 | Only if your vault syncs |
+| Logs | stderr of `mm3 serve` (secrets redacted, no transcript text at INFO) | Phase 02 | No |

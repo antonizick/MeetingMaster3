@@ -23,16 +23,19 @@ report slightly less (an "8 GB" card shows 8192 MiB).
 | Profile | Total VRAM | Whisper model | Compute type | Batch | Diarization | Speed (x real time) |
 |---|---|---|---|---|---|---|
 | `cpu` | under about 7 GB or no GPU | small (or medium) | int8 | 4 | optional | 0.5-2 |
-| `vram8` | about 7-14 GB | large-v3-turbo (or medium, small) | int8_float16 | 8 | yes | 14-16 (measured) |
+| `vram8` | about 7-14 GB | large-v3-turbo (or medium, small) | int8_float16 | 8 | yes | 13-16 (measured) |
 | `vram16` | about 14-22 GB | large-v3 (or large-v3-turbo) | float16 | 16 | yes | 30-50 |
 | `vram24plus` | about 22 GB and up | large-v3 (or large-v3-turbo) | float16 | 24 | yes | 40-70 |
 
-The `vram8` speed was **measured** in Phase 06 on the reference laptop (RTX 2070 Max-Q 8 GB, whole
-transcribe + align + diarize pipeline, diarization on): 31 minutes of audio in 131 s and 72 minutes in
-283 s, so a 60-minute meeting takes about 4-5 minutes. Peak GPU memory was 3.6 GB. The other speeds
-are still **estimates** from the specification until Phase 15 measures them; they are targets, not
-promises. Estimated time for a meeting is `duration / speed`, shown as a range. More in
-[transcription.md](transcription.md).
+The `vram8` speed was **measured** in Phase 15 on the reference laptop (RTX 2070 Max-Q 8 GB, whole
+transcribe + align + diarize pipeline, diarization on): 10 minutes of audio in 47 s, 31 minutes in
+139 s and 72 minutes in 275 s, so **a 60-minute meeting takes about 4-5 minutes** to transcribe.
+Writing the notes with a local `qwen3:8b` adds about 3-4 minutes per hour of audio, so a whole job takes
+about 8-9 minutes. Peak GPU memory was 2.8 GB for transcription and 5.8 GB for the LLM (never at the
+same time). `medium` was not faster than `large-v3-turbo`. The other speeds are still **estimates**
+from the specification; they are targets, not promises. Before a job starts, the app shows
+`duration / speed` as a range, plus the notes time when the default backend is local. Method and raw
+numbers: [PERFORMANCE.md](../PERFORMANCE.md). More in [transcription.md](transcription.md).
 
 ### Overriding the profile
 Set `hardware.profile` in `config.yaml` (or `MM3_HARDWARE__PROFILE`) to `cpu`, `vram8`, `vram16` or

@@ -551,3 +551,53 @@ bundled Ollama profile (shares 8 GB VRAM, re-downloads models; offered as an opt
 **Status.** Accepted (2026-10-11, Phase 14).
 **Consequences.** The GPU image is large because of torch; a slimmer image would need a different ML stack.
 With host networking Docker does not isolate the port. The CI GPU image is built but never run.
+
+## ADR-0027: Docker base image moves to Debian 13 (trixie); no curl or system pip at run time
+**Context.** The Phase 15 trivy scan of the Phase 14 images (`python:3.12-slim-bookworm`) found 8 critical,
+253 high and 492 medium OS-package findings, none with a fixed Debian 12 package, plus `pip` 25.0.1 (5 medium) in
+the base image's system Python. ffmpeg, which parses every untrusted upload, had 47 open CVEs (16 high). `curl`
+was installed only for the `HEALTHCHECK`.
+**Options considered.**
+
+| Option | Pros | Cons |
+|---|---|---|
+| Keep bookworm, accept the findings | No change; Phase 14's measurements stay valid | Older ffmpeg (5.1) with more open CVEs; 8 critical findings |
+| `python:3.12-slim-trixie` (Debian 13) | Current stable; ffmpeg 7.1 (36 open CVEs, 16 high); 1 critical / ~215 high / ~297 medium; same size (3.48 vs 3.51 GB CPU) | Re-verify the GPU image; Debian 13 point releases still bring fixes over time |
+| Distroless or Alpine | Fewer packages | No ffmpeg/glibc wheels story (CTranslate2, torch need glibc); large rebuild |
+
+**Decision.** Base the images on `python:3.12-slim-trixie` (`ARG PYTHON_IMAGE`, so a user can still build on
+bookworm). Remove `curl` (the healthcheck is a one-line Python `urllib` call) and uninstall the base image's
+system `pip` (the app runs from `/opt/venv`, which has no pip). Re-verified: both images build, the CPU image
+serves `/healthz`, and the GPU image transcribes and diarizes the AMI fixture on the RTX 2070 (Phase Log).
+**Status.** Accepted (2026-10-12, Phase 15). Supersedes the base-image choice in ADR-0026 item 2 (the CUDA-wheel
+reasoning there still holds).
+**Consequences.** The remaining OS findings have no fixed packages; rebuild the images regularly to pick up
+Debian security updates. If images are published (Phase 16), GPL source obligations apply to the Debian packages
+(THIRD_PARTY_NOTICES "Docker images").
+
+## ADR-0028: Phase 15 security hardening choices
+**Context.** The Phase 15 review found a consent bypass, biometric data in exports, a YAML denial of service,
+unmasked proxy credentials and a silent vault overwrite (SECURITY.md "Phase 15"). Several fixes needed a design
+choice.
+**Decisions.**
+1. **Consent answers are single-use.** The generate stage deletes its input file on every run before deciding,
+   and `JobRunner.resume(from_stage=...)` deletes the answers of every stage it resets. Alternative: bind each
+   answer to a backend name; rejected as more state for the same guarantee.
+2. **Vault YAML: cap alias expansion instead of banning aliases.** Phase 03 deliberately supports a simple alias
+   across keys; a node-count cap (10 000 after expansion, memoised so it is linear) blocks "billion laughs"
+   while keeping that. Values PyYAML cannot construct become ordinary frontmatter errors.
+3. **Header values are secret by default.** Every `llm.backends.*.headers` value is masked and redacted except
+   known attribution headers (`HTTP-Referer`, `Referer`, `X-Title`, `User-Agent`); passwords in `base_url` are
+   masked too. Alternative: a list of sensitive header names; rejected because proxies use arbitrary names.
+4. **ffmpeg defence in depth in the app, not only in ffmpeg.** `-protocol_whitelist file` and a refusal of
+   playlist/list demuxers (`hls`, `concat`, `image2`, `tee`, ...), even though current ffmpeg versions already
+   refuse the known tricks with our server-chosen file names. Resource limits (rlimits) were not added: setting
+   them needs `preexec_fn`, which is unsafe in the threaded job runner; timeouts and the container's limits apply.
+5. **Per-meeting voice embeddings are treated like audio.** Excluded from exports, deleted by retention pruning
+   and by "delete all voiceprints" (`VoiceprintStore.wipe(jobs_root)`).
+6. **Accessibility and e2e in CI.** axe-core 4.10.2 is vendored under `tests/e2e/vendor/` (test-only, MPL-2.0)
+   rather than fetched at test time, so CI and offline runs are reproducible; a CI job runs the Playwright suite
+   with the fake pipeline. `MM3_FAKE_OOM=1` simulates a GPU out-of-memory error for the e2e test.
+**Status.** Accepted (2026-10-12, Phase 15).
+**Consequences.** Re-run `scripts/pip_audit_ml.sh` and the GPU socket audit after any ML dependency change; the
+`ml` advisories stay accepted until WhisperX lifts its pins (ADR-0014).

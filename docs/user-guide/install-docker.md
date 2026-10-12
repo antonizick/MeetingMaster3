@@ -96,7 +96,9 @@ docker run -d --name meetingmaster3 --gpus all \
 Drop `--gpus all` and use `--target runtime-cpu` / `meetingmaster3:cpu` for the CPU image.
 
 ## Sizes, cleaning up and upgrading
-Measured sizes are in ADR-0026 (GPU image 13.3 GB on disk, 4.6 GB compressed; CPU image 3.5 GB on disk).
+Measured sizes are in ADR-0026 (GPU image 13.3 GB on disk, 4.6 GB compressed; CPU image 3.5 GB on disk). Since
+Phase 15 the images are based on Debian 13 (ADR-0027); rebuild them now and then (`make up` rebuilds) to pick up
+Debian security updates. To build on Debian 12 instead: `docker build --build-arg PYTHON_IMAGE=python:3.12-slim-bookworm ...`.
 ```bash
 docker image prune -f && docker builder prune -f   # dangling images and build cache (make prune)
 docker system df -v                                # what takes the space, including volumes

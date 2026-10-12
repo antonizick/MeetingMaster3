@@ -4,7 +4,7 @@
 #   docker build -f docker/Dockerfile --target runtime-cpu -t meetingmaster3:cpu .
 # No model weights are baked in: they live in the /models volume (`mm3 models download`).
 
-ARG PYTHON_IMAGE=python:3.12-slim-bookworm
+ARG PYTHON_IMAGE=python:3.12-slim-trixie
 ARG UV_IMAGE=ghcr.io/astral-sh/uv@sha256:cdc6093146eb3ff6a40107b38f008b789e050e77ad87865e381d9917da55a168
 
 FROM ${UV_IMAGE} AS uv
@@ -55,9 +55,12 @@ LABEL org.opencontainers.image.title="MeetingMaster3" \
       org.opencontainers.image.source="https://example.invalid/OWNER/REPO" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}"
+# No curl (the healthcheck uses Python) and no system pip: neither is needed at run time, and both
+# carried scanner findings (Phase 15). The app's own environment is /opt/venv (no pip either).
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ffmpeg tini curl \
+ && apt-get install -y --no-install-recommends ffmpeg tini \
  && rm -rf /var/lib/apt/lists/* \
+ && python -m pip uninstall -y -q pip \
  && groupadd --gid ${MM3_GID} mm3 \
  && useradd --uid ${MM3_UID} --gid ${MM3_GID} --no-create-home --home-dir /tmp --shell /usr/sbin/nologin mm3 \
  && mkdir -p /config /data /models /vault \
@@ -74,7 +77,7 @@ VOLUME ["/config", "/data", "/models"]
 USER mm3
 WORKDIR /data
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -fsS http://127.0.0.1:8765/healthz || exit 1
+  CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/healthz', timeout=4)"]
 ENTRYPOINT ["tini", "--"]
 CMD ["mm3", "serve"]
 

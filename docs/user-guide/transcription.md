@@ -79,10 +79,11 @@ The app picks a model for your hardware (`uv run mm3 doctor` shows it). You can 
 | small | about 1.5 GB | fair | Default on the CPU |
 
 **Measured on the reference laptop** (RTX 2070 Max-Q, 8 GB, large-v3-turbo, int8_float16, batch 8,
-diarization on): a 31-minute recording took 131 s and a 72-minute one 283 s, about **14-16x real
-time**, so **a 60-minute meeting takes about 4-5 minutes** (including upload processing). Diarization
-takes about half of that time. Peak GPU memory was 3.6 GB. Short clips are slower per minute because
-loading the models takes about 10 s.
+diarization on; Phase 15): 10 minutes took 47 s, 31 minutes 139 s and 72 minutes 275 s, about
+**13-16x real time**, so **a 60-minute meeting takes about 4-5 minutes**. Diarization takes about half
+of that time. Peak GPU memory was 2.8 GB (3.3 GB with `medium`, which was not faster). Short clips are
+slower per minute because loading the models takes a few seconds. Raw numbers:
+[PERFORMANCE.md](../PERFORMANCE.md).
 
 On the CPU expect roughly real time or slower with `small`; consider turning diarization off.
 

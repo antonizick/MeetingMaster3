@@ -22,16 +22,37 @@ uv run pre-commit run --all-files
 Coverage: `uv run pytest --cov`. Markers (`gpu`, `models`, `network`, `slow`, `e2e`) are registered
 in `pyproject.toml`; `--strict-markers` is on.
 
+Browser tests (CI runs them in their own job):
+```bash
+MM3_E2E_BROWSER=/usr/bin/chromium uv run pytest -m e2e tests/e2e   # or: uv run playwright install chromium
+MM3_AXE_REPORT=/tmp/axe.json ...                                    # also write the full axe-core report
+```
+They use the fake pipeline (`MM3_FAKE_PIPELINE=1`; `MM3_FAKE_STAGE_SECONDS` sets each fake stage's
+duration, `MM3_FAKE_OOM=1` makes the fake transcription run out of GPU memory unless retried with
+`medium`). They fail on any request to a host other than the app and on any page error. The
+accessibility test injects the vendored axe-core (`tests/e2e/vendor/`) and fails on serious or
+critical WCAG 2.1 AA violations.
+
+On the reference machine, also run the GPU tests (`uv run --extra ml pytest -m "gpu and models"
+tests/integration`; one of them is the socket audit: a diarized job may contact only loopback), the
+generation eval with its regression check (`docs/PERFORMANCE.md` "Quality baseline") and, for
+performance changes, `scripts/measure_performance.py`.
+
 ## Dependencies
 Add with `uv add <pkg>` (runtime) or `uv add --dev <pkg>`; commit `pyproject.toml` and `uv.lock`.
-Optional groups `ml` and `bedrock` are placeholders filled in by Phases 06 and 08. After any change:
-`uv run python scripts/gen_third_party.py` to refresh `THIRD_PARTY_NOTICES.md`, and check the licence
-first. The vulnerability audit CI runs is
-`uv export --frozen --no-emit-project --no-hashes | uvx pip-audit -r /dev/stdin --no-deps --disable-pip`.
+Optional groups are `ml` (WhisperX stack) and `bedrock`. After any change:
+`uv run --extra ml --extra bedrock python scripts/gen_third_party.py` refreshes `THIRD_PARTY_NOTICES.md`
+and exits non-zero if a licence needs a decision (copyleft, unknown, unexpected proprietary); `--check`
+only verifies. The vulnerability audits CI runs are
+`uv export --frozen --no-emit-project --no-hashes | uvx pip-audit -r /dev/stdin --no-deps --disable-pip`
+and `scripts/pip_audit_ml.sh` (the `ml` extra, with the ADR-0014 advisories ignored by id: review that
+list on every WhisperX upgrade). Phase 15 also ran `uvx bandit -r src`, gitleaks over the full history
+and trivy on both images (`docker run aquasec/trivy image meetingmaster3:gpu`); repeat before a release.
 
 ## Layout
-See [`../ARCHITECTURE.md`](../ARCHITECTURE.md). Tests live in `tests/unit/` (and later `integration/`,
-`e2e/`); `tests/conftest.py` isolates XDG directories into a temp path so tests never touch your real
+See [`../ARCHITECTURE.md`](../ARCHITECTURE.md). Tests live in `tests/unit/` (including `test_fuzz.py`, Hypothesis fuzzing of
+every parser of vault files, and `test_security_controls.py`), `tests/integration/` (GPU), `tests/e2e/`
+(Playwright) and `tests/eval/` (generation quality with a real model); `tests/conftest.py` isolates XDG directories into a temp path so tests never touch your real
 config.
 
 ## Local CI
@@ -40,4 +61,4 @@ mirrored by the commands above; run them before pushing.
 
 ## Hooks
 `scripts/check_no_audio.py` blocks audio/video files except `tests/fixtures/audio/*.fixture.*`.
-`.gitleaks.toml` allowlists the intentionally fake tokens in three unit-test files.
+`.gitleaks.toml` allowlists the intentionally fake tokens in four unit-test files.

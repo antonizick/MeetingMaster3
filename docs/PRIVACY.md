@@ -1,7 +1,8 @@
 # Privacy
 
 MeetingMaster3 is local-first. This page states what data exists, where it lives, and when it can
-leave your machine. It is completed as phases land and finalised in Phase 15.
+leave your machine. Final inventory as of Phase 15 (2026-10-12); the threat model is
+[THREAT_MODEL.md](THREAT_MODEL.md).
 
 ## What data exists
 | Data | Where it lives |
@@ -10,12 +11,15 @@ leave your machine. It is completed as phases land and finalised in Phase 15.
 | Transcripts and notes | Your Obsidian vault (Markdown), plus working copies in job folders |
 | Job state, feedback ratings | Local SQLite database `mm3.db`. Ratings (stars or thumbs, an optional comment, the template, backend and model used) are only stored here; the Settings > About tab exports them as CSV or JSON for your own analysis. They are never sent anywhere. |
 | Voiceprints (opt-in, off by default) | Local SQLite only (`mm3.db`, tables `voiceprints` and `voiceprint_embeddings`): each remembered person's name, dates, sample count, seconds of speech and up to 20 voice signatures (256 numbers each). **Biometric data**: stored only for speakers you chose to remember, never written to the vault, logs or API responses. See [Naming speakers and voice recognition](user-guide/speakers.md). |
-| Speaker naming artifacts | Job folder: `speakers.json` (labels, talk time, clip times, candidate names and scores), `speaker_map.json`, `speakers.confirmed.json`, `transcript.named.json`. With voice recognition on, `speaker_embeddings.json` holds this meeting's voice signatures until you confirm the names, then it is deleted. |
+| Speaker naming artifacts | Job folder: `speakers.json` (labels, talk time, clip times, candidate names and scores), `speaker_map.json`, `speakers.confirmed.json`, `transcript.named.json`. With voice recognition on, `speaker_embeddings.json` holds this meeting's voice signatures until you confirm the names, then it is deleted; if the job never gets that far, the file is deleted with the audio (retention) or by "delete all voiceprints", and it is never included in exports. |
 | Config, API keys, HF token | `config.yaml` (mode `0600`) or environment variables; never logged or put in the vault |
 | Model weights | `$XDG_CACHE_HOME/meetingmaster3/models` (`MM3_MODELS_DIR`) |
 | Transcription artifacts | Job folder: `transcript.json`, `aligned.json`, `diarization.json` (who spoke when, as time ranges; no voice embeddings), `transcript.final.json`. Deleted with the job. |
 | Note drafts | Job folder: `notes.draft.md` (the generated note), `generation.json` (template, backend, model), `generate.partial.json` (finished sections while generating), `written.json` (vault paths). Deleted with the job. |
 | Review workspace copies | `$XDG_DATA_HOME/meetingmaster3/reviews/<mm3-id>/` (folder `0700`): the last few versions of a note as you opened it (used to detect edits made elsewhere), your unsaved edits (`draft.json`, deleted when you save) and a template switch waiting for your confirmation. They contain meeting text; delete the folder to remove them. Archived versions of sections and notes go to an `Archive` folder in your vault. |
+| Feedback ratings | `mm3.db` (`feedback` table) |
+| Copy of the audio in the vault (optional, off by default) | Your vault's attachments folder, linked from the note (`mm3-audio`); never replaces an existing file |
+| Logs | The terminal (stderr) of `mm3 serve`; secrets are redacted and transcript text is not logged at the default level. Nothing is written to a log file unless you redirect it |
 | Templates | Your vault's templates folder (`MeetingMaster3/templates/`); `templates.installed.json` in the app data folder records only file hashes, to avoid overwriting your edits. |
 
 ## Exports
@@ -57,9 +61,10 @@ everyone; the API equivalents are `GET /api/voiceprints`, `DELETE /api/voiceprin
 overwrites the records and the write-ahead log is flushed and truncated. Turning the feature off keeps
 stored voiceprints (unused) until you delete them.
 
-Today (before the Settings UI in Phase 12): set `privacy.audio_retention` and
-`privacy.audio_retention_days` in `config.yaml`; `uv run mm3 jobs list` shows each job's audio status;
-`uv run mm3 jobs prune --dry-run` lists what is due for deletion and `uv run mm3 jobs prune` deletes it
-(it also runs at startup and every 24 hours); `POST /api/jobs/<id>/pin` keeps a meeting's audio and
-`DELETE /api/jobs/<id>` removes a job and all its files. Retention follows the current setting: switching
-to *forever* also keeps audio that was due to expire.
+Everything above is in **Settings**: *Privacy* (audio retention, preview and prune, voiceprints list,
+delete and two-step "delete all"), *About & diagnostics* (export all app data, open the config folder),
+and each meeting's *Download* menu. On the command line: `uv run mm3 jobs list` shows each job's audio
+status, `uv run mm3 jobs prune --dry-run` lists what is due for deletion and `uv run mm3 jobs prune`
+deletes it (it also runs at startup and every 24 hours); `POST /api/jobs/<id>/pin` keeps a meeting's
+audio and `DELETE /api/jobs/<id>` removes a job and all its files. Retention follows the current
+setting: switching to *forever* also keeps audio that was due to expire.

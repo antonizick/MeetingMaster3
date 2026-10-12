@@ -8,6 +8,18 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Hardening and QA (Phase 15): `docs/THREAT_MODEL.md` (assets, trust boundaries, STRIDE, every mitigation
+  mapped to code and a test, residual risks); a control → test table and scan summary in `SECURITY.md`;
+  `docs/PERFORMANCE.md` with measured numbers on the 8 GB reference GPU (60 minutes transcribed with speakers
+  in about 4-5 minutes; a whole job with a local 8B model in about 8-9 minutes). Hypothesis fuzzing of every
+  vault-file parser and the Markdown renderer (`tests/unit/test_fuzz.py`); end-to-end checks of S1/S5/S6
+  (`tests/unit/test_security_controls.py`); a GPU socket audit; Playwright tests of re-open, the consent
+  dialog, the out-of-memory retry, error pages and keyboard use, plus an axe-core WCAG 2.1 AA scan of 16
+  pages, run in a new CI job. Eval results as JSON and `tests/eval/baseline.py` to flag quality regressions.
+  CI also audits the `ml` extra (`scripts/pip_audit_ml.sh`). `scripts/gen_third_party.py` covers every
+  extra and checks the licence policy.
+- The time shown before a job starts includes writing the notes when the default backend is local
+  (measured rate for 8 GB).
 - Docker deployment (Phase 14): multi-stage `docker/Dockerfile` (`runtime-gpu`, `runtime-cpu`), compose
   files (GPU default, CPU override, host-network override for an Ollama on 127.0.0.1, optional `ollama`
   profile), a Makefile (`up`, `down`, `logs`, `doctor`, `models-download`, `prune`), a `docker` CI workflow
@@ -63,6 +75,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `markdown-it-py` is now a direct dependency (note preview); `playwright` is a dev dependency.
 
 ### Security
+- Phase 15 review fixes: a cloud-consent answer given while switching to a local model could later
+  approve a cloud backend (S6, now single-use and cleared on resume; reprocessing no longer inherits
+  consent); "Export all app data" could include a waiting job's voice embeddings (S7, now excluded and
+  deleted by retention and by "delete all voiceprints"); a YAML alias bomb in a vault note or template
+  hung the parser and impossible dates caused HTTP 500 (capped alias expansion); backend header values
+  and passwords in base URLs were not masked or redacted (S5); the optional audio copy into the vault
+  could overwrite a file (S4); reprocessed recordings escaped audio retention (R8); ffmpeg inputs are
+  limited to local files and playlist/list formats are refused.
+- Docker images: Debian 13 base (fewer open OS CVEs, newer ffmpeg), no curl or system pip (ADR-0027).
 - Review workspace (Phase 11): no change to the strict CSP (no editor library); every action is CSRF
   checked, re-confines the note path to the vault and checks its `mm3-id`; writes are atomic and refused
   when the file changed since it was opened; section-marker lines are never accepted from the browser.
@@ -81,6 +102,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   disables it (`PYANNOTE_METRICS_ENABLED=false`) together with Hugging Face Hub telemetry (spec S6).
 - Cached whisper and diarization models load without contacting Hugging Face, so a transcription job
   makes no network calls (verified with a socket audit).
+
+### Fixed
+- Workspace section-marker labels had too little contrast (axe-core, WCAG AA).
+- The board-governance template's vote line contradicted its own instruction to copy the chair's
+  words ("carried unanimously").
+- Frontmatter values PyYAML cannot build (an impossible date) gave HTTP 500 instead of a readable error.
 
 ### Changed
 - "Review & edit" on the job page and the notes in **Recent** now open the review workspace;
