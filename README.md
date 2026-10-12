@@ -101,6 +101,8 @@ where you can edit them or add your own. Action items are Obsidian checkboxes wi
 someone actually took the task on; long meetings are summarised in parts so nothing is skipped. Cloud
 models are used only after you confirm. Guide: [`docs/user-guide/templates.md`](docs/user-guide/templates.md).
 
+**Settings, templates and your data.** The **Settings** screen edits everything in `config.yaml` (vault, transcription, language-model backends with write-only API keys and connection tests, audio retention, voiceprints, diagnostics). The **Templates** screen lets you star, preview, edit, duplicate, create and reset templates, which stay plain files in your vault. Rate notes and sections (stored only on your computer), download a note, transcript or zip, and export all your data. Guide: [`docs/user-guide/settings.md`](docs/user-guide/settings.md).
+
 ## Configuration
 Settings come from `config.yaml`, overridden by `MM3_*` environment variables. Run `uv run mm3 config path`
 to see where files live. Every setting is documented in

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Settings · MeetingMaster3{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+<nav aria-label="Settings sections" class="tabs">
+  <ul>
+    {% for key, label in tabs.items() %}
+    <li><a href="/settings/{{ key }}"{% if key == tab %} aria-current="page"{% endif %}>{{ label }}</a></li>
+    {% endfor %}
+  </ul>
+</nav>
+<div id="tab-body">{% include tab_template %}</div>
+{% endblock %}

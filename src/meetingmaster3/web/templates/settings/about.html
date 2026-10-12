@@ -1,0 +1,37 @@
+<section class="card stack" aria-labelledby="h-about">
+  <h2 id="h-about">About</h2>
+  <dl class="facts"><dt>Version</dt><dd>{{ version }}</dd></dl>
+  <h3>Where things live</h3>
+  <ul class="plain">
+    {% for label, path in locations %}
+    <li><strong>{{ label }}:</strong> <code>{{ path }}</code>
+      <button type="button" class="small" data-copy="{{ path }}" aria-label="Copy the path of {{ label }}">Copy</button></li>
+    {% endfor %}
+  </ul>
+  {% if can_open %}
+    <div class="row"><button hx-post="/settings/about/open" hx-target="#open-result" hx-swap="innerHTML">Open the config folder</button><span id="open-result" aria-live="polite"></span></div>
+  {% else %}<p class="hint">Opening folders is not available here (for example in Docker). Copy a path and open it yourself.</p>{% endif %}
+</section>
+
+<section class="card stack" aria-labelledby="h-diag">
+  <h2 id="h-diag">Diagnostics</h2>
+  <p class="hint">The same checks as <code>mm3 doctor</code>.</p>
+  <ul class="plain">
+    {% for c in checks %}
+    <li class="check-{{ c.status }}"><span aria-hidden="true">{% if c.status == 'ok' %}✓{% elif c.status == 'warn' %}!{% else %}✗{% endif %}</span>
+      <span class="sr-only">{{ c.status }}:</span> <strong>{{ c.name }}</strong> · {{ c.detail }}
+      {% if c.hint %}<br><span class="hint">{{ c.hint }}</span>{% endif %}</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="card stack" aria-labelledby="h-data">
+  <h2 id="h-data">Your data</h2>
+  <p>Everything is stored locally. No telemetry is ever collected.</p>
+  <div class="row">
+    <a class="button" href="/api/export/all" download>Export all app data (zip)</a>
+    <a class="button" href="/api/feedback/export?format=csv" download>Feedback (CSV)</a>
+    <a class="button" href="/api/feedback/export?format=json" download>Feedback (JSON)</a>
+  </div>
+  <p class="hint">The data export holds the database as JSON, the settings with every secret masked, and each meeting’s working files. Audio and voiceprints are not included.</p>
+</section>

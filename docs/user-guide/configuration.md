@@ -23,6 +23,8 @@ are JSON: `MM3_SERVER__ALLOWED_HOSTS='["mm3.lan"]'`. The app does not read a `.e
 variables in your shell or process manager (see `.env.example`).
 
 ## Settings reference
+Every setting below can also be changed on the **Settings** screen ([`settings.md`](settings.md)), except `server.*`, which is read-only there on purpose.
+
 | Setting (YAML path) | Env var | Default | Notes |
 |---|---|---|---|
 | `server.host` | `MM3_SERVER__HOST` | `127.0.0.1` | Non-loopback values print a warning; also list the hostnames you will browse to in `allowed_hosts`. |
@@ -53,6 +55,7 @@ variables in your shell or process manager (see `.env.example`).
 | `llm.backends.<name>.headers` | | `{}` | Extra HTTP headers, e.g. OpenRouter `HTTP-Referer` and `X-Title` (off by default; nothing identifying is sent unless you add it). |
 | `llm.backends.<name>.context_window` | | auto | Override when the server cannot report the model's context size (Bedrock never does). Unknown windows are treated as 8192 tokens. |
 | `llm.backends.<name>.consent_remembered` | | `false` | Remember cloud-egress consent for this backend (skips the per-job prompt). |
+| `vault.attachments_subfolder` | `MM3_VAULT__ATTACHMENTS_SUBFOLDER` | `Meetings/attachments/` | Where the optional audio copy goes (inside the vault). Used only when `privacy.copy_audio_to_vault` is on. |
 | `generation.default_template` | `MM3_GENERATION__DEFAULT_TEMPLATE` | `executive-summary` | Template used when a job does not choose one. |
 | `generation.write_companion` | `MM3_GENERATION__WRITE_COMPANION` | `true` | Write the companion `.transcript.md` next to each note. Turning it off saves space but the note can no longer be re-opened to regenerate sections or rename speakers (a warning says so on every job). |
 | `generation.max_context` | `MM3_GENERATION__MAX_CONTEXT` | `16384` | The largest context window (tokens) planned for a **local** model. Models advertise windows (e.g. 40k) that an 8 GB GPU cannot hold next to the weights; longer meetings are summarised in parts (map-reduce). Raise it on bigger GPUs (e.g. 32768 on 16 GB). Cloud models use their own window. |
@@ -63,6 +66,7 @@ variables in your shell or process manager (see `.env.example`).
 | `jobs.max_concurrent` | `MM3_JOBS__MAX_CONCURRENT` | `2` | Jobs processed at once (1-8). GPU stages never overlap regardless (R5); this lets one job's CPU work run beside another's GPU work. |
 | `jobs.prune_interval_hours` | `MM3_JOBS__PRUNE_INTERVAL_HOURS` | `24` | How often the audio retention pruner runs (it also runs at startup). |
 | `privacy.audio_retention` | `MM3_PRIVACY__AUDIO_RETENTION` | `days` | `forever`, `days` or `delete_after_write` (ADR-0006, ADR-0013). Applied by the pruner to every job using the **current** value. `delete_after_write` deletes the audio as soon as the note is written. |
+| `privacy.copy_audio_to_vault` | `MM3_PRIVACY__COPY_AUDIO_TO_VAULT` | `false` | Copy the retained Opus audio into `vault.attachments_subfolder` when the note is written, and link it from the note (`mm3-audio`). Makes the vault larger and a synced vault uploads the audio. |
 | `privacy.audio_retention_days` | `MM3_PRIVACY__AUDIO_RETENTION_DAYS` | `90` | With `days`: audio is deleted this many days after the note was written. With `days` or `delete_after_write`: audio of unfinished jobs (failed, cancelled, interrupted, waiting) is deleted this many days after the job last changed. Pinned meetings are never pruned. |
 | `privacy.voiceprints_enabled` | `MM3_PRIVACY__VOICEPRINTS_ENABLED` | `false` | Opt-in voice recognition (biometric data, S7): compute voice signatures, suggest speaker names and allow remembering voices. Off: no signatures are computed and nothing is stored; stored voiceprints can still be listed and deleted. See [speakers.md](speakers.md). |
 | `speakers.match_threshold` | `MM3_SPEAKERS__MATCH_THRESHOLD` | `0.6` | Minimum cosine similarity (0-1) for a name suggestion (ADR-0015). |

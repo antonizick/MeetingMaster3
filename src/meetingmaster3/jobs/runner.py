@@ -47,6 +47,7 @@ from meetingmaster3.jobs.stage import (
     StageContext,
     input_path,
 )
+from meetingmaster3.jobs.vault_audio import copy_audio_to_vault
 from meetingmaster3.storage.db import Database
 from meetingmaster3.storage.repositories import (
     JobRecord,
@@ -701,6 +702,10 @@ class JobRunner:
         job = self.jobs.set_status(
             job_id, JobStatus.WRITTEN, current_stage=None, written_at=written_at
         )
+        if self.settings.privacy.copy_audio_to_vault:
+            await loop.run_in_executor(
+                self._executor, copy_audio_to_vault, self.jobs_root, job, self.settings
+            )
         if self.settings.privacy.audio_retention == "delete_after_write":
             await loop.run_in_executor(self._executor, self.prune)
             job = self.jobs.get(job_id)

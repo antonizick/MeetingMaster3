@@ -1,0 +1,8 @@
+{% from "settings/_macros.html" import field, status %}
+<form class="card stack" hx-post="/settings/notes" hx-target="#tab-body" hx-swap="innerHTML">
+  <h2>Notes and processing</h2>
+  {% for v in views %}{{ field(v) }}{% endfor %}
+  {{ status(state) }}
+  <div><button type="submit" class="primary">Save</button></div>
+</form>
+<p class="hint">Templates are managed on the <a href="/templates">Templates</a> page.</p>

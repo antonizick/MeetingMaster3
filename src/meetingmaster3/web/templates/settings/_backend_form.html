@@ -1,0 +1,43 @@
+{% set e = errors %}
+{% set s = submitted %}
+<form class="card stack" id="backend-form" hx-post="/settings/llm/save" hx-target="#backend-form" hx-swap="outerHTML" autocomplete="off">
+  <h2>{% if is_new %}Add a backend{% else %}Edit “{{ orig_name }}”{% endif %}</h2>
+  <input type="hidden" name="orig_name" value="{{ orig_name }}">
+  <div class="grid">
+    <div class="field{% if e.name %} has-error{% endif %}"><label for="b-name">Name</label>
+      <input id="b-name" name="name" type="text" value="{{ s.get('name', name) }}" required maxlength="32" pattern="[a-z0-9][a-z0-9_-]*">
+      <p class="hint">Lowercase letters, digits, hyphens. Shown in the backend picker.</p>
+      {% if e.name %}<p class="error-text" role="alert">{{ e.name }}</p>{% endif %}</div>
+    <div class="field{% if e.kind %} has-error{% endif %}"><label for="b-kind">Kind</label>
+      <select id="b-kind" name="kind">{% for k in kinds %}<option value="{{ k }}"{% if k == s.get('kind', cfg.kind) %} selected{% endif %}>{{ k }}</option>{% endfor %}</select>
+      {% if e.kind %}<p class="error-text" role="alert">{{ e.kind }}</p>{% endif %}</div>
+  </div>
+  <div class="field{% if e.base_url %} has-error{% endif %}"><label for="b-url">Address (base URL)</label>
+    <input id="b-url" name="base_url" type="text" value="{{ s.get('base_url', cfg.base_url or '') }}" placeholder="http://127.0.0.1:11434" spellcheck="false">
+    <p class="hint">Ollama and OpenAI-compatible servers. Include <code>/v1</code> for OpenAI-style servers. Empty uses the preset.</p>
+    {% if e.base_url %}<p class="error-text" role="alert">{{ e.base_url }}</p>{% endif %}</div>
+  <div class="field"><label for="b-key">API key</label>
+    <input id="b-key" name="api_key" type="password" autocomplete="new-password" spellcheck="false" placeholder="{{ 'Saved. Type a new key to replace it.' if key_set else 'Not set' }}">
+    {% if key_set %}<label class="check"><input type="checkbox" name="clear_key" value="1"> Remove the saved key</label>{% endif %}
+    <p class="hint">Write-only: it is stored in <code>config.yaml</code> and never displayed again. Not needed for Ollama or Bedrock.</p></div>
+  <div class="grid">
+    <div class="field"><label for="b-region">Region (Bedrock)</label>
+      <input id="b-region" name="region" type="text" value="{{ s.get('region', cfg.region or '') }}" placeholder="us-east-1"></div>
+    <div class="field"><label for="b-profile">AWS profile (Bedrock)</label>
+      <input id="b-profile" name="profile" type="text" value="{{ s.get('profile', cfg.profile or '') }}"></div>
+  </div>
+  <div class="grid">
+    <div class="field"><label for="b-model">Default model</label>
+      <input id="b-model" name="default_model" type="text" list="model-options" value="{{ s.get('default_model', cfg.default_model or '') }}" spellcheck="false">
+      {% if not is_new %}<div id="model-slot" hx-get="/settings/llm/{{ orig_name }}/models" hx-trigger="load, click from:#load-models" hx-swap="innerHTML"></div>
+      <button type="button" id="load-models">Load models</button>{% else %}<p class="hint">Save the backend first to list its models.</p>{% endif %}</div>
+    <div class="field{% if e.context_window %} has-error{% endif %}"><label for="b-ctx">Context window (tokens)</label>
+      <input id="b-ctx" name="context_window" type="number" min="512" step="1" value="{{ s.get('context_window', cfg.context_window or '') }}">
+      <p class="hint">Only if the server cannot report it (Bedrock never does).</p>
+      {% if e.context_window %}<p class="error-text" role="alert">{{ e.context_window }}</p>{% endif %}</div>
+  </div>
+  <label class="check"><input type="checkbox" name="consent_remembered" value="1"{% if (s.get('consent_remembered') if s else cfg.consent_remembered) %} checked{% endif %}> Remember my consent to send transcripts to this backend</label>
+  <p class="hint">For cloud backends only. Without it, each meeting asks before the transcript leaves this computer.</p>
+  <div class="row"><button type="submit" class="primary">Save backend</button>
+    <a class="button" href="/settings/llm">Cancel</a></div>
+</form>
