@@ -103,7 +103,12 @@
       modelNote: "",
       templateHint: "",
 
+      dateEdited: false,
+
       init() {
+        const date = this.field("meeting_date");
+        date.value = new Date().toLocaleDateString("en-CA"); // today, in the browser's time zone
+        date.addEventListener("input", () => { this.dateEdited = true; });
         this.backendChanged();
         this.templateChanged();
       },
@@ -163,7 +168,8 @@
         const date = this.field("meeting_date");
         const time = this.field("meeting_time");
         if (!title.value) title.value = guess.title || name.replace(/\.[^.]+$/, "");
-        if (!date.value) date.value = guess.date || new Date().toLocaleDateString("en-CA");
+        // A date found in the file name beats the "today" default, but never an edit by the user.
+        if (guess.date && !this.dateEdited) date.value = guess.date;
         if (!time.value && guess.time) time.value = guess.time;
       },
 
