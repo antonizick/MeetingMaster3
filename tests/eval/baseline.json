@@ -1,0 +1,1559 @@
+{
+  "model": "qwen3:8b",
+  "date": "2026-10-12",
+  "results": [
+    {
+      "meeting": "board-q3-governance",
+      "template": "board-governance-minutes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "type_content": true
+      },
+      "found": {
+        "content": 5
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 6,
+      "seconds": 18.3
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "action-focused",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 1,
+        "actions": 4,
+        "questions": 1
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 6,
+      "seconds": 16.1
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "agile-standup",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 4,
+        "questions": 1
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 5,
+      "seconds": 12.2
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "board-governance-minutes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 4
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 6,
+      "seconds": 21.0
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "brainstorming-ideation",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true
+      },
+      "found": {
+        "questions": 1
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 8,
+      "seconds": 24.0
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "chronological-timeline",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 1,
+        "actions": 4
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 5,
+      "seconds": 25.5
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "decision-log",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 1,
+        "actions": 4,
+        "questions": 1
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 5,
+      "seconds": 17.5
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "detailed-meeting-minutes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 1,
+        "actions": 4,
+        "questions": 1
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 7,
+      "seconds": 30.1
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "executive-summary",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 1,
+        "actions": 4,
+        "questions": 1
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 6,
+      "seconds": 18.4
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "general-discussion-summary",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true
+      },
+      "found": {
+        "questions": 1
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 5,
+      "seconds": 18.6
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "job-interview-notes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true
+      },
+      "found": {},
+      "missing": {},
+      "mode": "full",
+      "calls": 9,
+      "seconds": 36.0
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "just-the-facts",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 1,
+        "actions": 4
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 4,
+      "seconds": 20.9
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "key-takeaways-next-steps",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 4
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 3,
+      "seconds": 11.8
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "one-on-one-coaching",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 4
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 8,
+      "seconds": 22.9
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "project-team-sync",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 1,
+        "actions": 4,
+        "questions": 1
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 8,
+      "seconds": 23.8
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "qa-extraction",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true
+      },
+      "found": {},
+      "missing": {},
+      "mode": "full",
+      "calls": 5,
+      "seconds": 26.0
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "retrospective",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 1,
+        "actions": 4
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 8,
+      "seconds": 18.8
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "risks-issues-mitigations",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 4,
+        "questions": 1
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 7,
+      "seconds": 26.7
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "sales-client-call",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 4
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 9,
+      "seconds": 28.0
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "speaker-attributed-notes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 1,
+        "actions": 4,
+        "questions": 1
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 6,
+      "seconds": 26.7
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "strategic-meeting-summary",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true
+      },
+      "found": {
+        "decisions": 1,
+        "questions": 1
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 9,
+      "seconds": 21.1
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "technical-deep-dive",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 1,
+        "actions": 4,
+        "questions": 1
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 9,
+      "seconds": 34.2
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "workshop-training-recap",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true
+      },
+      "found": {},
+      "missing": {},
+      "mode": "full",
+      "calls": 8,
+      "seconds": 31.4
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "action-focused",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 2,
+        "actions": 5,
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 6,
+      "seconds": 18.6
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "agile-standup",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 5,
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 5,
+      "seconds": 15.9
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "board-governance-minutes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 5
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 6,
+      "seconds": 34.3
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "brainstorming-ideation",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true
+      },
+      "found": {
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 8,
+      "seconds": 48.3
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "chronological-timeline",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 2,
+        "actions": 5
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 5,
+      "seconds": 47.9
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "decision-log",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 2,
+        "actions": 5,
+        "questions": 1
+      },
+      "missing": {
+        "questions": [
+          "payload"
+        ]
+      },
+      "mode": "full",
+      "calls": 5,
+      "seconds": 25.5
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "detailed-meeting-minutes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 2,
+        "actions": 5,
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 7,
+      "seconds": 51.2
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "executive-summary",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 2,
+        "actions": 5,
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 6,
+      "seconds": 22.8
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "general-discussion-summary",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true
+      },
+      "found": {
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 5,
+      "seconds": 24.7
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "job-interview-notes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true
+      },
+      "found": {},
+      "missing": {},
+      "mode": "full",
+      "calls": 9,
+      "seconds": 46.2
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "just-the-facts",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 2,
+        "actions": 5
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 4,
+      "seconds": 30.2
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "key-takeaways-next-steps",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 5
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 3,
+      "seconds": 13.1
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "one-on-one-coaching",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 5
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 8,
+      "seconds": 25.3
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "project-team-sync",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 2,
+        "actions": 5,
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 8,
+      "seconds": 27.8
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "qa-extraction",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true
+      },
+      "found": {},
+      "missing": {},
+      "mode": "full",
+      "calls": 5,
+      "seconds": 35.1
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "retrospective",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 2,
+        "actions": 5
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 8,
+      "seconds": 34.7
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "risks-issues-mitigations",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 5,
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 7,
+      "seconds": 35.3
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "sales-client-call",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 5
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 9,
+      "seconds": 46.1
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "speaker-attributed-notes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 2,
+        "actions": 5,
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 6,
+      "seconds": 30.7
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "strategic-meeting-summary",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true
+      },
+      "found": {
+        "decisions": 2,
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 9,
+      "seconds": 41.7
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "technical-deep-dive",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 2,
+        "actions": 5,
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 9,
+      "seconds": 67.7
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "workshop-training-recap",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true
+      },
+      "found": {},
+      "missing": {},
+      "mode": "full",
+      "calls": 8,
+      "seconds": 43.0
+    },
+    {
+      "meeting": "interview-support-engineer",
+      "template": "job-interview-notes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "type_content": true,
+        "nothing_forbidden": true
+      },
+      "found": {
+        "content": 3
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 9,
+      "seconds": 33.4
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "action-focused",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7,
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 6,
+      "seconds": 24.5
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "agile-standup",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 7,
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 5,
+      "seconds": 21.3
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "board-governance-minutes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 7
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 6,
+      "seconds": 26.7
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "brainstorming-ideation",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true
+      },
+      "found": {
+        "questions": 1
+      },
+      "missing": {
+        "questions": [
+          "pricing"
+        ]
+      },
+      "mode": "full",
+      "calls": 8,
+      "seconds": 58.0
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "chronological-timeline",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 5,
+      "seconds": 65.8
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "decision-log",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7,
+        "questions": 1
+      },
+      "missing": {
+        "questions": [
+          "support-staffing"
+        ]
+      },
+      "mode": "full",
+      "calls": 5,
+      "seconds": 30.9
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "detailed-meeting-minutes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7,
+        "questions": 1
+      },
+      "missing": {
+        "questions": [
+          "pricing"
+        ]
+      },
+      "mode": "full",
+      "calls": 7,
+      "seconds": 54.8
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "executive-summary",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7,
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 6,
+      "seconds": 32.4
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "general-discussion-summary",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true
+      },
+      "found": {
+        "questions": 1
+      },
+      "missing": {
+        "questions": [
+          "pricing"
+        ]
+      },
+      "mode": "full",
+      "calls": 5,
+      "seconds": 28.2
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "job-interview-notes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true
+      },
+      "found": {},
+      "missing": {},
+      "mode": "full",
+      "calls": 9,
+      "seconds": 50.5
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "just-the-facts",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 4,
+      "seconds": 46.5
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "key-takeaways-next-steps",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 7
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 3,
+      "seconds": 15.6
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "one-on-one-coaching",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 7
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 8,
+      "seconds": 42.8
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "project-team-sync",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7,
+        "questions": 1
+      },
+      "missing": {
+        "questions": [
+          "pricing"
+        ]
+      },
+      "mode": "full",
+      "calls": 8,
+      "seconds": 45.4
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "qa-extraction",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true
+      },
+      "found": {},
+      "missing": {},
+      "mode": "full",
+      "calls": 5,
+      "seconds": 33.8
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "retrospective",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 8,
+      "seconds": 47.4
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "risks-issues-mitigations",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 7,
+        "questions": 1
+      },
+      "missing": {
+        "questions": [
+          "pricing"
+        ]
+      },
+      "mode": "full",
+      "calls": 7,
+      "seconds": 36.5
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "sales-client-call",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "actions": 7
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 9,
+      "seconds": 60.3
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "speaker-attributed-notes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7,
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 6,
+      "seconds": 49.2
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "strategic-meeting-summary",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true
+      },
+      "found": {
+        "decisions": 3,
+        "questions": 1
+      },
+      "missing": {
+        "questions": [
+          "pricing"
+        ]
+      },
+      "mode": "full",
+      "calls": 9,
+      "seconds": 47.5
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "technical-deep-dive",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7,
+        "questions": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 9,
+      "seconds": 56.1
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "workshop-training-recap",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true
+      },
+      "found": {},
+      "missing": {},
+      "mode": "full",
+      "calls": 8,
+      "seconds": 49.5
+    },
+    {
+      "meeting": "retro-checkout-launch",
+      "template": "retrospective",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "type_content": true
+      },
+      "found": {
+        "decisions": 1,
+        "actions": 2,
+        "content": 3
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 8,
+      "seconds": 16.1
+    },
+    {
+      "meeting": "sales-call-harbor-logistics",
+      "template": "sales-client-call",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "type_content": true
+      },
+      "found": {
+        "actions": 3,
+        "content": 3
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 9,
+      "seconds": 40.8
+    },
+    {
+      "meeting": "standup-platform-team",
+      "template": "agile-standup",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "type_content": true
+      },
+      "found": {
+        "actions": 1,
+        "content": 2
+      },
+      "missing": {},
+      "mode": "full",
+      "calls": 5,
+      "seconds": 12.3
+    }
+  ],
+  "note": "qwen3:8b on the reference RTX 2070 Max-Q (Phase 15). board-governance-minutes rows re-run after its prompt fix."
+}
