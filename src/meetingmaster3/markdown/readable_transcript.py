@@ -103,9 +103,16 @@ def _paragraphs(segments: list[Segment], limit: float) -> list[str]:
 
 
 def colour_map(doc: CompanionTranscript) -> dict[str, int]:
-    """Palette index per label, the same as the review screen (natural label order)."""
+    """Palette index per label, the same as the review screen (natural label order). Labels
+    that carry the same name (one person split by diarization) share the first one's colour."""
     labels = doc.transcript.speaker_labels
-    return {label: i % len(SPEAKER_COLOURS) for i, label in enumerate(labels)}
+    by_name: dict[str, int] = {}
+    out: dict[str, int] = {}
+    for i, label in enumerate(labels):
+        name = doc.speakers.names.get(label)
+        index = i % len(SPEAKER_COLOURS)
+        out[label] = by_name.setdefault(name, index) if name else index
+    return out
 
 
 def render_body(doc: CompanionTranscript, *, paragraph_seconds: float = PARAGRAPH_SECONDS) -> str:
@@ -135,7 +142,7 @@ def frontmatter_data(
 ) -> dict[str, Any]:
     t = doc.transcript
     labels = t.speaker_labels
-    speakers = [doc.speakers.display_name(label, labels) for label in labels]
+    speakers = list(dict.fromkeys(doc.speakers.display_name(label, labels) for label in labels))
     data: dict[str, Any] = {
         "mm3-id": str(doc.meeting_id),
         "mm3-kind": KIND,

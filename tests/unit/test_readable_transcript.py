@@ -106,6 +106,24 @@ def test_colours_are_stable_per_speaker_and_match_the_app() -> None:
     assert [t.colour for t in view.turns] == [1, 0, 1]
 
 
+def test_one_person_split_by_diarization_keeps_one_colour() -> None:
+    d = doc(
+        seg(0, 0, "SPEAKER_00", "a"),
+        seg(1, 5, "SPEAKER_01", "b"),
+        seg(2, 9, "SPEAKER_02", "c"),
+        names={"SPEAKER_00": "Michelle", "SPEAKER_01": "Nick", "SPEAKER_02": "Michelle"},
+    )
+    text = render_readable(d)
+    marks = re.findall(r'<mark style="background: ([^;]+);[^>]*>([^<]+)</mark>', text)
+    assert marks == [
+        (SPEAKER_COLOURS[0], "Michelle"),
+        (SPEAKER_COLOURS[1], "Nick"),
+        (SPEAKER_COLOURS[0], "Michelle"),
+    ]
+    fm, _ = split_frontmatter(text)
+    assert fm is not None and fm.data["speakers"] == ["Michelle", "Nick"]
+
+
 def test_unnamed_speakers_and_undiarized_text_are_neutral() -> None:
     d = doc(seg(0, 0, "SPEAKER_03", "a"), seg(1, 5, None, "b"), names={"SPEAKER_00": "Nick"})
     marks = re.findall(r'<mark style="background: ([^;]+);[^>]*>([^<]+)</mark>', render_readable(d))
