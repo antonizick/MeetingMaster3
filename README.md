@@ -11,14 +11,15 @@
 > [plan](IMPLEMENTATION_PLAN.md).
 
 ## Status
-Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-13 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, transcription and diarization, speaker naming and voiceprints, LLM backends, templates and note generation, the web UI's core flow, and the review workspace: synced audio and transcript, note editor, per-section regeneration with diffs and archives, template switching, renaming speakers and re-opening notes from the vault (see [reviewing and editing](docs/user-guide/reviewing-and-editing.md)), the Settings screen, template library management, local feedback ratings and export, and all 22 built-in templates), Docker images (Phase 14), and hardening: a [threat model](docs/THREAT_MODEL.md), a security review with fixes, fuzzing, end-to-end and accessibility tests, a licence audit and [measured performance](docs/PERFORMANCE.md) (Phase 15).
+Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-13 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, transcription and diarization, speaker naming and voiceprints, LLM backends, templates and note generation, the web UI's core flow, and the review workspace: synced audio and transcript, note editor, per-section regeneration with diffs and archives, template switching, renaming speakers and re-opening notes from the vault (see [reviewing and editing](docs/user-guide/reviewing-and-editing.md)), the Settings screen, template library management, local feedback ratings and export, and all 22 built-in templates), Docker images (Phase 14), and hardening: a [threat model](docs/THREAT_MODEL.md), a security review with fixes, fuzzing, end-to-end and accessibility tests, a licence audit and [measured performance](docs/PERFORMANCE.md) (Phase 15). Tuning round 15a added a readable transcript in the vault, two summaries per note (Summary Succinct and Summary Detailed) with an "Update older notes" action, dates from month-day file names, a "can I leave this page?" line and a logo.
 The CI badge above is a placeholder until the repository is published (Phase 16).
 
 ## Planned features (MVP)
 - Upload audio, get a diarized transcript (WhisperX: faster-whisper + wav2vec2 alignment + pyannote).
 - Name speakers once; optional local voiceprints recognise them in later meetings.
-- Structured notes from 22 templates (executive summary, decision log, action items, and more),
-  written straight into your Obsidian vault with frontmatter, wikilinks and a companion transcript.
+- Structured notes from 22 templates (executive summary, decision log, action items, and more), each
+  opening with a short and a detailed summary, written straight into your Obsidian vault with
+  frontmatter, wikilinks, a readable colour-coded transcript and a full-fidelity companion transcript.
 - Side-by-side review with audio, per-section regeneration with diffs, and re-opening existing notes.
 - Local-first LLMs through Ollama; optional BYOK cloud backends (AWS Bedrock, OpenAI-compatible
   endpoints including OpenRouter).
@@ -161,5 +162,6 @@ _Coming in Phase 16._
 - [Changelog](CHANGELOG.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 ## License
-Apache-2.0. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). Model weights are not bundled and carry
+Apache-2.0. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). The logo is not covered: it is © Nick
+Antonizick, all rights reserved, and forks must replace it. Model weights are not bundled and carry
 their own terms; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

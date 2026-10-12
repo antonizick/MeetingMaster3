@@ -66,6 +66,7 @@ file-only protocol whitelist. Measured speed and memory on the 8 GB reference GP
 | `markdown/frontmatter.py` | Frontmatter split/parse; per-key raw chunks; MM3-style emitter with verified fallbacks. |
 | `markdown/note_parser.py`, `note_writer.py` | `parse_note` → `ParsedNote`; `build_note`, `render_note(note, base=)` (reuses unchanged bytes). |
 | `markdown/transcript_format.py` | Companion transcript render/parse, hidden JSON-lines data block, `rename_speakers`. |
+| `markdown/readable_transcript.py` | The readable transcript `<note> (Transcript).md` (Phase 15a, R25): colour-highlighted speakers in the review screen's palette, 90 s paragraphs, `neutralise` for spoken text. Writer only; never parsed back. |
 | `markdown/diff.py` | `unified_diff`, `side_by_side` rows, `diff_stats` (stdlib difflib). |
 | `vault/naming.py`, `paths.py`, `io.py`, `archive.py` | R13 names and collisions; vault root checks and confinement; atomic non-clobbering writes and exact reads; R12 archives. |
 | `storage/db.py`, `migrations.py`, `repositories.py` | One shared WAL SQLite connection; forward-only numbered migrations (`schema_version`); `JobRepository` (enforces the job state machine), `StageRepository`, `RecentMeetingsRepository`. See [`dev-guide/storage.md`](dev-guide/storage.md). |
@@ -105,9 +106,11 @@ file-only protocol whitelist. Measured speed and memory on the 8 GB reference GP
 | `templates/stages.py`, `regenerate.py` | The `generate` and `write` stages; preview of one section's regeneration for a vault note. |
 | `web/api/templates.py` | `GET /api/templates`, `POST /api/templates/install`, `POST /api/jobs/{id}/generate`, `POST /api/notes/regenerate-section`. |
 | `markdown/editing.py` | Split a note into editable parts (frontmatter, user text around sections, section contents) and join edited parts back with the original marker lines and line endings (ADR-0024). |
-| `vault/picker.py` | Vault browser for re-opening notes (folders and `mm3-id` notes only, archives and transcripts skipped, confined); `find_companions` searches the vault for a moved transcript. |
+| `vault/picker.py` | Vault browser for re-opening notes (folders and `mm3-id` notes only, archives and transcripts skipped, confined); `find_companions` searches the vault for a moved transcript. `read_identity` classifies a file (`is_note`, `is_transcript`, `is_readable` by `mm3-kind`). |
+| `vault/readable.py` | Write/refresh the readable transcript next to a note; never replaces a file that is not this meeting's (`(Transcript 2)`…); `refresh_readable` after a rename or link-transcript (Phase 15a). |
 | `review/store.py` | Per-meeting working files in app data: base snapshots by SHA-256, the autosaved draft, a pending template switch. |
 | `review/workspace.py` | Locate a note by `mm3-id` (Recent list or a vault path), load it with its companion transcript, job and audio state; transcript view model; degradation modes. |
+| `review/upgrade.py` | "Update older notes" (Phase 15a): dry-run planner per note, applier (generate missing summaries with `NoteGenerator.write_sections`, `sections.insert_section`, `rename_heading`, readable transcript, archive, SHA + `mm3-id` re-check, atomic write), model choice, the background `UpgradeRun`. Used by `web/upgrade_ui.py` (card on Recent) and `mm3 notes upgrade`. |
 | `review/save.py`, `rename.py`, `switch.py` | Save with the hash check and conflict (ADR-0025); speaker renaming through the Phase 07 cascade; whole-note template switch with "Preserved notes". |
 | `web/review.py` | `/open`, `/open/note`, `/ui/open/browse`, `/meetings/{mm3_id}` and the workspace's JSON actions under `/ui/review/{mm3_id}/`. |
 | `config/editing.py` | UI settings edits: validate a dotted-path patch per section, apply it only if all of it is valid, write `config.yaml` (Phase 12). |

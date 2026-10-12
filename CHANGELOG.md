@@ -8,6 +8,28 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Pre-operational tuning, round 1 (Phase 15a, R25):
+  - **Readable transcript** in the vault, `<note> (Transcript).md`, next to the note: the time, each speaker's
+    name highlighted in their own colour (the review screen's palette), then the text; long turns are split into
+    paragraphs. It is linked from the note's new `- **Transcript:**` header line, refreshed when speakers are
+    renamed or a transcript is linked, included in the meeting zip, and ignored by every vault scanner. Setting
+    `generation.readable_transcript` (default on).
+  - **Summary Succinct + Summary Detailed** in all 22 built-in templates: the old Summary is renamed, and a new
+    section of typically three paragraphs (never fewer than two, checked with one retry) follows it. Unedited
+    vault copies of the built-ins are upgraded when the app starts; edited ones are kept and the library says a
+    newer version exists.
+  - **Update older notes** card on Recent and `mm3 notes upgrade [--dry-run] [--note] [--backend] [--model]
+    [--allow-cloud]`: adds Summary Detailed, renames a default "Summary" heading and writes missing readable
+    transcripts, after a dry run and an optional one-note preview; archives each note first, never overwrites an
+    edit made meanwhile, and can be cancelled.
+  - Dates in file names without a year (`09-22`, `9-22`, `09_22`, `Sep 22`, `Sept 22nd`, `22 Sep`) and US dates
+    (`09-22-2026`, `9-22-26`); the current year is assumed, or last year when the date would be in the future. The
+    form shows "From the file name" under the date.
+  - The job page says quietly whether leaving it is safe (and what stops a job), and the tab title shows the
+    progress (`42% · Transcribing`, `✓ Notes ready`).
+  - A logo in the header of the navigation pages (not on job, speaker, review or preview pages), built by
+    `scripts/make_logo.py`. The logo is © Nick Antonizick, all rights reserved, and not under Apache-2.0
+    (`NOTICE`).
 - Model choice that cannot fail late: for Ollama the app reads each model's capabilities and context length.
   The new-meeting picker leaves out embedding models and models whose context window is too small, pre-selects
   a tested model when no default is set, and explains a bad typed-in model before starting. The upload API and
@@ -125,6 +147,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Frontmatter values PyYAML cannot build (an impossible date) gave HTTP 500 instead of a readable error.
 
 ### Changed
+- The plain-text transcript export (`.txt`) uses the readable layout: time and name on one line, the text
+  below, a blank line between turns.
+- The guessed title drops a date found in the file name, and a free-standing `_` (a `:` or `|` replaced by the
+  recorder or browser) becomes ` - `.
 - "Review & edit" on the job page and the notes in **Recent** now open the review workspace;
   `/preview` is the read-only view for files that are not MeetingMaster3 notes (and links MM3 notes to
   the workspace). The main menu gains **Open a note**.

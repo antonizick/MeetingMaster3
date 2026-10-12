@@ -26,7 +26,11 @@ plain Markdown file, so it can be read and edited in Obsidian like any other not
   file with its name. An existing file is replaced only if it is byte-identical to the version MM3
   installed earlier (recorded as a SHA-256 in `<data>/templates.installed.json`), which means the
   user never edited it; otherwise it is kept and reported as `kept (modified)`. User edits are
-  never overwritten.
+  never overwritten. Since Phase 15a the app also refreshes those unedited copies at start-up when
+  a newer built-in ships (`ensure_installed`; a built-in the user deleted is not brought back), and
+  the library flags an edited copy whose built-in changed (`newer_builtins`). `planning_library`
+  gives the library as it will be after that refresh without writing (dry runs of
+  `mm3 notes upgrade`).
 
 ## 2. File layout
 ```markdown
@@ -38,7 +42,8 @@ description: Short, high-level brief on outcomes, key decisions and implications
 tags: [general, leadership]
 favorite: false
 sections:
-  - {id: summary, title: Summary, kind: narrative}
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
   - {id: decisions, title: Decisions Made, kind: extraction}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks}
   - {id: ai-recommendations, title: AI Recommendations, kind: narrative}
@@ -48,7 +53,10 @@ params: {temperature: null, max_tokens_per_section: 800}
 You are writing for a busy executive ...
 
 <!-- mm3:prompt:summary -->
-Write 3-5 sentences ...
+Write 2-4 sentences ...
+
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed summary ... typically three paragraphs and never fewer than two ...
 
 <!-- mm3:prompt:decisions -->
 ...
@@ -84,7 +92,16 @@ loads in an older app.
 | `max_tokens` | integer ≥ 64 | `params.max_tokens_per_section` | Output limit for this section. |
 
 Common section ids (reuse them so regeneration and future tooling stay consistent): `summary`,
-`key-points`, `decisions`, `action-items`, `open-questions`, `next-steps`, `ai-recommendations`.
+`summary-detailed`, `key-points`, `decisions`, `action-items`, `open-questions`, `next-steps`,
+`ai-recommendations`.
+
+**Two summaries (Phase 15a, R25, ADR-0031).** `summary` is the short one (titled "Summary
+Succinct" in the built-ins; the id stays `summary` so older notes, regeneration and ratings keep
+working). `summary-detailed` follows it: prose, typically three paragraphs (context and purpose; the
+threads of discussion with who said what; outcomes, decisions and open questions), about 1 200 output
+tokens. The generator enforces a floor for this id: fewer than two paragraphs
+(`templates/postprocess.count_paragraphs`) triggers one retry with a firmer instruction, then the
+better answer is kept and the job gets a warning; nothing is padded.
 
 ### 3.2 Params
 | Key | Type | Default | Meaning |
@@ -195,6 +212,9 @@ new built-ins should too:
   (`candidate-strengths`, `motions-and-votes`, `went-well`, `risks`) are fine beside them.
 * A section called `action-items` has `format: tasks` and its prompt keeps the `**Unassigned:**`
   structure line and the owner rule (§8).
+* `summary` (title "Summary Succinct") is followed directly by `summary-detailed` (title "Summary
+  Detailed"), first in the note except in `board-governance-minutes` (after Attendance & Quorum)
+  (`tests/unit/templates/test_summaries.py`).
 * `ai-recommendations` is last. The only built-in with `params.ai_recommendations: false` is
   `board-governance-minutes`: a formal record must not carry generated commentary
   (`AI_RECOMMENDATIONS_EXCEPTIONS` in `tests/unit/templates/test_schema.py`).

@@ -92,7 +92,9 @@ be read, the job shows a warning naming the time range.
 The first time MeetingMaster3 uses your vault, it copies the built-in templates into
 `MeetingMaster3/templates/` (setting `vault.templates_subfolder`). From then on:
 * **Edit a template** directly in Obsidian. Your edits are never overwritten: when MeetingMaster3 is
-  updated, only templates you never touched are refreshed.
+  updated, only templates you never touched are refreshed (at the next start). When a built-in you edited
+  has a newer version, the library says so; **Reset to default** gets it (your copy goes to the Archive
+  folder), or copy the changes by hand.
 * **Make your own:** copy a file, change its `id` and `name`, and edit the sections and the prompt
   blocks under `<!-- mm3:prompt:… -->`. A template in the folder **overrides** a built-in one with
   the same `id`.
@@ -101,6 +103,29 @@ The first time MeetingMaster3 uses your vault, it copies the built-in templates 
   `uv run mm3 templates list` shows what the app sees (`INVALID` templates are listed with their errors
   and are not offered).
 * Files starting with `_` or `.` in the folder are ignored, so you can keep a `_README.md` there.
+
+### Adding Summary Succinct and Summary Detailed to your own templates
+Since Phase 15a every built-in template starts with two summaries (Board & Governance Minutes puts them after
+Attendance & Quorum). Your own templates are not changed automatically. To add them, put these two lines first
+under `sections:` (keep the `summary` id: notes, regeneration and ratings use it):
+```yaml
+  - {id: summary, title: Summary Succinct, kind: narrative}
+  - {id: summary-detailed, title: Summary Detailed, kind: narrative, max_tokens: 1200}
+```
+and a prompt block for each, for example (adapt the first sentences to your template's voice):
+```markdown
+<!-- mm3:prompt:summary-detailed -->
+Write a detailed summary. First paragraph: why the meeting was held and its context. Second paragraph:
+the main threads of discussion, naming who said what. Third paragraph: what was decided, what happens next
+and what is still open.
+
+Write prose only: typically three paragraphs and never fewer than two, separated by blank lines. No bullet
+points, numbered lists, headings or tables. Use only what was said in the transcript and the names in the
+speaker list; never invent facts, names or numbers. Do not repeat the short summary word for word: go deeper.
+```
+A section with the id `summary-detailed` always gets the two-paragraph check: an answer with one paragraph is
+asked for again once, and kept with a warning if it is still short. Then **Update older notes** on the Recent
+page can add the new section to notes made with that template.
 
 Tips for prompts (from testing with small local models):
 * Show the structure with placeholders such as `<Owner>` and `<task>`, not with realistic examples:
@@ -121,6 +146,7 @@ the old version, or discard it. It needs the note's companion transcript.
 |---|---|---|
 | `generation.default_template` | `executive-summary` | Template when a job does not choose one. |
 | `generation.write_companion` | `true` | The companion transcript. Without it a note cannot be re-opened for regeneration. |
+| `generation.readable_transcript` | `true` | The readable `… (Transcript).md` next to each note (needs the companion). |
 | `generation.max_context` | `16384` | Context planned for local models; raise it on bigger GPUs. |
 | `generation.think` | `false` | Let reasoning models think first (slower). |
 | `generation.install_templates` | `true` | Copy the built-ins into the vault on first use. |

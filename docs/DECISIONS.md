@@ -651,3 +651,85 @@ document the ID shape and the ordering (`15` < `15a` < `15b` < `16`).
 **Status.** Accepted (2026-10-12).
 **Consequences.** Adding a round means adding a row and a prompt, and moving Phase 16's "Depends on" to the
 new round. The `phased-project` skill and the method note describe the same convention for other projects.
+
+## ADR-0031: Readable transcript, dates without a year, two summaries and the note upgrade path (Phase 15a)
+**Context.** Nick's first real meetings (round 15a): the companion transcript reads poorly in Obsidian
+(the data block is most of the file and turns run for minutes), a file named `09-22 Interview_ ….mp3` left the
+date at today, the one summary was too short, and the meetings already processed should gain the change.
+
+**Decisions.**
+1. **Readable transcript.** A second, generated file `<note stem> (Transcript).md` sits next to the note
+   (`markdown/readable_transcript.py`, `vault/readable.py`). Per turn: a muted `m:ss` (or `h:mm:ss`) clock
+   and the name in `<mark style="background: rgba(…,.35); font-weight: 600">` on one line, the text below,
+   a blank line between turns. HTML highlights are used because Obsidian's `==…==` has one colour; the
+   translucent dark-theme palette of the review screen (`.spk-0`…`.spk-7`, natural label order, the same
+   index as the review pane) keeps the theme's text colour readable in light and dark themes. Unnamed
+   speakers and undiarized text get a neutral grey. Turns are split into paragraphs at segment boundaries
+   once a paragraph passes **90 seconds**, without repeating the heading. Spoken text is neutralised: `& < > "`
+   become entities and Markdown/Obsidian punctuation (`\ ` * _ [ ] # $ % = ~ ^ |`) and a leading list or
+   quote marker are backslash-escaped, so no transcript can create HTML, links, embeds, tags, comments,
+   math or section markers (S3). The companion's own body has no such escaping and is unchanged
+   (out of scope). Frontmatter: `mm3-id`, `mm3-kind: readable-transcript`, `mm3-note`,
+   `mm3-transcript` (wikilinks), `duration`, `language`, `speakers`. Scanners classify by
+   `mm3-kind`, never by name (a note may legitimately be called "… (Transcript)"): the picker,
+   locate-transcript, re-open by id, regenerate, export and link-transcript all ignore it. The name never
+   ends with `.transcript.md`. A file of that name that is not this meeting's readable transcript is never
+   replaced: `(Transcript 2)`, `(Transcript 3)`… are tried. The file is never parsed back. It is rewritten
+   when the job writes the note, on a speaker rename and on link-transcript (reprocess writes a new note
+   through the job), and an unchanged file is not touched. The note links it from a header line
+   `- **Transcript:** [[… (Transcript)|Read the transcript]]` (the link people click); `mm3-transcript`
+   in the frontmatter still points at the companion. A template switch keeps that line. Setting
+   `generation.readable_transcript` (default on) instead of the prompt's `notes.readable_transcript`:
+   it sits next to `generation.write_companion`, and the Settings tab that shows both is already "Notes".
+2. **Dates from file names.** Order: year first (existing), US numeric with a year (`09-22-2026`,
+   `9-22-26`), a month name (`Sep 22`, `Sept 22nd`, `September 22, 2026`, `22 Sep`), then month and day
+   (`09-22`, `9-22`, `09_22`, `09.22`). Month first; day first only when the first number is above 12 and
+   the second is not. Not dates: numbers glued to letters or digits (`v2-10`, `x09-22`), parts of longer
+   dotted/dashed numbers (`1.2.3`), impossible dates (`02-30`, `14-30` as a time), and number pairs next to a
+   count word (`Top 10-12`, `Part 1-2`, `5-10 min`, `3-4 people`). **Year inference:** the current year in
+   the server's local time zone, except that a date more than one day in the future takes the previous
+   year (a recording cannot come from the future; `12-30` seen on 2027-01-02 is 2026-12-30). One day of
+   slack covers time-zone differences; 29 February in a non-leap year also falls back a year. The matched
+   date is removed from the guessed title, and a free-standing `_` (a `:` or `|` replaced by the recorder or
+   browser) becomes ` - `. The form shows "From the file name" under the Date until the user edits it.
+3. **Two summaries.** In all 22 built-ins the `summary` section keeps its id (notes, regeneration and ratings
+   keep working) and is titled **Summary Succinct**; **Summary Detailed** (`summary-detailed`, narrative,
+   `max_tokens: 1200`) follows it, with a prompt in each template's voice: prose only, typically three
+   paragraphs (context and purpose; threads of discussion with who said what; outcomes, decisions and open
+   questions), never fewer than two. Board minutes place both after Attendance & Quorum (formal minutes
+   open with attendance); Just the Facts and Key Takeaways gain both at the top. The generator counts
+   paragraphs in `summary-detailed`; fewer than two triggers one retry with a firmer instruction, then the
+   better answer is kept with a job warning, never padded. Map-reduce needed no change: its reduce input
+   already carries per-part summaries, up to 10 attributed points per part and every decision, action and
+   question. Unedited vault copies of built-ins are now upgraded at app start (only files the user never
+   edited, by the install manifest hash; a deleted built-in is not brought back), and an edited copy whose
+   built-in changed is flagged in the library ("Reset to default" gets the new version).
+4. **Upgrade path for older notes** (`review/upgrade.py`, "Update older notes" on Recent, `mm3 notes upgrade`).
+   A dry-run planner (no writes; it sees the upgraded built-ins through `planning_library`) lists per note:
+   the summary sections its template has and the note lacks, renaming a heading that is still exactly
+   "Summary", and a missing readable transcript. Notes without a companion are skipped with the reason.
+   Applying generates the sections with one prepared context (`NoteGenerator.write_sections`, the same
+   ADR-0029 model check and S6 consent: a cloud default must be agreed to), inserts them after their
+   template neighbours (`markdown/sections.insert_section`, a pure insertion), archives the whole previous
+   note, and re-checks `mm3-id` and SHA-256 just before an atomic write; a note edited meanwhile is
+   skipped and reported. Running it twice changes nothing. Custom templates are never changed (the user
+   guide explains how to add the sections).
+**Status.** Accepted (2026-10-12).
+**Consequences.** Two extra LLM calls per note (Summary Detailed, plus the rare retry); measured in
+`docs/PERFORMANCE.md`. The vault gains one more file per meeting. The `.txt` export now uses the readable
+layout (time and name, then text, blank line) instead of one `[h:mm:ss] Name: text` line per turn.
+
+## ADR-0032: The logo is committed, all rights reserved, and hidden on meeting pages (Phase 15a, Q6)
+**Context.** Nick asked for a logo made from `~/Pictures/wiz.jpg`, a photo-composite of him as a wizard with
+a crystal ball at a boardroom table. It shows a real person, and the repository becomes public in Phase 16.
+**Decision.** Nick chose (Q6, 2026-10-12): commit only the cropped logo, never the original, excluded from
+Apache-2.0 with a `NOTICE` line ("© 2026 Nick Antonizick, all rights reserved"). That option was offered
+on the condition that he holds the rights to the image. The crop (340×430 at 320,32) keeps the head, hat and crystal ball and no background face;
+it is a 4:5 portrait rather than square because a square crop either cuts the hat and ball or takes in a
+colleague's face. `scripts/make_logo.py SOURCE` (ImageMagick, no Python dependency) writes rounded-corner
+WebP and PNG at 32×40 and 64×80 with all metadata stripped into `web/static/brand/`. `base.html` shows it in
+a `brand_logo` block left of "MeetingMaster3", `alt=""` (the link has text), size fixed in CSS, 26×32 below
+30rem; `job.html`, `speakers.html`, `review.html` and `preview.html` override the block to nothing, so the
+image is not even requested there. The CSP is unchanged (served from `/static`). `favicon.svg` is kept.
+**Status.** Accepted (2026-10-12).
+**Consequences.** Forks and redistributions must replace the logo; Phase 16 screenshots show it.

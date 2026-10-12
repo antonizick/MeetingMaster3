@@ -20,6 +20,10 @@ into the vault.
 
 ## 2. New meeting
 Pick or drop an audio or video file. The title, date and time are guessed from the file name and stay editable.
+Dates such as `2026-09-22`, `09-22-2026`, `9-22-26`, `09-22`, `Sep 22` or `22 Sep` are recognised (month first,
+as in the US). A date without a year takes the current year, or last year if that would put it in the future
+(`12-30` picked on 2 January is last December). When the date came from the file name, *From the file name*
+appears under the Date field until you change it. Your own edit always wins.
 Then choose:
 - **Template** (favourites first; invalid templates are listed but disabled, with the first problem).
 - **Language model** and model. The badge says `local` or `cloud: <provider>`. Choosing a cloud backend opens a
@@ -37,8 +41,11 @@ Then choose:
 ![New meeting](../assets/02-new-meeting.png)
 
 ## 3. Progress
-The job page lists every stage with a bar, message, time spent and an ETA, and updates by itself. You can reload
-or close the tab; the page always shows the real state. *Cancel* stops the job (finished stages are kept and
+The job page lists every stage with a bar, message, time spent and an ETA, and updates by itself. **You can leave
+the page or close the browser: processing continues on this computer, and you come back any time from Recent.** It
+stops only if MeetingMaster3 stops or the computer shuts down, and can then be resumed from the last finished
+step (a quiet line under the title says so, and the browser tab shows the progress, for example
+`42% · Transcribing`, then `✓ Notes ready`). *Cancel* stops the job (finished stages are kept and
 *Resume* continues). If something fails you see what happened and what to do:
 - **Retry**, or **Retry with smaller model** after a GPU out-of-memory error.
 - If **writing the notes** fails (the model is unsuitable, its context window is too small, it timed out, and so
@@ -70,6 +77,17 @@ The completion box shows the note and transcript paths, an **Open in Obsidian** 
 opens the review workspace: the recording and transcript side by side with the note, which you can edit,
 regenerate section by section and save back to the vault. See [reviewing and editing](reviewing-and-editing.md).
 
+Three files are written next to each other:
+- `2026-09-22 - Title.md`, **the note**. Every built-in template starts with **Summary Succinct** (a few
+  sentences) and **Summary Detailed** (typically three paragraphs: purpose, the discussion and who said what,
+  outcomes and open questions). The header line *Transcript: Read the transcript* opens the readable transcript.
+- `2026-09-22 - Title (Transcript).md`, **the readable transcript**: laid out like the review screen, with the
+  time, then each speaker's name highlighted in their own colour, then what they said. It is made for reading in
+  Obsidian; edits to it are replaced the next time the transcript changes (for example after renaming a
+  speaker). Turn it off with `generation.readable_transcript` (Settings, Notes).
+- `2026-09-22 - Title.transcript.md`, **the companion transcript**: the full-fidelity copy with word timings that
+  the app uses to re-open, regenerate and rename. Do not edit it by hand.
+
 ![Done](../assets/05-done.png)
 
 ## Other pages
@@ -78,6 +96,13 @@ regenerate section by section and save back to the vault. See [reviewing and edi
   vault*; **Remove from list** forgets one entry and the box above the list removes all such entries at once.
   Only the list entry goes: the app never deletes a note file from here, and an entry comes back when you open
   that note again.
+- **Update older notes** (on Recent, when there is something to do): notes written before the current format
+  can gain **Summary Detailed** (written by your default model from each note's companion transcript), have a
+  "Summary" heading renamed to "Summary Succinct" (a heading you changed is kept) and get a readable transcript.
+  The card lists what would change, the model and an estimate; *Preview* writes one note's new section without
+  saving it; *Update* runs in the background with progress, can be cancelled, and links each updated note. The
+  previous version of every note goes to its `Archive` folder first, and a note you edit while it runs is
+  skipped, never overwritten. Headless: `mm3 notes upgrade --dry-run`, then `mm3 notes upgrade`.
 - **Templates** shows the library and its editor; **Settings** covers the vault, models, backends, privacy and
   feedback.
 
