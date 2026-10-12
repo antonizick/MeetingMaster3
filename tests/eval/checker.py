@@ -39,6 +39,8 @@ class Meeting:
     speakers: dict[str, str]
     transcript: Transcript
     expected: dict[str, Any]
+    templates: list[str] | None = None
+    """Template ids this meeting is meant for (type-specific meetings); ``None`` = any."""
 
     @property
     def names(self) -> list[str]:
@@ -66,7 +68,15 @@ def load_meeting(path: Path) -> Meeting:
     date = data["date"]
     if not isinstance(date, dt.datetime):
         date = dt.datetime.fromisoformat(str(date))
-    return Meeting(path.stem, data["title"], date, data["speakers"], transcript, data["expected"])
+    return Meeting(
+        path.stem,
+        data["title"],
+        date,
+        data["speakers"],
+        transcript,
+        data["expected"],
+        templates=data.get("templates"),
+    )
 
 
 def load_meetings() -> list[Meeting]:
@@ -208,4 +218,30 @@ def score_note(
             (s.found if hit else s.missing).setdefault("questions", []).append(q["id"])
         if strict_questions:
             s.checks["questions_captured"] = not s.missing.get("questions")
+    _check_sections(s, parsed, template, exp)
     return s
+
+
+def _check_sections(s: Score, parsed: Any, template: Template, exp: dict[str, Any]) -> None:
+    """Type-specific checks (Phase 13): ``expected.sections`` lists keyword groups that must
+    appear in a given section, ``expected.forbidden`` lists words that must not appear anywhere
+    in the note body (for example, protected characteristics in interview notes). Entries can
+    name the ``templates`` they apply to."""
+
+    def applies(entry: dict[str, Any]) -> bool:
+        return template.id in entry.get("templates", [template.id])
+
+    for entry in exp.get("sections", []):
+        section = parsed.note.section(entry["section"])
+        if section is None or not applies(entry):
+            continue
+        hit = _matches(section.body_markdown, entry["any"])
+        (s.found if hit else s.missing).setdefault("content", []).append(entry["id"])
+    if s.found.get("content") or s.missing.get("content"):
+        s.checks["type_content"] = not s.missing.get("content")
+    forbidden = [e for e in exp.get("forbidden", []) if applies(e)]
+    if forbidden:
+        body = "\n".join(sec.body_markdown for sec in parsed.note.sections).casefold()
+        bad = [e["id"] for e in forbidden if any(w.casefold() in body for w in e["any"])]
+        s.checks["nothing_forbidden"] = not bad
+        s.problems += [f"forbidden content: {i}" for i in bad]

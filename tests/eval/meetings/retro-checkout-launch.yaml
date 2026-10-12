@@ -1,0 +1,39 @@
+# Synthetic meeting written for MeetingMaster3's generation eval (Phase 13). Fictional people;
+# no real recording. License: CC0. A blameless retrospective (templates: retrospective).
+title: Checkout Launch Retrospective
+date: 2026-10-09T15:00:00
+templates: [retrospective]
+speakers:
+  SPEAKER_00: Maya Okafor
+  SPEAKER_01: Liam Doyle
+  SPEAKER_02: Sofia Rossi
+turns:
+  - [0, SPEAKER_00, "Let's review the checkout launch. What went well?"]
+  - [6, SPEAKER_02, "The feature flags worked really well. We rolled out to five percent first and caught the currency bug before most users saw it."]
+  - [18, SPEAKER_01, "Agreed, and the support team's launch checklist saved us. Sofia wrote that, it was great."]
+  - [28, SPEAKER_00, "What didn't go well?"]
+  - [31, SPEAKER_01, "The load test happened too late. We found the database connection limit only two days before launch."]
+  - [41, SPEAKER_02, "And the design handoff changed twice in the last week, so we rebuilt the payment form."]
+  - [51, SPEAKER_00, "Why did the load test slip?"]
+  - [55, SPEAKER_01, "We didn't have a test environment sized like production. Nobody owned getting one."]
+  - [65, SPEAKER_02, "I think the handoff changed because product and design weren't in the same planning meeting."]
+  - [74, SPEAKER_00, "Okay. Let's agree to put a production-sized test environment in the plan for every launch from now on."]
+  - [83, SPEAKER_01, "I'll write up what the environment needs by next Friday."]
+  - [89, SPEAKER_02, "We could invite design to sprint planning. Maybe we should try it for a month."]
+  - [97, SPEAKER_00, "Let's try that. Nobody has volunteered to book it though, so I'll note it as open."]
+expected:
+  decisions:
+    - id: prod-sized-env
+      any: [["environment", "test"]]
+  actions:
+    - id: env-writeup
+      owner: Liam Doyle
+      any: [["environment", "write", "needs"]]
+    - id: invite-design
+      owner: null
+      any: [["design", "planning", "invite"]]
+      optional: true
+  sections:
+    - {id: well-flags, section: went-well, any: [["flag", "checklist"]], templates: [retrospective]}
+    - {id: cause-env, section: root-causes, any: [["environment", "owned", "owner"]], templates: [retrospective]}
+    - {id: no-blame, section: did-not-go-well, any: [["load test", "handoff"]], templates: [retrospective]}

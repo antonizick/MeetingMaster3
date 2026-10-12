@@ -14,6 +14,7 @@ from meetingmaster3.config.settings import BackendConfig, Settings
 from meetingmaster3.llm.fake import FakeLLMBackend
 from tests.unit.jobs.helpers import make_tone, requires_ffmpeg
 from tests.unit.jobs.test_jobs_api import upload, wait
+from tests.unit.templates.builtin_ids import BUILTIN_IDS
 
 pytestmark = requires_ffmpeg
 SPEAKERS = {"SPEAKER_00": {"name": "Alice"}, "SPEAKER_01": {"name": "Bob"}}
@@ -75,19 +76,14 @@ def process(api: TestClient, tone: Path, **options: Any) -> dict[str, Any]:
 
 def test_templates_are_installed_and_listed(api: TestClient, vault: Path) -> None:
     folder = vault / "MeetingMaster3" / "templates"
-    assert sorted(p.name for p in folder.glob("*.md")) == [
-        "action-focused.md",
-        "decision-log.md",
-        "executive-summary.md",
-        "just-the-facts.md",
-        "technical-deep-dive.md",
-    ]
+    assert sorted(p.stem for p in folder.glob("*.md")) == sorted(BUILTIN_IDS)
     data = api.get("/api/templates").json()
     assert data["default"] == "executive-summary"
     ids = {t["id"]: t for t in data["templates"]}
     assert set(ids) == {p.stem for p in folder.glob("*.md")}
     assert ids["decision-log"]["source"] == "vault" and ids["decision-log"]["valid"]
     assert ids["decision-log"]["sections"][-1]["id"] == "ai-recommendations"
+    assert len(ids) == 22
 
     (folder / "broken.md").write_text("---\nid: broken\n---\n", encoding="utf-8")
     listed = api.get("/api/templates").json()["templates"]

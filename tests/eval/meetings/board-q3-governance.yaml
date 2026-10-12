@@ -1,0 +1,38 @@
+# Synthetic meeting written for MeetingMaster3's generation eval (Phase 13). Fictional people and
+# organisation; no real recording. License: CC0. Formal board meeting; one motion's vote count is
+# not stated and must be recorded as "not stated" (templates: board-governance-minutes).
+title: Board of Directors Q3 Meeting
+date: 2026-10-08T17:00:00
+templates: [board-governance-minutes]
+speakers:
+  SPEAKER_00: Eleanor Whitfield
+  SPEAKER_01: Marcus Bell
+  SPEAKER_02: Priya Nair
+  SPEAKER_03: Tom Hargreaves
+turns:
+  - [0, SPEAKER_00, "I call the meeting to order at five o'clock. Apologies from Dennis Cho. We have four directors present, so we have a quorum."]
+  - [14, SPEAKER_00, "First item, the approval of the minutes of the July meeting. Marcus?"]
+  - [22, SPEAKER_01, "I move that the minutes of the July meeting be approved as circulated."]
+  - [29, SPEAKER_02, "Seconded."]
+  - [31, SPEAKER_00, "All in favour? Carried unanimously."]
+  - [38, SPEAKER_00, "Second item, the audit committee report. Priya."]
+  - [44, SPEAKER_02, "The audit found no material issues. Two minor control recommendations were raised, both already addressed by management. I recommend the board accept the report."]
+  - [58, SPEAKER_01, "I move that the board accept the audit committee report."]
+  - [64, SPEAKER_03, "Seconded."]
+  - [66, SPEAKER_00, "Those in favour? Thank you. The motion is carried."]
+  - [74, SPEAKER_00, "Third item, the proposed office lease renewal. Tom, can you present?"]
+  - [80, SPEAKER_03, "The landlord offers a five-year renewal with a four percent annual increase. I would like more time to compare it with two alternative sites before the board commits."]
+  - [95, SPEAKER_00, "Do we want to decide tonight?"]
+  - [99, SPEAKER_01, "I'd rather defer. I move that the lease decision be tabled until the November meeting."]
+  - [108, SPEAKER_02, "Seconded."]
+  - [110, SPEAKER_00, "Carried. Tom will bring the comparison to the November meeting."]
+  - [118, SPEAKER_00, "That concludes the business. I declare the meeting adjourned at five forty."]
+expected:
+  decisions: []
+  sections:
+    - {id: attendance-cho, section: attendance, any: [["Cho", "apolog"]], templates: [board-governance-minutes]}
+    - {id: unanimous-minutes, section: motions-and-votes, any: [["minutes"], ["unanim"]], templates: [board-governance-minutes]}
+    - {id: vote-not-stated, section: motions-and-votes, any: [["not stated"]], templates: [board-governance-minutes]}
+    - {id: lease-tabled, section: motions-and-votes, any: [["lease"], ["tabled", "November"]], templates: [board-governance-minutes]}
+    - {id: adjourned, section: adjournment, any: [["five forty", "5:40", "17:40", "5.40"]], templates: [board-governance-minutes]}
+  forbidden: []
