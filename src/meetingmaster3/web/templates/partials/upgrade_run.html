@@ -1,0 +1,29 @@
+{% if run %}
+<div class="stack"{% if run.running %} hx-get="/ui/notes/upgrade/status" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+  {% if run.running %}
+  <p role="status">Updating note {{ run.done + 1 }} of {{ run.total }}{% if run.current %}: <span class="muted">{{ run.current }}</span>{% endif %} · {{ run.model }}</p>
+  <progress max="100" value="{{ run.percent }}" aria-label="Notes updated">{{ run.percent }}%</progress>
+  <p class="hint">This runs on this computer; you can leave the page. Cancel stops after the current note.</p>
+  <button hx-post="/ui/notes/upgrade/cancel" hx-target="closest div" hx-swap="outerHTML">Cancel</button>
+  {% elif run.status == 'done' %}
+  <p role="status"><strong>Done.</strong> {{ run.results|selectattr('status', 'equalto', 'updated')|list|length }} of {{ run.total }} notes updated.</p>
+  {% elif run.status == 'cancelled' %}
+  <p role="status"><strong>Cancelled</strong> after {{ run.done }} of {{ run.total }} notes.</p>
+  {% else %}
+  <div class="alert error" role="alert"><p>The update stopped: {{ run.error }}</p></div>
+  {% endif %}
+  {% if run.results %}
+  <ul class="plain">
+    {% for r in run.results %}
+    <li><span class="badge status-{{ 'written' if r.status == 'updated' else ('failed' if r.status == 'failed' else 'cancelled') }}">{{ r.status }}</span>
+      <a href="{{ r.link }}">{{ r.rel }}</a>
+      {% if r.added %}<span class="muted">· added {{ r.added|join(', ') }}</span>{% endif %}
+      {% if r.message %}<span class="muted">· {{ r.message }}</span>{% endif %}
+      {% if r.archive %}<span class="muted">· previous version: {{ r.archive }}</span>{% endif %}
+      {% for w in r.warnings %}<br><span class="muted">⚠ {{ w }}</span>{% endfor %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endif %}

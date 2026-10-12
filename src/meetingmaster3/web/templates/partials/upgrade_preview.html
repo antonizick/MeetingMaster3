@@ -1,0 +1,8 @@
+<div class="card stack">
+  <h3>Preview: <a href="{{ link }}">{{ plan.title }}</a></h3>
+  <p class="muted">Nothing has been written. {{ plan.changes|join('; ')|capitalize }}.{% if model %} Model: {{ model }}.{% endif %}</p>
+  {% for w in warnings or [] %}<p class="muted">⚠ {{ w }}</p>{% endfor %}
+  {% for s in sections %}
+  <div class="preview-body">{{ s.html }}</div>
+  {% endfor %}
+</div>

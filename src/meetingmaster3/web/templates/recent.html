@@ -30,6 +30,8 @@
   {% else %}<p class="muted">Nothing yet. <a href="/">Start with a new meeting.</a></p>{% endif %}
 </section>
 
+<div hx-get="/ui/notes/upgrade" hx-trigger="load" hx-swap="outerHTML"></div>
+
 <section aria-labelledby="h-notes">
   <h2 id="h-notes">Notes in your vault</h2>
   {% if notes %}

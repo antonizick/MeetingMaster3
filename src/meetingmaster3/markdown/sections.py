@@ -14,7 +14,9 @@ Invalid sections are reported as :class:`MarkerError` and never guessed at.
 
 from __future__ import annotations
 
+import re
 from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from itertools import pairwise
 from typing import Literal
@@ -348,6 +350,44 @@ def append_section(doc: str, section: Section) -> tuple[str, str]:
     return doc + prefix + block, sid
 
 
+def insert_section(
+    doc: str, section: Section, *, after: Sequence[str] = (), before: Sequence[str] = ()
+) -> tuple[str, str]:
+    """Add ``section`` right after the first valid section named in ``after``, else right before
+    the first valid one named in ``before``, else as :func:`append_section` does. A pure
+    insertion: existing bytes never change. Returns ``(new_doc, section_id)``."""
+    newline = detect_newline(doc)
+    scan = scan_sections(doc)
+    sid = fresh_section_id(doc, section.id)
+    block = render_section(section.model_copy(update={"id": sid}), newline)
+    for anchor in after:
+        span = scan.get(anchor)
+        if span is not None:
+            pos = span.close.end
+            sep = "" if doc[:pos].endswith("\n") else newline
+            return doc[:pos] + sep + newline + block + doc[pos:], sid
+    for anchor in before:
+        span = scan.get(anchor)
+        if span is not None:
+            pos = span.open.start
+            return doc[:pos] + block + newline + doc[pos:], sid
+    return append_section(doc, section)
+
+
+def rename_heading(doc: str, section_id: str, old: str, new: str) -> str:
+    """Change a valid section's ``## old`` heading line to ``## new``; any other heading (one
+    the user changed) is left as it is. Only that line's text changes."""
+    span = scan_sections(doc).get(section_id)
+    if span is None:
+        return doc
+    inner = doc[span.inner_start : span.inner_end]
+    m = re.match(rf"^##[ \t]+{re.escape(old)}[ \t]*(?=\r?\n|$)", inner)
+    if m is None:
+        return doc
+    start = span.inner_start
+    return doc[:start] + f"## {new}" + doc[start + m.end() :]
+
+
 __all__ = [
     "MarkerError",
     "MarkerLine",
@@ -357,8 +397,10 @@ __all__ = [
     "append_section",
     "detect_newline",
     "fresh_section_id",
+    "insert_section",
     "list_sections",
     "parse_inner",
+    "rename_heading",
     "render_inner",
     "render_section",
     "replace_section",

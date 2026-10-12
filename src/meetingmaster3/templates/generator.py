@@ -10,7 +10,7 @@ from __future__ import annotations
 import datetime as dt
 import logging
 import math
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -497,6 +497,20 @@ class NoteGenerator:
             calls=self.calls,
             warnings=list(self.warnings),
         )
+
+    async def write_sections(
+        self, meta: MeetingMeta, transcript: Transcript, section_ids: Sequence[str]
+    ) -> list[Section]:
+        """New bodies for some of the template's sections, sharing one prepared context (used
+        to add sections to an existing note, R25)."""
+        sections = [s for sid in section_ids if (s := self.template.section(sid)) is not None]
+        if not sections:
+            return []
+        prepared = await self.prepare(meta, transcript, sections)
+        return [
+            Section(id=s.id, title=s.title, body_markdown=await self._section(prepared, s))
+            for s in sections
+        ]
 
     async def regenerate_section(
         self,

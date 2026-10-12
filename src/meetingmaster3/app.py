@@ -28,6 +28,7 @@ from meetingmaster3.web.review import router as review_router
 from meetingmaster3.web.security import CSRFMiddleware, SecurityHeadersMiddleware
 from meetingmaster3.web.settings_ui import router as settings_router
 from meetingmaster3.web.templates_ui import router as templates_ui_router
+from meetingmaster3.web.upgrade_ui import router as upgrade_ui_router
 
 log = logging.getLogger(__name__)
 
@@ -93,6 +94,7 @@ def create_app(settings: Settings | None = None, paths: AppPaths | None = None) 
     app.include_router(feedback_ui_router)
     app.include_router(settings_router)
     app.include_router(templates_ui_router)
+    app.include_router(upgrade_ui_router)
 
     # Added innermost-first: TrustedHost runs first, then headers, then CSRF.
     app.add_middleware(CSRFMiddleware, trusted_hosts=settings.trusted_hosts)

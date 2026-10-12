@@ -1,0 +1,58 @@
+{% if not hidden %}
+<section class="card stack" id="notes-upgrade" aria-labelledby="h-upgrade">
+  <h2 id="h-upgrade">Update older notes</h2>
+  {% if run %}
+    {% include "partials/upgrade_run.html" %}
+  {% endif %}
+  {% if not run or not run.running %}
+  {% if notes %}
+  <p>{{ counts.todo }} {{ 'note was' if counts.todo == 1 else 'notes were' }} written before the current note format.
+    Updating adds what they are missing; your own text is kept, and the previous version of each note is saved in its <code>Archive</code> folder first.</p>
+  <ul>
+    {% if counts.add_sections %}<li>{{ counts.add_sections }} gain <strong>Summary Detailed</strong> (written by the language model from the note's transcript)</li>{% endif %}
+    {% if counts.rename_heading %}<li>{{ counts.rename_heading }} have their “Summary” heading renamed to <strong>Summary Succinct</strong></li>{% endif %}
+    {% if counts.write_readable %}<li>{{ counts.write_readable }} gain a <strong>readable transcript</strong> file</li>{% endif %}
+  </ul>
+  {% if counts.needs_model %}
+    {% if choice %}
+    <p>Model: <strong>{{ choice.backend_name }} · {{ choice.model }}</strong>{% if not choice.cloud %} <span class="badge local">local</span>{% endif %}. Estimated time: {{ estimate }}.</p>
+    {% else %}
+    <div class="alert error" role="alert"><p>{{ problem }}</p></div>
+    {% endif %}
+  {% endif %}
+  <details>
+    <summary>Notes to update ({{ notes|length }})</summary>
+    <ul class="plain">
+      {% for n in notes %}
+      <li><a href="{{ n.link }}">{{ n.title }}</a> <span class="muted">{{ n.date or '' }} · {{ n.changes|join('; ') }}</span></li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% if skipped %}
+  <details>
+    <summary>Skipped ({{ skipped|length }})</summary>
+    <ul class="plain">{% for n in skipped %}<li>{{ n.title }} <span class="muted">· {{ n.skip }}</span></li>{% endfor %}</ul>
+  </details>
+  {% endif %}
+  <form class="stack" hx-post="/ui/notes/upgrade/start" hx-target="#notes-upgrade-run" hx-swap="innerHTML">
+    {% if choice and choice.cloud %}
+    <label class="check"><input type="checkbox" name="cloud_consent" value="1" required> Send the transcripts of these notes to <strong>{{ choice.backend_name }}</strong>, a cloud service. A local model is recommended.</label>
+    {% endif %}
+    <div class="row">
+      {% set first = (notes|selectattr('needs_model')|first) or notes[0] %}
+      {% if counts.needs_model and choice %}
+      <button type="button" hx-post="/ui/notes/upgrade/preview" hx-vals='{{ {"path": first.rel}|tojson }}'
+              hx-include="closest form" hx-target="#notes-upgrade-preview" hx-swap="innerHTML"
+              hx-indicator="#notes-upgrade-preview">Preview “{{ first.title }}”</button>
+      {% endif %}
+      <button type="submit" class="primary"{% if counts.needs_model and not choice %} disabled{% endif %}>Update {{ counts.todo }} {{ 'note' if counts.todo == 1 else 'notes' }}</button>
+    </div>
+  </form>
+  <div id="notes-upgrade-preview" aria-live="polite"></div>
+  {% elif not run %}
+  <p class="muted">All notes are up to date.</p>
+  {% endif %}
+  {% endif %}
+  <div id="notes-upgrade-run"></div>
+</section>
+{% endif %}

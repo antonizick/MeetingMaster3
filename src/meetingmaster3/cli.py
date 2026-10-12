@@ -34,6 +34,8 @@ voiceprints_app = typer.Typer(
     help="List or delete stored voices (opt-in speaker recognition).", no_args_is_help=True
 )
 app.add_typer(voiceprints_app, name="voiceprints")
+notes_app = typer.Typer(help="Bring notes in the vault up to date.", no_args_is_help=True)
+app.add_typer(notes_app, name="notes")
 
 
 @app.command()
@@ -467,6 +469,92 @@ def templates_install(
         _fail(exc)
     for r in results:
         typer.echo(f"{r.action:<10} {settings.vault.templates_subfolder.rstrip('/')}/{r.file}")
+
+
+@notes_app.command("upgrade")
+def notes_upgrade(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show the plan; write nothing."),
+    note: str | None = typer.Option(None, "--note", help="Only this note (vault-relative)."),
+    backend: str | None = typer.Option(None, help="LLM backend (default from settings)."),
+    model: str | None = typer.Option(None, help="Model (default: the backend's default)."),
+    allow_cloud: bool = typer.Option(
+        False, "--allow-cloud", help="Agree to send transcripts to a cloud backend."
+    ),
+    vault: str | None = typer.Option(None, help="Vault folder (default from settings)."),
+) -> None:
+    """Add Summary Detailed, rename "Summary" to "Summary Succinct" and write readable
+    transcripts for notes made before Phase 15a. Each changed note is archived first."""
+    import asyncio
+
+    from meetingmaster3.llm.registry import BackendRegistry
+    from meetingmaster3.review.upgrade import apply_note, choose_model, plan_vault
+    from meetingmaster3.templates.loader import MANIFEST_NAME, planning_library
+    from meetingmaster3.vault.paths import confine, resolve_vault_root
+
+    configure_logging()
+    settings = _library_settings(vault)
+    try:
+        root = resolve_vault_root(settings.vault.path)
+        only = confine(root, note) if note is not None else None
+        manifest = resolve_paths().data_dir / MANIFEST_NAME
+        library = planning_library(root, settings.vault.templates_subfolder, manifest)
+        plan = plan_vault(root, library, settings, only=only)
+    except MM3Error as exc:
+        _fail(exc)
+    counts = plan.counts()
+    typer.echo(
+        f"{counts['notes']} MM3 notes: {counts['todo']} to update, "
+        f"{counts['up_to_date']} up to date, {counts['skipped']} skipped."
+    )
+    for n in plan.todo:
+        typer.echo(f"  update  {n.rel}: {'; '.join(n.changes)}")
+    for n in plan.skipped:
+        typer.echo(f"  skip    {n.rel}: {n.skip}")
+    if not plan.todo:
+        return
+
+    async def run() -> int:
+        choice = None
+        if any(n.needs_model for n in plan.todo):
+            choice = await choose_model(BackendRegistry(settings), settings, backend, model)
+            typer.echo(
+                f"Model: {choice.backend_name} · {choice.model}"
+                f"{' (cloud)' if choice.cloud else ' (local)'}; "
+                f"estimated {max(1, round(plan.estimate_seconds() / 60))} min."
+            )
+            if choice.cloud and not allow_cloud and not dry_run:
+                raise MM3Error(
+                    "E_CONSENT_REQUIRED",
+                    f"This sends the notes' transcripts to {choice.backend_name}, a cloud service.",
+                    "Pass --allow-cloud to agree, or choose a local model with --backend/--model.",
+                )
+        if dry_run:
+            typer.echo("Dry run: nothing was written.")
+            return 0
+        failed = 0
+        for n in plan.todo:
+            r = await apply_note(
+                root,
+                n,
+                library=library,
+                settings=settings,
+                backend=choice.backend if choice else None,
+                backend_name=choice.backend_name if choice else "",
+                model=choice.model if choice else "",
+                cloud_consent=allow_cloud,
+            )
+            failed += r.status == "failed"
+            extra = f" (archived as {r.archive})" if r.archive else ""
+            typer.echo(f"  {r.status:<9} {r.rel}{extra}{': ' + r.message if r.message else ''}")
+            for w in r.warnings:
+                typer.echo(f"    warning: {w}")
+        return 1 if failed else 0
+
+    try:
+        code = asyncio.run(run())
+    except MM3Error as exc:
+        _fail(exc)
+    raise typer.Exit(code)
 
 
 def _fail(exc: MM3Error) -> NoReturn:

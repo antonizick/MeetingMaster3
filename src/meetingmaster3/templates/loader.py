@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+from collections.abc import Collection
 from dataclasses import dataclass, field
 from importlib import resources
 from pathlib import Path
@@ -169,8 +170,14 @@ class TemplateLibrary:
         return sorted(shown, key=key)
 
 
-def load_library(vault_root: Path | None = None, subfolder: str | None = None) -> TemplateLibrary:
-    """Load the built-ins and, when a vault is given, its templates folder."""
+def load_library(
+    vault_root: Path | None = None,
+    subfolder: str | None = None,
+    *,
+    ignore: Collection[str] = (),
+) -> TemplateLibrary:
+    """Load the built-ins and, when a vault is given, its templates folder. Vault files named in
+    ``ignore`` are left out (so the built-in of the same name applies)."""
     entries = [TemplateEntry("builtin", p, parse_template_file(p)) for p in builtin_files()]
     builtin_ids = {e.id for e in entries if e.valid}
     if vault_root is not None and subfolder:
@@ -183,6 +190,7 @@ def load_library(vault_root: Path | None = None, subfolder: str | None = None) -
             vault = [
                 TemplateEntry("vault", p, parse_template_file(p))
                 for p in _vault_files(folder, vault_root)
+                if p.name not in ignore
             ]
             counts: dict[str, int] = {}
             for e in vault:
@@ -306,6 +314,33 @@ def ensure_installed(vault_root: Path, subfolder: str, manifest_path: Path) -> b
         return any(r.action == "updated" for r in results)
     install_builtins(vault_root, subfolder, manifest_path)
     return True
+
+
+def pending_updates(vault_root: Path, subfolder: str, manifest_path: Path) -> set[str]:
+    """Vault copies of built-ins that :func:`install_builtins` would replace with a newer
+    shipped version (the user never edited them). Reads only."""
+    try:
+        folder = vault_templates_dir(vault_root, subfolder)
+    except MM3Error:
+        return set()
+    manifest = _read_manifest(manifest_path)
+    out = set()
+    for src in builtin_files():
+        target = folder / src.name
+        if not target.is_file():
+            continue
+        current = target.read_bytes()
+        if current != src.read_bytes() and manifest.get(src.name) == _sha(current):
+            out.add(src.name)
+    return out
+
+
+def planning_library(vault_root: Path, subfolder: str, manifest_path: Path) -> TemplateLibrary:
+    """The library as it will be once unedited built-in copies are upgraded, without writing
+    anything (dry runs of ``mm3 notes upgrade``)."""
+    return load_library(
+        vault_root, subfolder, ignore=pending_updates(vault_root, subfolder, manifest_path)
+    )
 
 
 def newer_builtins(vault_root: Path, subfolder: str, manifest_path: Path) -> set[str]:
