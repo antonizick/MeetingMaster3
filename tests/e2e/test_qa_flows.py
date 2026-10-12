@@ -110,6 +110,28 @@ def test_reopen_a_note_from_the_vault_picker(server: tuple[str, Path], tmp_path:
         assert "Design Review" in page.inner_text("main")
 
 
+def test_orphaned_recent_notes_can_be_removed(server: tuple[str, Path], tmp_path: Path) -> None:
+    base, vault = server
+    written_note(base, make_tone(tmp_path / "2026-10-11 Kept Sync.m4a", 5.0))
+    written_note(base, make_tone(tmp_path / "2026-10-11 Lost Sync.m4a", 5.0))
+    lost = next(vault.rglob("2026-10-11 - Lost Sync.md"))
+    lost.unlink()
+    with browser_page(base) as page:
+        page.on("dialog", lambda d: d.accept())
+        page.goto(base + "/meetings")
+        notes = page.locator("section[aria-labelledby=h-notes]")
+        row = notes.locator("li", has_text="Lost Sync")
+        playwright_sync.expect(row.locator(".badge")).to_have_text("File not found")
+        assert row.get_by_role("link").count() == 0  # no dead links for a missing note
+        notes.get_by_role("button", name="Remove it from the list").click()
+        playwright_sync.expect(row).to_have_count(0)
+        playwright_sync.expect(notes.locator(".alert")).to_have_count(0)
+        kept = notes.locator("li", has_text="Kept Sync")
+        kept.get_by_role("button", name="Remove Kept Sync from the list").click()
+        playwright_sync.expect(kept).to_have_count(0)
+    assert next(vault.rglob("2026-10-11 - Kept Sync.md")).is_file()  # the file stays
+
+
 def test_cloud_consent_dialog_can_switch_to_a_local_model(
     server: tuple[str, Path], tmp_path: Path
 ) -> None:

@@ -8,6 +8,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Recent: "Notes in your vault" entries can be removed from the list one at a time, and entries whose note is
+  missing or outside the configured vault are marked (*File not found*, *Not in your vault*, with no dead links)
+  and can be removed together. Only the list entry is removed, never the file.
 - Hardening and QA (Phase 15): `docs/THREAT_MODEL.md` (assets, trust boundaries, STRIDE, every mitigation
   mapped to code and a test, residual risks); a control → test table and scan summary in `SECURITY.md`;
   `docs/PERFORMANCE.md` with measured numbers on the 8 GB reference GPU (60 minutes transcribed with speakers

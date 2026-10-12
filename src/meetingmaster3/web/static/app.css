@@ -141,6 +141,7 @@ th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var
 td.actions { white-space: nowrap; }
 ul.plain { list-style: none; padding: 0; }
 ul.plain li { padding: 0.35rem 0; }
+.note-path { font-size: 0.8rem; overflow-wrap: anywhere; }
 .note { background: var(--surface); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem 1.5rem; overflow-wrap: anywhere; }
 .note table { margin: 0.5rem 0; }
 

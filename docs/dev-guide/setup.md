@@ -55,6 +55,11 @@ every parser of vault files, and `test_security_controls.py`), `tests/integratio
 (Playwright) and `tests/eval/` (generation quality with a real model); `tests/conftest.py` isolates XDG directories into a temp path so tests never touch your real
 config.
 
+A script run outside pytest (screenshots, measurements, one-off debugging) does not get that isolation: an app
+it builds reads and writes your real `config.yaml` and `mm3.db`. Point it at temp folders first, e.g.
+`MM3_CONFIG_DIR=$(mktemp -d) MM3_DATA_DIR=$(mktemp -d) uv run python script.py`. (A Phase 10 screenshot script
+without this set the real vault to a temp folder and left an orphaned Recent entry.)
+
 ## Local CI
 `act` was not available on the reference machine, so the workflow `.github/workflows/ci.yml` is
 mirrored by the commands above; run them before pushing.

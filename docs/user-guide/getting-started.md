@@ -62,9 +62,13 @@ regenerate section by section and save back to the vault. See [reviewing and edi
 ![Done](../assets/05-done.png)
 
 ## Other pages
-- **Recent** lists every job (resume interrupted ones, delete old ones) and the notes you wrote.
-- **Templates** shows the library; **Settings** shows the vault and points to `config.yaml` until the full
-  settings screen exists.
+- **Recent** lists every job (resume interrupted ones, delete old ones) and the notes you wrote. A note that
+  was deleted or moved, or that lies outside the vault you now use, is marked *File not found* or *Not in your
+  vault*; **Remove from list** forgets one entry and the box above the list removes all such entries at once.
+  Only the list entry goes: the app never deletes a note file from here, and an entry comes back when you open
+  that note again.
+- **Templates** shows the library and its editor; **Settings** covers the vault, models, backends, privacy and
+  feedback.
 
 ## Troubleshooting
 - *"The vault folder does not exist"*: mount the drive or fix the path on the setup page (`/setup`).

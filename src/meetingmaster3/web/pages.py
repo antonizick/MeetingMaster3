@@ -435,14 +435,30 @@ async def recent_page(request: Request) -> HTMLResponse:
     notes: list[dict[str, Any]] = []
     for meeting in RecentMeetingsRepository(runner.db).recent(30):
         item = meeting.to_dict()
+        rel = views.vault_relative(_settings(request).vault.path, meeting.note_path)
+        item["orphan"] = _orphan_reason(meeting.note_path, rel)
         item["obsidian_link"] = views.obsidian_link(meeting.note_path)
         item["preview_link"] = (
             f"/open/note?path={quote(rel, safe='')}"
-            if (rel := views.vault_relative(_settings(request).vault.path, meeting.note_path))
+            if rel
             else f"/preview?path={quote(meeting.note_path, safe='')}"
         )
         notes.append(item)
-    return render(request, "recent.html", {"active": "recent", "jobs": jobs, "notes": notes})
+    orphans = sum(1 for n in notes if n["orphan"])
+    return render(
+        request,
+        "recent.html",
+        {"active": "recent", "jobs": jobs, "notes": notes, "orphans": orphans},
+    )
+
+
+def _orphan_reason(note_path: str, vault_relative: str | None) -> str | None:
+    """Why a Recent entry no longer leads anywhere (``None`` if it still does)."""
+    if not Path(note_path).is_file():
+        return "File not found"
+    if vault_relative is None:
+        return "Not in your vault"
+    return None
 
 
 @router.post("/ui/jobs/{job_id}/resume", response_class=HTMLResponse)
@@ -455,6 +471,26 @@ async def recent_resume(request: Request, job_id: str) -> Response:
 async def recent_delete(request: Request, job_id: str) -> HTMLResponse:
     get_runner(request).delete(check_job_id(job_id))
     return HTMLResponse("")
+
+
+@router.post("/ui/recent/remove", response_class=HTMLResponse)
+async def recent_note_remove(request: Request, path: str = Form(...)) -> HTMLResponse:
+    """Forget one "Notes in your vault" entry. Only the list entry goes; the note file (if it
+    still exists) is never touched, and the entry comes back if the note is opened again."""
+    RecentMeetingsRepository(get_runner(request).db).remove(path)
+    return HTMLResponse("")
+
+
+@router.post("/ui/recent/prune", response_class=HTMLResponse)
+async def recent_note_prune(request: Request) -> Response:
+    """Forget every entry whose note is gone or is no longer inside the configured vault."""
+    repo = RecentMeetingsRepository(get_runner(request).db)
+    vault = _settings(request).vault.path
+    for meeting in repo.recent(10_000):
+        rel = views.vault_relative(vault, meeting.note_path)
+        if _orphan_reason(meeting.note_path, rel):
+            repo.remove(meeting.note_path)
+    return _hx_redirect("/meetings")
 
 
 # -- preview ------------------------------------------------------------------

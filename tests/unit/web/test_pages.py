@@ -464,3 +464,42 @@ def test_audio_endpoint_supports_range_requests(ui: TestClient, tone: Path) -> N
     assert part.headers["content-range"].startswith("bytes 0-99/")
     json.loads(json.dumps(job))  # the job payload stays JSON-serialisable
     time.sleep(0)
+
+
+def test_recent_notes_can_be_removed_and_orphans_pruned(
+    ui: TestClient, vault: Path, tmp_path: Path
+) -> None:
+    from meetingmaster3.storage.repositories import RecentMeetingsRepository
+
+    repo = RecentMeetingsRepository(ui.app.state.runner.db)  # type: ignore[attr-defined]
+    kept = vault / "Meetings" / "2026-10-11 - Kept.md"
+    kept.parent.mkdir(parents=True)
+    kept.write_text("# Kept\n", "utf-8")
+    outside = tmp_path / "OtherVault" / "2026-10-11 - Elsewhere.md"
+    outside.parent.mkdir()
+    outside.write_text("# Elsewhere\n", "utf-8")
+    gone = vault / "Meetings" / "2026-10-11 - Gone.md"
+    for path, title in ((kept, "Kept"), (outside, "Elsewhere"), (gone, "Gone")):
+        repo.touch(str(path), title=title)
+
+    page = ui.get("/meetings").text
+    assert "2 entries point to a note that is missing or outside your vault" in page
+    assert "File not found" in page and "Not in your vault" in page
+    assert page.count("Remove from list</button>") == 3
+    assert f"obsidian://open?path={quote(str(kept), safe='')}" in page
+    assert f"obsidian://open?path={quote(str(gone), safe='')}" not in page  # no dead links
+
+    # One entry, without touching the file; the CSRF check applies as everywhere else.
+    assert (
+        ui.post("/ui/recent/remove", data={"path": str(kept)}, headers=NO_TOKEN).status_code == 403
+    )
+    assert ui.post("/ui/recent/remove", data={"path": str(kept)}).status_code == 200
+    assert kept.is_file() and [m.title for m in repo.recent()] == ["Gone", "Elsewhere"]
+
+    # All orphans at once; files outside the vault are left alone too.
+    repo.touch(str(kept), title="Kept")
+    r = ui.post("/ui/recent/prune")
+    assert r.status_code == 200 and r.headers["HX-Redirect"] == "/meetings"
+    assert [m.title for m in repo.recent()] == ["Kept"] and outside.is_file()
+    page = ui.get("/meetings").text
+    assert "missing or outside your vault" not in page and "Kept" in page

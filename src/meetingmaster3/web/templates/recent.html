@@ -33,11 +33,31 @@
 <section aria-labelledby="h-notes">
   <h2 id="h-notes">Notes in your vault</h2>
   {% if notes %}
+  {% if orphans %}
+  <div class="alert warn" role="status">
+    <p>{{ orphans }} {{ 'entry points' if orphans == 1 else 'entries point' }} to a note that is missing or outside your vault.</p>
+    <button hx-post="/ui/recent/prune" hx-swap="none"
+            hx-confirm="Remove the entries marked as missing or outside your vault from this list? No files are deleted.">Remove {{ 'it' if orphans == 1 else 'them' }} from the list</button>
+  </div>
+  {% endif %}
   <ul class="plain">
     {% for n in notes %}
-    <li><a href="{{ n.preview_link }}">{{ n.title or n.note_path }}</a>
+    <li>
+      {% if n.orphan %}
+      <span>{{ n.title or n.note_path }}</span>
+      <span class="muted">{{ n.date or '' }}</span>
+      <span class="badge status-failed">{{ n.orphan }}</span>
+      <span class="muted note-path">{{ n.note_path }}</span> ·
+      {% else %}
+      <a href="{{ n.preview_link }}">{{ n.title or n.note_path }}</a>
       <span class="muted">{{ n.date or '' }}</span> ·
-      <a href="{{ n.obsidian_link }}">Open in Obsidian</a></li>
+      <a href="{{ n.obsidian_link }}">Open in Obsidian</a> ·
+      {% endif %}
+      <button class="link" hx-post="/ui/recent/remove" hx-vals='{{ {"path": n.note_path}|tojson }}'
+              hx-target="closest li" hx-swap="outerHTML"
+              hx-confirm="Remove this entry from the list? The note file itself is not touched."
+              aria-label="Remove {{ n.title or n.note_path }} from the list">Remove from list</button>
+    </li>
     {% endfor %}
   </ul>
   {% else %}<p class="muted">Notes you write appear here.</p>{% endif %}
