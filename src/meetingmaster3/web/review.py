@@ -512,7 +512,12 @@ async def regenerate(request: Request, mm3_id: str) -> dict[str, Any]:
             "section_id": body.section_id,
         }
 
-    task = _tasks(request).start(check_mm3_id(mm3_id), "regenerate", work)
+    task = _tasks(request).start(
+        check_mm3_id(mm3_id),
+        "regenerate",
+        work,
+        {"section_id": body.section_id, "append": body.append},
+    )
     return {"task": task.snapshot()}
 
 

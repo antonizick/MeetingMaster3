@@ -96,6 +96,8 @@ class LongTask:
     step_title: str | None = None
     expected_s: float | None = None
     smoothed_total: float | None = None
+    info: dict[str, Any] = field(default_factory=dict)
+    """Small facts the page needs to reattach (for example the section being regenerated)."""
     result: Any = None
     error: MM3Error | None = None
     runner: asyncio.Task[None] | None = field(default=None, repr=False)
@@ -144,6 +146,7 @@ class LongTask:
             "elapsed_s": round(elapsed, 1),
             "eta": left.kind,
             "remaining_s": None if left.remaining_s is None else round(left.remaining_s, 1),
+            "info": self.info,
             "error": error,
         }
 
@@ -164,7 +167,9 @@ class TaskRegistry:
         self._by_note: dict[str, str] = {}
         self._clock = clock
 
-    def start(self, mm3_id: str, kind: str, work: Work) -> LongTask:
+    def start(
+        self, mm3_id: str, kind: str, work: Work, info: dict[str, Any] | None = None
+    ) -> LongTask:
         self._prune()
         current = self.for_note(mm3_id)
         if current is not None and current.state is TaskState.RUNNING:
@@ -176,7 +181,7 @@ class TaskRegistry:
             )
         if current is not None:
             self._tasks.pop(current.id, None)
-        task = LongTask(secrets.token_hex(8), kind, mm3_id, clock=self._clock)
+        task = LongTask(secrets.token_hex(8), kind, mm3_id, clock=self._clock, info=info or {})
         self._tasks[task.id] = task
         self._by_note[mm3_id] = task.id
         task.runner = asyncio.get_running_loop().create_task(self._run(task, work))

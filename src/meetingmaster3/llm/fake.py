@@ -8,6 +8,7 @@ map-reduce extraction. Tests pass a ``responder`` to script exact answers (inclu
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 from collections.abc import AsyncIterator, Callable
@@ -104,9 +105,14 @@ class FakeLLMBackend:
     models: tuple[str, ...] = ("fake-model",)
     embedding_models: tuple[str, ...] = ()
     """Models that cannot write text, like Ollama's embedding models."""
+    delay: float = 0.0
+    """Seconds each call takes (``MM3_FAKE_LLM_SECONDS`` in the fake pipeline), so progress UI
+    can be watched in the browser tests."""
 
     async def generate(self, req: GenerateRequest) -> GenerateResult:
         self.calls.append(req)
+        if self.delay:
+            await asyncio.sleep(self.delay)
         if self.responder is not None:
             text = self.responder(req)
         else:

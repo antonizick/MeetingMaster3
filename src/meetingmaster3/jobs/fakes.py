@@ -181,7 +181,8 @@ def fake_backend(settings: Settings, name: str | None) -> tuple[str, LLMBackend]
         is_local = registry.get(name).is_local
     except MM3Error:
         is_local = True
-    return name, FakeLLMBackend(id=name, is_local=is_local)
+    delay = float(os.environ.get("MM3_FAKE_LLM_SECONDS", "0") or 0)
+    return name, FakeLLMBackend(id=name, is_local=is_local, delay=delay)
 
 
 class FakeGenerate(GenerateStage):

@@ -5,6 +5,7 @@
 {% block main_class %}wide{% endblock %}
 {% block scripts %}
   <script defer src="{{ url_for('static', path='js/transcript.js') }}"></script>
+  <script defer src="{{ url_for('static', path='js/progress.js') }}"></script>
   <script defer src="{{ url_for('static', path='js/review.js') }}"></script>
   <script defer src="{{ url_for('static', path='js/retention.js') }}"></script>
 {% endblock %}
@@ -30,6 +31,7 @@
         <span id="mode-label" class="muted mode-label" role="status">Viewing</span>
       </div>
       <button type="button" id="btn-switch"{% if not ws.can_regenerate %} disabled title="Needs the companion transcript"{% endif %}>Switch template…</button>
+      <button type="button" id="btn-switch-bg" class="link" hidden></button>
       <button type="button" id="btn-rename"{% if not ws.can_regenerate or not ws.transcript or not ws.transcript.speakers %} disabled title="Needs a transcript with separate speakers"{% endif %}>Rename speakers…</button>
       {% endif %}
       <a class="button" href="{{ obsidian_link }}">Open in Obsidian</a>
@@ -231,6 +233,14 @@
       <div class="row"><button type="submit" class="primary">Preview the new note</button> <button type="button" data-close>Cancel</button></div>
     </form>
     <div id="switch-result"></div>
+    <div id="switch-ask" class="alert info" role="alertdialog" aria-labelledby="switch-ask-title" hidden>
+      <p id="switch-ask-title"><strong>The template switch is still running.</strong> Stop it, or close this window and let it finish in the background?</p>
+      <div class="row">
+        <button type="button" id="switch-keep" class="primary">Keep running in the background</button>
+        <button type="button" id="switch-stop" class="danger">Cancel the switch</button>
+        <button type="button" id="switch-back">Back</button>
+      </div>
+    </div>
   </dialog>
 
   <dialog id="dlg-rename" class="wide-dialog" aria-labelledby="dlg-rename-title">

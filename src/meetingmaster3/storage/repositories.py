@@ -420,7 +420,7 @@ class RecentMeetingsRepository:
 
     def recent(self, limit: int = 50, offset: int = 0) -> list[RecentMeeting]:
         rows = self.db.fetchall(
-            "SELECT * FROM recent_meetings ORDER BY last_opened DESC, note_path LIMIT ? OFFSET ?",
+            "SELECT * FROM recent_meetings ORDER BY last_opened DESC, rowid DESC LIMIT ? OFFSET ?",
             (limit, offset),
         )
         return [self._from_row(r) for r in rows]
