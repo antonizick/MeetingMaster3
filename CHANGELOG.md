@@ -19,8 +19,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Template parameter `params.detail: standard | high`: long meetings (map-reduce) keep up to 30 points per
   part, with their specifics and a topic label, and the questions that were answered (who asked, who
   answered), for templates that write dense, topic-by-topic notes.
-- Template parameter `params.task_candidates: all | relevant`: with `relevant`, task sections leave out
-  small talk and personal remarks that only sound like commitments.
+- Template parameter `params.task_candidates: all | relevant`: with `relevant`, task sections are only
+  shown the candidate sentences that name follow-up work (send, schedule, review…), so conversational
+  "I'll …" remarks in an informal call no longer become tasks.
 - Eval: a synthetic introductory-call meeting for Default Notes and two new checks, `expected.numbered`
   (numbered headings in a section) and `expected.limits` (sentences and words in a section).
 - Pre-operational tuning, round 2 (Phase 15b, R26, ADR-0036):
