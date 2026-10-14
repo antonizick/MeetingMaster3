@@ -6,7 +6,7 @@ You are executing a MeetingMaster3 build phase. Argument: `$ARGUMENTS` (empty me
 
 Other agents may be running other phases at the same time. The Status column **on `main`** is how they know what is taken, so read it from `main` (`git show main:IMPLEMENTATION_PLAN.md`), not from a phase branch or worktree.
 
-Phase IDs are two digits, optionally followed by a lower-case letter for an interim tuning round (ADR-0030): `15a` comes after `15` and before `16`. Wherever `NN` appears below, it means the full ID (`15a`), including in branch, worktree and `grep` patterns.
+Phase IDs are two digits, optionally followed by a lower-case letter for a phase inserted later with `/phase-add` (ADR-0030, ADR-0034): `15a` comes after `15` and before `15b`, which comes before `16`; `09a` would sit between `09` and `10`. Wherever `NN` appears below, it means the full ID (`15a`), including in branch, worktree and `grep` patterns.
 
 1. Read `CLAUDE.md`, `IMPLEMENTATION_PLAN.md` and `prompts/_shared-instructions.md`.
 2. Pick the phase:

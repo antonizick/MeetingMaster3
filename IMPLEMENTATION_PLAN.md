@@ -1,7 +1,7 @@
 # MeetingMaster3: Implementation Plan
 
 **Spec:** [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) (v1.1). **Decisions:** [`docs/DECISIONS.md`](docs/DECISIONS.md). **Agent rules:** [`CLAUDE.md`](CLAUDE.md). **Shared phase instructions:** [`prompts/_shared-instructions.md`](prompts/_shared-instructions.md)
-**Last updated:** 2026-10-12 (Phase 15 complete; pre-release fixes: Recent list removal, model choice; interim tuning round 15a planned)
+**Last updated:** 2026-10-14 (Phase 15a complete; round 15b planned with `/phase-add`)
 
 > ⚠️ **Mandatory:** every agent that works on this project keeps this file accurate. **Before doing any other work, set your phase to `🔄 In progress` and commit that change to `main`** (claim protocol: `prompts/_shared-instructions.md` §1a). Other agents read this table from `main`. At the end, set it to `✅ Complete` or `⛔ Blocked` and add a Phase Log entry. See `CLAUDE.md`.
 
@@ -10,6 +10,7 @@ Open Claude Code in `/home/nick/Work/MeetingMaster3` and type one of:
 - `/phase`: run the next eligible phase. It checks dependencies, tells you if you're on the wrong model, resumes an `In progress` phase, and asks about any open questions it needs.
 - `/phase 03`: run a specific phase. Interim tuning rounds have a letter suffix: `/phase 15a`.
 - `/phase status`: show progress and what's next, without doing any work.
+- `/phase-add [after NN] <request or file>`: plan a **new** phase from a change request (ADR-0034). It grounds the request in the code, asks you about owner decisions once, writes the prompt, row and planning log entry, rewires Phase 16, and commits to `main`. It does no product work and does not claim; run the new phase later with `/phase <ID>`. A fill-in intake form is in [`prompts/_change-request-template.md`](prompts/_change-request-template.md).
 
 The command lives in `.claude/commands/phase.md`. Under the hood it reads `CLAUDE.md`, this file and `prompts/_shared-instructions.md`, then executes `prompts/phase-NN-*.md`. You never need to paste a prompt. Review the agent's close-out summary. Completed phases are merged into `main` automatically (the phase branch is then deleted); nothing is pushed without your confirmation.
 
@@ -38,7 +39,8 @@ Phases run in order. Phases whose dependencies are all complete may run in paral
 | 14 | Docker & deployment | Multi-stage GPU and CPU images, compose with volumes and GPU reservation, host Ollama connectivity, non-root user, size budget, install docs | Sonnet 5.5 | 11, 12 | ✅ Complete | [phase-14-docker-deployment.md](prompts/phase-14-docker-deployment.md) |
 | 15 | Hardening, security review & QA | Threat model, security review and fixes, dependency and licence audit, E2E tests, measured performance on 8 GB, accessibility pass | Opus 5.5 | 13, 14 | ✅ Complete | [phase-15-hardening-qa.md](prompts/phase-15-hardening-qa.md) |
 | 15a | Pre-operational tuning, round 1 | Nick's feedback from real use: readable vault transcript with coloured speakers, month-day dates from file names, Summary Succinct + Summary Detailed in every template (backfilled into existing notes), "can I leave this page?" note, logo | Opus 5.5 | 15 | ✅ Complete | [phase-15a-pre-op-tuning-1.md](prompts/phase-15a-pre-op-tuning-1.md) |
-| 16 | Release v0.1.0 & GitHub publication | Final docs, screenshots, CHANGELOG, version and tag, release notes, GitHub repo creation (with confirmation), MVP sign-off | Sonnet 5.5 | 15, 15a | ⬜ Not started | [phase-16-release.md](prompts/phase-16-release.md) |
+| 15b | Pre-operational tuning, round 2 | Review screen opens the note in Preview; keep-forever control for a meeting's audio and a days-left / kept-forever indicator by the player; logo and hero picture relicensed to CC0 1.0 | Sonnet 5.5 | 15a | ⬜ Not started | [phase-15b-pre-op-tuning-2.md](prompts/phase-15b-pre-op-tuning-2.md) |
+| 16 | Release v0.1.0 & GitHub publication | Final docs, screenshots, CHANGELOG, version and tag, release notes, GitHub repo creation (with confirmation), MVP sign-off | Sonnet 5.5 | 15, 15a, 15b | ⬜ Not started | [phase-16-release.md](prompts/phase-16-release.md) |
 
 ### Model rationale
 - **Opus 5.5** (`/model claude-opus-5-5`) handles phases with subtle correctness or design risk: the round-trip parser, job state machine, ML pipeline and VRAM handling, voiceprint matching, prompt engineering, the interactive review workspace, and security review.
@@ -50,10 +52,10 @@ Phases run in order. Phases whose dependencies are all complete may run in paral
               ├→ 05 ───────┴→ 06 → 07 ─┐
               └→ 08 ───────────────────┴→ 09 ─┬→ 10 ─┬→ 11 ─┐
                                               │      └→ 12 ─┴→ 14 ─┐
-                                              └→ 13 ────────────────┴→ 15 → 15a → 16
+                                              └→ 13 ────────────────┴→ 15 → 15a → 15b → 16
 ```
 
-**Interim tuning rounds (ADR-0030).** Between hardening (15) and release (16), Nick's feedback from real use is handled in rounds numbered `15a`, `15b`, `15c`…, each a normal phase (row, prompt `prompts/phase-15x-pre-op-tuning-N.md`, branch `phase-15x-pre-op-tuning`, worktree `../MeetingMaster3-phase-15x`, claim commit, Phase Log entry). A round depends on the previous one, and Phase 16 depends on the last round. Adding a round means adding its row and prompt and moving Phase 16's dependency to it.
+**Interim tuning rounds (ADR-0030).** Between hardening (15) and release (16), Nick's feedback from real use is handled in rounds numbered `15a`, `15b`, `15c`…, each a normal phase (row, prompt `prompts/phase-15x-pre-op-tuning-N.md`, branch `phase-15x-pre-op-tuning`, worktree `../MeetingMaster3-phase-15x`, claim commit, Phase Log entry). A round depends on the previous one, and Phase 16 depends on the last round. **Any phase can be inserted this way** (`09a` after `09`, ADR-0034): use `/phase-add`, which adds the row and prompt and moves the dependencies for you.
 
 ### MVP definition of done (checked in Phase 16)
 - [ ] Upload audio → diarized transcript → named speakers → structured note written to the Obsidian vault, all on the 8 GB reference machine with Ollama, fully offline after model download.
@@ -71,7 +73,7 @@ Phases run in order. Phases whose dependencies are all complete may run in paral
 | Q3 | GitHub owner, repo name, visibility | **Deferred:** Nick provides these during Phase 16 | Phase 16 |
 | Q4 | Test audio source | **Decided 2026-10-11:** a CC clip plus Nick's own shareable recordings. Short clips are committed as `*.fixture.*`; long ones stay out of git. Phase 06: an AMI Meeting Corpus clip (CC-BY-4.0) is committed; Nick's two recordings are used only privately via `MM3_PRIVATE_TEST_AUDIO` (no publication consent requested) | Phase 06 |
 | Q5 | Personal machine details in `CLAUDE.md` before publishing | **Deferred to Phase 16:** move them to an untracked `CLAUDE.local.md` | Phase 16 |
-| Q6 | The logo is made from `~/Pictures/wiz.jpg` (a photo-composite of Nick). Commit it to the repo, so it becomes public in Phase 16, or keep it local-only behind a setting with a neutral default logo in the repo? Under what licence or notice? | **Decided 2026-10-12:** commit the cropped logo only (never the original) in `web/static/brand/`, excluded from Apache-2.0 with a notice in `NOTICE` and `THIRD_PARTY_NOTICES.md` ("© Nick Antonizick, all rights reserved"); the option was offered on the condition that Nick holds the rights to the image (ADR-0032) | Phase 15a (Task 6), Phase 16 |
+| Q6 | The logo is made from `~/Pictures/wiz.jpg` (a photo-composite of Nick). Commit it to the repo, so it becomes public in Phase 16, or keep it local-only behind a setting with a neutral default logo in the repo? Under what licence or notice? | **Decided 2026-10-12:** commit the cropped logo only (never the original) in `web/static/brand/`, excluded from Apache-2.0 with a notice in `NOTICE` and `THIRD_PARTY_NOTICES.md` ("© Nick Antonizick, all rights reserved"); the option was offered on the condition that Nick holds the rights to the image (ADR-0032). **Changed 2026-10-14:** the logo and hero picture are released under **CC0 1.0** so forks may keep them (ADR-0035; implemented in Phase 15b) | Phase 15a (Task 6), Phase 15b, Phase 16 |
 
 ## Phase Log
 Newest entries at the bottom. Format: `### YYYY-MM-DD: Phase NN: <title> (<status>)`, then bullets: built, deviations, follow-ups, tests.
@@ -230,3 +232,11 @@ Newest entries at the bottom. Format: `### YYYY-MM-DD: Phase NN: <title> (<statu
 - Deviations: the setting is `generation.readable_transcript`, not `notes.readable_transcript` (there is no `notes` settings group; ADR-0031). The preview page also hides the logo. The logo is a 4:5 crop (head and crystal ball, no background faces) built with ImageMagick, not Pillow (Pillow is only in the `ml` extra). The succinct-summary check is "one paragraph of at most 6 sentences, shorter than the detailed one", not 1-2 sentences, because the existing prompts allow up to 5. The word target was added after the first eval. The map-reduce budget was not changed. Q6 decided: commit, all rights reserved. Sleep/suspend during a job was not tested (unsafe on this machine), so the leave-page wording says sleep pauses the job. No host OS changes, so no OSMods entry.
 - Addendum 2026-10-13 (Nick's request after close-out): the New meeting page shows the whole `wiz.jpg` scene as a 320×230 picture with rounded corners above its heading; the header logo is unchanged (ADR-0033, `hero*` files from `scripts/make_logo.py`).
 - Follow-ups: cache map-reduce notes so backfilling or regenerating long meetings does not re-run the map step (the 72-minute note re-reads the whole meeting); the companion `.transcript.md` body has no escaping of user text (pre-existing, out of scope); optional browser notifications when a job finishes; test sleep/resume mid-job; a favicon made from the logo (offered to Nick; `favicon.svg` kept); long-meeting question recall.
+
+### 2026-10-14: Planning: interim tuning round 15b inserted with `/phase-add` (Planned)
+- Nick's feedback after 15a: (1) the review screen should open the note in **Preview**, not the editor; (2) a way on the review screen to **keep a meeting's audio forever**, and next to the player controls a line showing **how many days are left** before the retention policy deletes the audio, or that it is kept forever; (3) the logo is his own generated image and forks should not have to replace it.
+- Added row **15b** (Sonnet 5.5: well-specified UI and docs work on existing APIs; depends on 15a) and `prompts/phase-15b-pre-op-tuning-2.md`. Phase 16 now depends on 15, 15a and 15b (row and prompt).
+- Grounding found: the audio pin already exists in the API and database (`POST /api/jobs/{id}/pin|unpin`, `jobs.audio_pinned`, honoured by the pruner since Phase 04, ADR-0006), but **no page offers it**, although Settings → Privacy says "Pin or unpin a meeting's audio on the meeting's own page". The expiry the pruner applies is recomputed from the *current* setting (`jobs/retention.py`), so the indicator must use the same calculation, not only the stored `audio_expires_at`.
+- Decisions: logo and hero licence **CC0 1.0** (ADR-0035, supersedes the licence in ADR-0032/0033; Q6 updated). Process: phases can now be inserted after any phase with a letter suffix, through the new `/phase-add` command and `prompts/_change-request-template.md` (ADR-0034); `/phase` and the shared instructions use the general wording. The `phased-project` skill and the method note were updated to match.
+- Follow-up (out of scope): the ADR index table at the top of `docs/DECISIONS.md` stops at ADR-0013.
+

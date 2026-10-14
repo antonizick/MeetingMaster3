@@ -1,11 +1,11 @@
 # Phase 16: Release v0.1.0 & GitHub Publication
 
-**Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 15, 15a (and any later tuning round, ADR-0030) · **Branch:** `phase-16-release`
+**Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 15, 15a, 15b (and any later inserted phase, ADR-0030, ADR-0034) · **Branch:** `phase-16-release`
 
 ## Read first
 `CLAUDE.md`, `prompts/_shared-instructions.md`, `IMPLEMENTATION_PLAN.md` (the MVP definition of done and all Phase Log entries), and `docs/SPECIFICATION.md` §1, §12 and §15.4. Open question Q3 (GitHub owner, name and visibility).
 
-**Tuning rounds (15a…):** read their Phase Log entries. Round 1 (15a) added a logo, a readable vault transcript (`<note> (Transcript).md`), Summary Succinct + Summary Detailed in every template, an "Update older notes" card on Recent (`mm3 notes upgrade`), month-day dates from file names and a "can I leave this page?" line on the job page; screenshots and the README should show them. **Q6 was decided (ADR-0032):** the cropped logo is committed in `src/meetingmaster3/web/static/brand/` and is published with the repository, **excluded from Apache-2.0 (© Nick Antonizick, all rights reserved; see `NOTICE` and `THIRD_PARTY_NOTICES.md` "Project logo")**. Keep that notice in the release notes, and make sure the original `wiz.jpg` is never added. Screenshots of navigation pages show the logo; job, speaker and review pages do not.
+**Tuning rounds (15a…):** read their Phase Log entries. Round 2 (15b) opens the review screen in Preview, adds Keep forever and a days-left line beside the player, and relicenses the logo and hero picture under **CC0 1.0** (ADR-0035, which supersedes the all-rights-reserved text below; 15b updates this paragraph). Round 1 (15a) added a logo, a readable vault transcript (`<note> (Transcript).md`), Summary Succinct + Summary Detailed in every template, an "Update older notes" card on Recent (`mm3 notes upgrade`), month-day dates from file names and a "can I leave this page?" line on the job page; screenshots and the README should show them. **Q6 was decided (ADR-0032):** the cropped logo is committed in `src/meetingmaster3/web/static/brand/` and is published with the repository, **excluded from Apache-2.0 (© Nick Antonizick, all rights reserved; see `NOTICE` and `THIRD_PARTY_NOTICES.md` "Project logo")**. Keep that notice in the release notes, and make sure the original `wiz.jpg` is never added. Screenshots of navigation pages show the logo; job, speaker and review pages do not.
 
 **Phase 15 notes:** the "Deferred to the roadmap" bullets in the Phase 15 Phase Log entry are the input for
 `docs/ROADMAP.md`. Before tagging, repeat the scans listed in `docs/dev-guide/setup.md` (gitleaks over the full

@@ -732,7 +732,7 @@ a `brand_logo` block left of "MeetingMaster3", `alt=""` (the link has text), siz
 30rem; `job.html`, `speakers.html`, `review.html` and `preview.html` override the block to nothing, so the
 image is not even requested there. The CSP is unchanged (served from `/static`). `favicon.svg` is kept.
 **Status.** Accepted (2026-10-12).
-**Consequences.** Forks and redistributions must replace the logo; Phase 16 screenshots show it.
+**Consequences.** Forks and redistributions must replace the logo; Phase 16 screenshots show it. *(Licence superseded by ADR-0035: CC0 1.0, 2026-10-14.)*
 
 ## ADR-0033: A large logo picture above "New meeting" (after Phase 15a)
 **Context.** After 15a closed, Nick found the 32×40 header logo too small to make out. He asked to keep it
@@ -748,3 +748,46 @@ never committed.
 **Status.** Accepted (2026-10-13).
 **Consequences.** About 40 KB of WebP on the New meeting page (PNG only for browsers without WebP). Forks
 must replace these files too.
+
+## ADR-0034: Inserting phases anywhere with `/phase-add` (generalises ADR-0030)
+**Context.** Nick wants a repeatable way to add work to a phased plan after planning: feedback rounds
+like 15a/15b, and also work that belongs earlier in the order, in this project and in future ones.
+ADR-0030 allowed letter suffixes only for tuning rounds between 15 and 16, and the steps lived only in the
+heads of the agents that did it (row, prompt, rewired dependencies, log, vault note).
+**Options considered.**
+
+| Option | Pros | Cons |
+|---|---|---|
+| Written checklist only | Nothing new to maintain | Steps get skipped (prompt grounding, rewiring the release phase, vault note); differs per session |
+| `/phase add …` sub-mode of `/phase` | One command to remember | `/phase` executes phases and always claims; mixing planning into it blurs the claim rules |
+| Separate `/phase-add` command + change-request template (chosen) | Planning-only by construction (no claim, no code); same steps every time; works from a file or pasted text; ships with the `phased-project` skill for every project | One more command file per repo |
+
+**Decision.** `.claude/commands/phase-add.md` (from the skill template `phase-add-command.md`) turns a change
+request into a planned phase: grounding in the code, one batched round of owner questions (decisions become
+ADRs), placement, model choice, the prompt, the plan row and Phase Log planning entry, rewired dependents, edits
+to later prompts, the vault note, and one `docs(plan): add phase <ID> …` commit on `main`. It never claims and
+never pushes. **IDs:** a phase inserted after phase P is P plus the next free letter (`09` → `09a`; `15a` → `15b`),
+for any P, never decimals and never renumbering. The intake template is `prompts/_change-request-template.md`
+(optional; free text works).
+**Status.** Accepted (2026-10-14).
+**Consequences.** `/phase`, `prompts/_shared-instructions.md`, the skill's templates and the method note use the
+general wording. Phase 15b is the first phase planned this way.
+
+## ADR-0035: The logo and hero picture are released under CC0 1.0 (supersedes the licence in ADR-0032 and ADR-0033)
+**Context.** ADR-0032 committed the logo as "© Nick Antonizick, all rights reserved", so forks had to replace
+it. On 2026-10-14 Nick said the image is one he generated, that he does not mind people keeping and using it,
+and that forks should not be forced to replace it.
+**Options considered.**
+
+| Option | Pros | Cons |
+|---|---|---|
+| CC0 1.0 (chosen) | Matches "free use"; no attribution or notice duties; standard for media | Anyone may reuse it in any context |
+| CC BY 4.0 | Free reuse, credit required | Attribution duty on every fork and screenshot |
+| Apache-2.0 like the code | One licence for the repo | A software licence, awkward for an image; NOTICE duties |
+
+**Decision.** CC0 1.0 Universal for `web/static/brand/logo*` and `hero*`. The notice states that CC0 covers
+copyright only and grants no trademark rights and no right to use the likeness of any person shown (for
+example to suggest endorsement). The original `wiz.jpg` is still never committed. Implemented in Phase 15b
+(`NOTICE`, `THIRD_PARTY_NOTICES.md`, README licence section, Phase 16 prompt).
+**Status.** Accepted (2026-10-14); implementation in Phase 15b.
+**Consequences.** Forks may keep the logo. ADR-0032's crop and placement and ADR-0033's hero picture are unchanged.
