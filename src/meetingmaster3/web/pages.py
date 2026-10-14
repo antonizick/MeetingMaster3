@@ -37,10 +37,20 @@ from meetingmaster3.templates.loader import MANIFEST_NAME, install_builtins
 from meetingmaster3.templates.stages import WRITTEN_FILE, template_library
 from meetingmaster3.vault.io import read_text
 from meetingmaster3.vault.paths import is_inside, resolve_vault_root
-from meetingmaster3.vault.picker import read_identity
+from meetingmaster3.vault.picker import browse, read_identity
 from meetingmaster3.web import views
 from meetingmaster3.web.api.jobs import get_runner
 from meetingmaster3.web.api.speakers import _read as read_json_file
+from meetingmaster3.web.paging import (
+    JOBS_PER_PAGE,
+    NOTES_PER_PAGE,
+    page_params,
+    pager,
+    paginate,
+    parse_page,
+    picker_context,
+    with_params,
+)
 from meetingmaster3.web.render import render_markdown
 
 WEB_DIR = Path(__file__).parent
@@ -53,8 +63,7 @@ router = APIRouter()
 
 NAV = (
     ("new", "/", "New meeting"),
-    ("recent", "/meetings", "Recent"),
-    ("open", "/open", "Open a note"),
+    ("recent", "/meetings", "Meetings"),
     ("templates", "/templates", "Templates"),
     ("settings", "/settings", "Settings"),
 )
@@ -524,17 +533,39 @@ async def speakers_submit(request: Request, job_id: str) -> Response:
 # -- recent meetings -------------------------------------------------------------------------------
 
 
-@router.get("/meetings", response_class=HTMLResponse)
-async def recent_page(request: Request) -> HTMLResponse:
+def _jobs_section(request: Request) -> dict[str, Any]:
     runner = get_runner(request)
-    jobs = [j.to_dict() for j in runner.jobs.list_jobs(None, limit=200)]
+    params = page_params(request.query_params)
+    page = paginate(runner.jobs.count_jobs(), parse_page(params.get("jobs_page")), JOBS_PER_PAGE)
+    jobs = [j.to_dict() for j in runner.jobs.list_jobs(None, limit=page.size, offset=page.offset)]
     for job in jobs:
         job["resumable"] = views.is_resumable(job["status"])
         job["label"] = views.job_title(job)
+    own = {k: v for k, v in params.items() if k != "jobs_page"}
+    return {
+        "jobs": jobs,
+        "jobs_qs": with_params("", {**own, "jobs_page": str(page.number)}),
+        "jobs_pager": pager(
+            page,
+            param="jobs_page",
+            params=own,
+            href_base="/meetings",
+            hx_base="/ui/meetings/jobs",
+            label="Jobs",
+        ),
+    }
+
+
+def _notes_section(request: Request) -> dict[str, Any]:
+    runner = get_runner(request)
+    vault = _settings(request).vault.path
+    repo = RecentMeetingsRepository(runner.db)
+    params = page_params(request.query_params)
+    page = paginate(repo.count(), parse_page(params.get("notes_page")), NOTES_PER_PAGE)
     notes: list[dict[str, Any]] = []
-    for meeting in RecentMeetingsRepository(runner.db).recent(30):
+    for meeting in repo.recent(page.size, page.offset):
         item = meeting.to_dict()
-        rel = views.vault_relative(_settings(request).vault.path, meeting.note_path)
+        rel = views.vault_relative(vault, meeting.note_path)
         item["orphan"] = _orphan_reason(meeting.note_path, rel)
         item["obsidian_link"] = views.obsidian_link(meeting.note_path)
         item["preview_link"] = (
@@ -543,16 +574,59 @@ async def recent_page(request: Request) -> HTMLResponse:
             else f"/preview?path={quote(meeting.note_path, safe='')}"
         )
         notes.append(item)
-    orphans = sum(1 for n in notes if n["orphan"])
+    # The banner counts every entry, not just the ones on this page.
+    orphans = sum(
+        1
+        for m in repo.recent(10_000)
+        if _orphan_reason(m.note_path, views.vault_relative(vault, m.note_path))
+    )
+    own = {k: v for k, v in params.items() if k != "notes_page"}
+    return {
+        "notes": notes,
+        "orphans": orphans,
+        "notes_qs": with_params("", {**own, "notes_page": str(page.number)}),
+        "notes_pager": pager(
+            page,
+            param="notes_page",
+            params=own,
+            href_base="/meetings",
+            hx_base="/ui/meetings/notes",
+            label="Notes in your vault",
+        ),
+    }
+
+
+@router.get("/meetings", response_class=HTMLResponse)
+async def recent_page(request: Request) -> HTMLResponse:
+    """Meetings: jobs, "Update older notes", notes in the vault and the vault browser. Each
+    section pages on its own (``jobs_page``, ``notes_page``, ``browse_page``)."""
+    params = page_params(request.query_params)
+    root = resolve_vault_root(_settings(request).vault.path)
+    listing = await asyncio.to_thread(browse, root, params.get("dir", ""))
     return render(
         request,
-        "recent.html",
-        {"active": "recent", "jobs": jobs, "notes": notes, "orphans": orphans},
+        "meetings.html",
+        {
+            "active": "recent",
+            **_jobs_section(request),
+            **_notes_section(request),
+            **picker_context(listing, params),
+        },
     )
 
 
+@router.get("/ui/meetings/jobs", response_class=HTMLResponse)
+async def meetings_jobs_partial(request: Request) -> HTMLResponse:
+    return render(request, "partials/meetings_jobs.html", _jobs_section(request))
+
+
+@router.get("/ui/meetings/notes", response_class=HTMLResponse)
+async def meetings_notes_partial(request: Request) -> HTMLResponse:
+    return render(request, "partials/meetings_notes.html", _notes_section(request))
+
+
 def _orphan_reason(note_path: str, vault_relative: str | None) -> str | None:
-    """Why a Recent entry no longer leads anywhere (``None`` if it still does)."""
+    """Why a Meetings entry no longer leads anywhere (``None`` if it still does)."""
     if not Path(note_path).is_file():
         return "File not found"
     if vault_relative is None:
@@ -569,7 +643,9 @@ async def recent_resume(request: Request, job_id: str) -> Response:
 @router.delete("/ui/jobs/{job_id}", response_class=HTMLResponse)
 async def recent_delete(request: Request, job_id: str) -> HTMLResponse:
     get_runner(request).delete(check_job_id(job_id))
-    return HTMLResponse("")
+    # The section is re-rendered, so the page fills up again and, if that was the last row of
+    # the last page, falls back to the previous page instead of showing nothing.
+    return render(request, "partials/meetings_jobs.html", _jobs_section(request))
 
 
 @router.post("/ui/recent/remove", response_class=HTMLResponse)
@@ -577,7 +653,7 @@ async def recent_note_remove(request: Request, path: str = Form(...)) -> HTMLRes
     """Forget one "Notes in your vault" entry. Only the list entry goes; the note file (if it
     still exists) is never touched, and the entry comes back if the note is opened again."""
     RecentMeetingsRepository(get_runner(request).db).remove(path)
-    return HTMLResponse("")
+    return render(request, "partials/meetings_notes.html", _notes_section(request))
 
 
 @router.post("/ui/recent/prune", response_class=HTMLResponse)
@@ -589,7 +665,7 @@ async def recent_note_prune(request: Request) -> Response:
         rel = views.vault_relative(vault, meeting.note_path)
         if _orphan_reason(meeting.note_path, rel):
             repo.remove(meeting.note_path)
-    return _hx_redirect("/meetings")
+    return render(request, "partials/meetings_notes.html", _notes_section(request))
 
 
 # -- preview ------------------------------------------------------------------
@@ -610,7 +686,7 @@ async def preview_note(request: Request, path: str) -> HTMLResponse:
         raise MM3Error(
             "E_NOTE_NOT_FOUND",
             "That note is not in the vault.",
-            "Open it from the Recent list, or from the meeting you just processed.",
+            "Open it from the Meetings page, or from the meeting you just processed.",
             status_code=404,
         )
     text = await asyncio.to_thread(read_text, note.resolve())

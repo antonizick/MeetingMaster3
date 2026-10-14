@@ -8,6 +8,16 @@ meeting's title and date are spread across several vault files, their names and 
 the app database. Fixing them by hand breaks links. This phase adds one safe, previewed operation that changes
 them all and loses nothing. It runs after 15c because both change the review toolbar and the Meetings page.
 
+**What 15c changed that this phase builds on** (verified when 15c closed): the review header's Preview/Edit pair is
+now one `#btn-mode` toggle with `#mode-label`; the toolbar also has a hidden `#btn-switch-bg` button; long actions
+(switch, regenerate) are polled background tasks (`review/progress.py`, routes under `/ui/review/{id}/task`, widget
+`static/js/progress.js`), so a rename must refuse or wait while a task runs for that note. **Meetings** (`/meetings`,
+`templates/meetings.html`) is built from the partials `partials/meetings_jobs.html`, `partials/meetings_notes.html` and
+`partials/picker.html`, paged by `web/paging.py`; the rows are re-rendered by `/ui/meetings/{jobs,notes}` and after
+remove/delete, so a renamed meeting only needs its `recent_meetings` row (title, date, note path) updated. `/open`
+only redirects to Meetings; the audio route has `?download=1&name=<note stem>`, so the download name follows the new
+title once the note is renamed.
+
 ## Read first
 - `CLAUDE.md`, `prompts/_shared-instructions.md`, `docs/SPECIFICATION.md` §5 (naming), §15 (R11 damaged
   sections, R12 archive, R13 file names, R18 note format, R23, R25(a) readable transcript, and S3/S4/S8 in

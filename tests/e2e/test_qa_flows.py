@@ -100,7 +100,7 @@ def test_reopen_a_note_from_the_vault_picker(server: tuple[str, Path], tmp_path:
     base, _ = server
     written_note(base, make_tone(tmp_path / "2026-10-11 Design Review.m4a", 10.0))
     with browser_page(base) as page:
-        page.goto(base + "/open")
+        page.goto(base + "/meetings")
         picker = page.locator("#picker")
         picker.get_by_role("button", name="Meetings", exact=True).click()
         picker.get_by_role("button", name="2026", exact=True).click()
@@ -239,7 +239,7 @@ def test_main_pages_have_no_serious_accessibility_violations(
         wait(client, waiting["id"], "waiting_for_input", timeout=30)  # type: ignore[arg-type]
     template = next((vault / "MeetingMaster3" / "templates").glob("*.md")).name
     pages = [
-        "/", "/open", "/meetings", "/templates", f"/templates/{template}/edit",
+        "/", "/meetings", "/templates", f"/templates/{template}/edit",
         f"/templates/{template}/preview", f"/jobs/{waiting['id']}",
         f"/jobs/{waiting['id']}/speakers", f"/jobs/{uuid.uuid4()}",
         *(f"/settings/{tab}" for tab in
@@ -261,14 +261,15 @@ def test_main_pages_have_no_serious_accessibility_violations(
     # The review workspace again, in Edit mode and with the retention line kept forever.
     with browser_page(base, bypass_csp=True) as page:
         page.goto(url)
-        page.click("#btn-edit")
+        page.click("#btn-mode")
         page.click("#retention-btn")
         page.wait_for_selector("#retention-text:has-text('kept forever')")
         for mode in ("edit", "preview"):
             bad = [v for v in _axe(page) if v["impact"] in BLOCKING]
             assert not bad, (mode, [v["id"] for v in bad])
-            page.click("#btn-preview")
-            page.wait_for_selector("#preview:not([hidden])")
+            if mode == "edit":  # the toggle goes back to the preview; the second pass scans it
+                page.click("#btn-mode")
+            page.wait_for_selector("#preview:not([hidden])" if mode == "edit" else "#preview")
     out = os.environ.get("MM3_AXE_REPORT")
     if out:
         Path(out).write_text(json.dumps(report, indent=2), encoding="utf-8")

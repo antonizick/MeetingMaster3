@@ -1,0 +1,20 @@
+{# Previous/next + page numbers for one Meetings section (Phase 15c). `pg` comes from web/paging.py:pager.
+   Plain links work without JavaScript; with HTMX only the section is swapped. #}
+{% macro pager(pg, target, heading, swap="outerHTML", push=true) %}
+{% if pg.page.pages > 1 %}
+<nav class="pager" aria-label="{{ pg.label }} pages">
+  {% if pg.prev %}<a class="pager-step" rel="prev" href="{{ pg.prev.href }}" hx-get="{{ pg.prev.hx }}" hx-target="{{ target }}" hx-swap="{{ swap }}"{% if push %} hx-push-url="{{ pg.prev.href }}"{% endif %} data-focus="{{ heading }}"><span aria-hidden="true">‹</span> Newer</a>
+  {% else %}<span class="pager-step off" aria-disabled="true"><span aria-hidden="true">‹</span> Newer</span>{% endif %}
+  <ul class="pager-pages">
+    {% for item in pg.numbers %}
+    {% if item is none %}<li aria-hidden="true">…</li>
+    {% elif item.n == pg.page.number %}<li><span class="pager-current" aria-current="page"><span class="sr-only">Page </span>{{ item.n }}</span></li>
+    {% else %}<li><a href="{{ item.href }}" hx-get="{{ item.hx }}" hx-target="{{ target }}" hx-swap="{{ swap }}"{% if push %} hx-push-url="{{ item.href }}"{% endif %} data-focus="{{ heading }}" aria-label="Page {{ item.n }}">{{ item.n }}</a></li>{% endif %}
+    {% endfor %}
+  </ul>
+  {% if pg.next %}<a class="pager-step" rel="next" href="{{ pg.next.href }}" hx-get="{{ pg.next.hx }}" hx-target="{{ target }}" hx-swap="{{ swap }}"{% if push %} hx-push-url="{{ pg.next.href }}"{% endif %} data-focus="{{ heading }}">Older <span aria-hidden="true">›</span></a>
+  {% else %}<span class="pager-step off" aria-disabled="true">Older <span aria-hidden="true">›</span></span>{% endif %}
+  <span class="muted pager-pos">Page {{ pg.page.number }} of {{ pg.page.pages }} · {{ pg.page.first }}–{{ pg.page.last }} of {{ pg.page.total }}</span>
+</nav>
+{% endif %}
+{% endmacro %}

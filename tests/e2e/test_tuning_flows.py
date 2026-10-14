@@ -77,7 +77,7 @@ def test_logo_on_navigation_pages_only(server: tuple[str, Path], tmp_path: Path)
     with browser_page(base) as page:
         brand: list[str] = []
         page.on("request", lambda r: brand.append(r.url) if "/static/brand/" in r.url else None)
-        for path in ("/", "/meetings", "/open", "/templates", "/settings"):
+        for path in ("/", "/meetings", "/templates", "/settings"):
             page.goto(base + path)
             logo = page.locator("img.brand-logo")
             assert logo.count() == 1 and logo.is_visible(), path

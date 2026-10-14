@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 import shutil
+from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,8 @@ from meetingmaster3.config.settings import Settings
 from meetingmaster3.errors import MM3Error
 from meetingmaster3.feedback.context import feedback_context
 from meetingmaster3.feedback.store import FeedbackStore
+from meetingmaster3.hardware.detect import get_hardware
+from meetingmaster3.hardware.recommend import recommend
 from meetingmaster3.jobs.files import job_dir, new_job_id
 from meetingmaster3.jobs.models import JobOptions
 from meetingmaster3.jobs.pipeline import fake_pipeline_enabled
@@ -44,6 +47,12 @@ from meetingmaster3.markdown.sections import (
     section_inner,
 )
 from meetingmaster3.review import retention_view
+from meetingmaster3.review.progress import (
+    LongTask,
+    TaskRegistry,
+    TaskState,
+    expected_seconds,
+)
 from meetingmaster3.review.rename import plan_rename
 from meetingmaster3.review.save import (
     SaveConflict,
@@ -82,6 +91,7 @@ from meetingmaster3.vault.readable import readable_link, refresh_readable
 from meetingmaster3.web import views
 from meetingmaster3.web.api.jobs import get_runner
 from meetingmaster3.web.pages import render, templates
+from meetingmaster3.web.paging import page_params, picker_context, with_params
 from meetingmaster3.web.render import render_markdown
 
 router = APIRouter()
@@ -143,43 +153,23 @@ def _locate(request: Request, mm3_id: str, rel: str) -> tuple[Path, Path]:
 # -- re-open: picker and recent list --------------------------------------------------------------
 
 
-def _recent_notes(request: Request) -> list[dict[str, Any]]:
-    root = _root(request)
-    out = []
-    for meeting in _recents(request).recent(30):
-        item = meeting.to_dict()
-        path = Path(meeting.note_path)
-        item["exists"] = path.is_file()
-        item["review_link"] = (
-            f"/meetings/{meeting.mm3_id}?path={quote(path.relative_to(root).as_posix())}"
-            if meeting.mm3_id and path.is_file() and path.resolve().is_relative_to(root)
-            else None
-        )
-        item["obsidian_link"] = views.obsidian_link(meeting.note_path)
-        out.append(item)
-    return out
-
-
-@router.get("/open", response_class=HTMLResponse)
-async def open_page(request: Request, dir: str = "") -> HTMLResponse:
-    root = _root(request)
-    listing = await asyncio.to_thread(browse, root, dir)
-    return render(
-        request,
-        "open.html",
-        {"active": "open", "listing": listing, "notes": _recent_notes(request)},
-    )
+@router.get("/open")
+async def open_page(request: Request, dir: str = "") -> Response:
+    """ "Open a note" was merged into the Meetings page (Phase 15c, R27); old links land there,
+    with the folder picker on the same ``dir``."""
+    return RedirectResponse(with_params("/meetings", {"dir": dir}), status_code=303)
 
 
 @router.get("/ui/open/browse", response_class=HTMLResponse)
 async def open_browse(request: Request, dir: str = "") -> HTMLResponse:
+    params = page_params(request.query_params)
     listing = await asyncio.to_thread(browse, _root(request), dir)
-    return render(request, "partials/picker.html", {"listing": listing})
+    return render(request, "partials/picker.html", picker_context(listing, params))
 
 
 @router.get("/open/note")
 async def open_note(request: Request, path: str) -> Response:
-    """Open a vault note by its relative path: MM3 notes go to the workspace (and the Recent
+    """Open a vault note by its relative path: MM3 notes go to the workspace (and the Meetings
     list), anything else to the read-only preview."""
     root = _root(request)
     note = confine(root, path)
@@ -235,6 +225,26 @@ def _draft_context(ws: Workspace, store: ReviewStore) -> dict[str, Any] | None:
         "saved_at": draft.saved_at.isoformat(),
         "stale": draft.base_sha != ws.sha,
         **draft.to_dict(),
+    }
+
+
+def _recording_info(runner: Any, job_id: str | None, stem: str) -> dict[str, Any] | None:
+    """Size, format and download link of the stored recording (Phase 15c, R27); ``None`` when
+    there is nothing to show (no job, or the file is gone)."""
+    if job_id is None:
+        return None
+    try:
+        path = runner.audio_file(job_id)
+        size = path.stat().st_size
+    except (MM3Error, OSError):
+        return None
+    name = views.audio_download_name(stem, path.suffix)
+    return {
+        "size": views.format_size(size),
+        "format": views.audio_format(path),
+        "suffix": path.suffix,
+        "name": name,
+        "download_url": f"/api/jobs/{job_id}/audio?download=1&name={quote(stem, safe='')}",
     }
 
 
@@ -321,6 +331,9 @@ async def workspace_page(request: Request, mm3_id: str, path: str | None = None)
             "rendered": render_markdown(ws.text, timestamps=True),
             "data": data,
             "audio_url": f"/api/jobs/{ws.job_id}/audio" if ws.audio == "ok" else None,
+            "recording": _recording_info(runner, ws.job_id, note.stem)
+            if ws.audio == "ok"
+            else None,
             "retention": _retention_view(runner, ws.job_id) if ws.audio == "ok" else None,
             "obsidian_link": views.obsidian_link(str(note)),
             "templates_list": [e.to_dict() for e in library.listing() if e.valid],
@@ -446,8 +459,9 @@ class RegenerateBody(NoteRef):
 
 @router.post("/ui/review/{mm3_id}/regenerate")
 async def regenerate(request: Request, mm3_id: str) -> dict[str, Any]:
-    """A new body for one section, as a diff against the editor's current version. Nothing is
-    written: the browser applies it on Accept (and asks the server to archive the old one)."""
+    """Start writing a new body for one section; the result (a diff against the editor's current
+    version) is fetched from ``task/{id}/result`` when the task is done. Nothing is written: the
+    browser applies it on Accept (and asks the server to archive the old one)."""
     body = await _body(request, RegenerateBody)
     root, path = _locate(request, mm3_id, body.path)
     store = _store(request, mm3_id)
@@ -468,34 +482,60 @@ async def regenerate(request: Request, mm3_id: str) -> dict[str, Any]:
             allow_marker_changes=True,
         )
     settings = _settings(request)
-    preview = await regenerate_text(
-        settings,
-        template_library(settings, request.app.state.paths.data_dir),
-        backend_lookup(request),
-        root=root,
-        path=path,
-        text=text,
-        section_id=body.section_id,
-        instructions=body.instructions,
-        backend=body.backend or None,
-        model=body.model or None,
-        cloud_consent=body.cloud_consent,
-        append=body.append,
+    library = template_library(settings, request.app.state.paths.data_dir)
+    lookup = backend_lookup(request)
+    estimate = await _estimator(request)
+
+    async def work(task: LongTask) -> dict[str, Any]:
+        preview = await regenerate_text(
+            settings,
+            library,
+            lookup,
+            root=root,
+            path=path,
+            text=text,
+            section_id=body.section_id,
+            instructions=body.instructions,
+            backend=body.backend or None,
+            model=body.model or None,
+            cloud_consent=body.cloud_consent,
+            append=body.append,
+            progress=task.update,
+            on_context=lambda duration, local: setattr(
+                task, "expected_s", estimate(duration, local)
+            ),
+        )
+        return {
+            "preview": preview,
+            "text": text,
+            "append": body.append,
+            "section_id": body.section_id,
+        }
+
+    task = _tasks(request).start(
+        check_mm3_id(mm3_id),
+        "regenerate",
+        work,
+        {"section_id": body.section_id, "append": body.append},
     )
-    section = None if body.append else split_document(text).section(body.section_id)
+    return {"task": task.snapshot()}
+
+
+def _regen_payload(request: Request, done: dict[str, Any]) -> dict[str, Any]:
+    preview = done["preview"]
+    text, append, section_id = done["text"], done["append"], done["section_id"]
+    section = None if append else split_document(text).section(section_id)
     if section is None:
         new_inner = render_inner(preview.title, preview.new_body)
     else:  # keep the section's own heading line; only the body changes
         mini = section.open_line + section.inner + section.close_line
-        new_inner = section_inner(
-            replace_section(mini, body.section_id, preview.new_body), body.section_id
-        )
+        new_inner = section_inner(replace_section(mini, section_id, preview.new_body), section_id)
     html = _fragment(
         request,
         "partials/regen_result.html",
         {
             "preview": preview,
-            "append": body.append,
+            "append": append,
             **_diff_context(
                 preview.old_body, preview.new_body, old_label="current", new_label="regenerated"
             ),
@@ -573,32 +613,126 @@ class SwitchBody(NoteRef):
 
 @router.post("/ui/review/{mm3_id}/switch/preview")
 async def switch_preview(request: Request, mm3_id: str) -> dict[str, Any]:
+    """Start writing the whole note again with another template. Returns at once with the task;
+    the diff and the apply token come from ``task/{id}/result`` when it is done."""
     body = await _body(request, SwitchBody)
     _, path = _locate(request, mm3_id, body.path)
     store = _store(request, mm3_id)
     text = base_text(store, body.base_sha)
     settings = _settings(request)
-    result = await switch_template(
-        settings,
-        template_library(settings, request.app.state.paths.data_dir),
-        backend_lookup(request),
-        path=path,
-        text=text,
-        template_id=body.template,
-        backend=body.backend or None,
-        model=body.model or None,
-        cloud_consent=body.cloud_consent,
-    )
-    token = store.put_pending(body.base_sha, result.text, result.info())
+    library = template_library(settings, request.app.state.paths.data_dir)
+    lookup = backend_lookup(request)
+    estimate = await _estimator(request)
+
+    async def work(task: LongTask) -> dict[str, Any]:
+        result = await switch_template(
+            settings,
+            library,
+            lookup,
+            path=path,
+            text=text,
+            template_id=body.template,
+            backend=body.backend or None,
+            model=body.model or None,
+            cloud_consent=body.cloud_consent,
+            progress=task.update,
+            step=task.set_step,
+            on_context=lambda duration, local: setattr(
+                task, "expected_s", estimate(duration, local)
+            ),
+        )
+        token = store.put_pending(body.base_sha, result.text, result.info())
+        return {"result": result, "token": token, "text": text}
+
+    task = _tasks(request).start(check_mm3_id(mm3_id), "switch", work)
+    return {"task": task.snapshot()}
+
+
+def _switch_payload(request: Request, done: dict[str, Any]) -> dict[str, Any]:
+    result = done["result"]
     html = _fragment(
         request,
         "partials/switch_result.html",
         {
             "result": result,
-            **_diff_context(text, result.text, old_label="current note", new_label="new note"),
+            **_diff_context(
+                done["text"], result.text, old_label="current note", new_label="new note"
+            ),
         },
     )
-    return {"html": html, "token": token}
+    return {"html": html, "token": done["token"]}
+
+
+# -- long-task progress (switch and regenerate) ----------------------------------------------------
+
+
+def _tasks(request: Request) -> TaskRegistry:
+    registry: TaskRegistry | None = getattr(request.app.state, "long_tasks", None)
+    if registry is None:
+        registry = request.app.state.long_tasks = TaskRegistry()
+    return registry
+
+
+async def _estimator(request: Request) -> Callable[[float | None, bool], float | None]:
+    """``(duration, backend is local) -> expected seconds`` from the hardware profile's measured
+    notes speed (``None`` for a cloud backend, an unknown duration or an unknown profile)."""
+    info = await asyncio.to_thread(get_hardware)
+    rec = recommend(info, _settings(request).hardware.profile)
+
+    def estimate(duration: float | None, local: bool) -> float | None:
+        if not local or not duration or duration <= 0:
+            return None
+        return expected_seconds(rec.llm.estimate(duration))
+
+    return estimate
+
+
+def _task_of(request: Request, mm3_id: str, task_id: str) -> LongTask:
+    task = _tasks(request).get(task_id)
+    if task is None or task.mm3_id != check_mm3_id(mm3_id):
+        raise MM3Error(
+            "E_TASK_NOT_FOUND",
+            "That action is no longer running.",
+            "It was cancelled, finished long ago, or the server was restarted. Start it again.",
+            status_code=404,
+        )
+    return task
+
+
+@router.get("/ui/review/{mm3_id}/task")
+async def current_task(request: Request, mm3_id: str) -> dict[str, Any]:
+    """The note's running or last finished long action, for a page that was reloaded."""
+    task = _tasks(request).for_note(check_mm3_id(mm3_id))
+    return {"task": task.snapshot() if task else None}
+
+
+@router.get("/ui/review/{mm3_id}/task/{task_id}")
+async def task_status(request: Request, mm3_id: str, task_id: str) -> dict[str, Any]:
+    return {"task": _task_of(request, mm3_id, task_id).snapshot()}
+
+
+@router.get("/ui/review/{mm3_id}/task/{task_id}/result")
+async def task_result(request: Request, mm3_id: str, task_id: str) -> dict[str, Any]:
+    task = _task_of(request, mm3_id, task_id)
+    if task.state is TaskState.RUNNING:
+        raise MM3Error(
+            "E_TASK_RUNNING", "That action is still running.", "Wait for it to finish.", 409
+        )
+    if task.state is TaskState.CANCELLED:
+        raise MM3Error("E_TASK_CANCELLED", "That action was cancelled.", "", status_code=409)
+    if task.error is not None:
+        raise task.error
+    if task.kind == "switch":
+        return _switch_payload(request, task.result)
+    return _regen_payload(request, task.result)
+
+
+@router.post("/ui/review/{mm3_id}/task/{task_id}/cancel")
+async def task_cancel(request: Request, mm3_id: str, task_id: str) -> dict[str, Any]:
+    """Stop a running action (the model call is interrupted), or dismiss a finished one."""
+    task = _task_of(request, mm3_id, task_id)
+    await _tasks(request).cancel(task)
+    return {"task": task.snapshot()}
 
 
 class SwitchApplyBody(NoteRef):
@@ -632,6 +766,9 @@ async def switch_apply(request: Request, mm3_id: str) -> dict[str, Any]:
     store.clear_pending()
     store.clear_draft()
     store.put_base(text)
+    running = _tasks(request).for_note(check_mm3_id(mm3_id))
+    if running is not None and running.kind == "switch":
+        _tasks(request).discard(running)  # its result has been applied
     return {"sha": sha, "archive": archived.relative_to(root).as_posix(), **info}
 
 

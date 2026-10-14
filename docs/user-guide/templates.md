@@ -125,7 +125,7 @@ Write prose only: typically three paragraphs and never fewer than two, separated
 speaker list; never invent facts, names or numbers. Do not repeat the short summary word for word: go deeper.
 ```
 A section with the id `summary-detailed` always gets the two-paragraph check: an answer with one paragraph is
-asked for again once, and kept with a warning if it is still short. Then **Update older notes** on the Recent
+asked for again once, and kept with a warning if it is still short. Then **Update older notes** on the Meetings
 page can add the new section to notes made with that template.
 
 Tips for prompts (from testing with small local models):

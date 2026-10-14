@@ -261,7 +261,8 @@ def test_cancel_retry_and_delete(ui: TestClient, tone: Path) -> None:
     wait(ui, job["id"], "waiting_for_input")
     assert "Resume" in ui.get("/meetings").text or True
     ui.post(f"/ui/jobs/{job['id']}/cancel")
-    assert ui.delete(f"/ui/jobs/{job['id']}").text == ""
+    gone = ui.delete(f"/ui/jobs/{job['id']}").text  # the refreshed Jobs section
+    assert f"job-row-{job['id']}" not in gone and 'id="sec-jobs"' in gone
     assert ui.get(f"/jobs/{job['id']}", headers={"Accept": "text/html"}).status_code == 404
 
 
@@ -543,7 +544,8 @@ def test_recent_notes_can_be_removed_and_orphans_pruned(
     # All orphans at once; files outside the vault are left alone too.
     repo.touch(str(kept), title="Kept")
     r = ui.post("/ui/recent/prune")
-    assert r.status_code == 200 and r.headers["HX-Redirect"] == "/meetings"
+    assert r.status_code == 200 and 'id="sec-notes"' in r.text  # the refreshed section
+    assert "missing or outside your vault" not in r.text
     assert [m.title for m in repo.recent()] == ["Kept"] and outside.is_file()
     page = ui.get("/meetings").text
     assert "missing or outside your vault" not in page and "Kept" in page

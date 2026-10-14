@@ -10,7 +10,7 @@ import contextlib
 import json
 import logging
 from collections.abc import AsyncIterator
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
@@ -32,6 +32,7 @@ from meetingmaster3.jobs.models import FINAL, JobOptions, JobStatus, ProgressEve
 from meetingmaster3.jobs.runner import JobRunner
 from meetingmaster3.templates.model_check import preflight
 from meetingmaster3.templates.stages import template_library
+from meetingmaster3.web import views
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/jobs")
@@ -327,13 +328,28 @@ _MEDIA_TYPES = {".opus": "audio/ogg", ".wav": "audio/wav", ".mp3": "audio/mpeg"}
 
 
 @router.get("/{job_id}/audio")
-async def job_audio(request: Request, job_id: str) -> FileResponse:
-    """The job's audio, with HTTP Range support (``E_AUDIO_EXPIRED`` once pruned)."""
+async def job_audio(
+    request: Request,
+    job_id: str,
+    download: bool = False,
+    name: Annotated[str, Query(max_length=300)] = "",
+) -> FileResponse:
+    """The job's audio, with HTTP Range support (``E_AUDIO_EXPIRED`` once pruned).
+
+    ``?download=1`` adds ``Content-Disposition: attachment``; ``name`` (the note's file stem,
+    shown by the review page) only shapes the suggested file name after being sanitised, and
+    never selects a file: the path always comes from the job."""
     path = get_runner(request).audio_file(check_job_id(job_id))
+    # ``filename`` makes Starlette send both ``filename="…"`` and the RFC 5987 ``filename*=``.
+    filename = (
+        views.audio_download_name(name or f"recording-{job_id}", path.suffix) if download else None
+    )
     return FileResponse(
         path,
         media_type=_MEDIA_TYPES.get(path.suffix, "application/octet-stream"),
         headers={"Cache-Control": "no-store"},
+        filename=filename,
+        content_disposition_type="attachment",
     )
 
 

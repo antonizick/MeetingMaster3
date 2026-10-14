@@ -1,4 +1,4 @@
-"""The "Update older notes" card on the Recent page (Phase 15a, R25; ``review/upgrade.py``).
+"""The "Update older notes" card on the Meetings page (Phase 15a, R25; ``review/upgrade.py``).
 
 The card shows what would change (a dry run that writes nothing), the model that will be used
 and a time estimate. The user can preview one note's new sections, then run the update in the

@@ -2,20 +2,21 @@
 
 The review workspace is where a draft becomes your final note. It shows the recording and its
 transcript on the left and the note on the right. Open it with **Review & edit** when a meeting
-finishes, from **Recent**, or from **Open a note**.
+finishes, or from **Meetings**.
 
 ![The review workspace](../assets/06-review-workspace.png)
 
 ## Opening a note
 
 - **After processing:** the job page's **Review & edit** button.
-- **Open a note** (top menu): your recent notes, plus a browser of your vault. The browser lists only
+- **Meetings** (top menu): **Notes in your vault** lists the notes you wrote or opened, and **Browse the vault**
+  at the bottom of the page is a browser of your vault. The browser lists only
   notes MeetingMaster3 wrote (files with an `mm3-id` property). Companion transcripts and archived
   versions are hidden, as are hidden folders such as `.obsidian`. You cannot browse outside the vault.
 - A note that was not written by MeetingMaster3 opens as a read-only preview.
 
 The address of the workspace is `/meetings/<mm3-id>`, so a bookmark keeps working after you rename or
-move the note, as long as you have opened it once from its new place (or from **Open a note**).
+move the note, as long as you have opened it once from its new place (or from **Browse the vault** on the Meetings page). The old **Open a note** address (`/open`) now lands on Meetings.
 
 ## The recording and the transcript
 
@@ -32,6 +33,14 @@ The keyboard shortcuts do nothing while you are typing in a field. The sentence 
 highlighted and kept in view. Scrolling the transcript yourself turns **Follow** off; tick it to
 follow the playback again. Drag the bar between the panes (or focus it and use the arrow keys) to
 change their widths; on a narrow screen the panes stack.
+
+### How big the recording is, and downloading it
+
+Above the retention line, a small muted line states the size and format of the stored recording
+("Recording: 41.2 MB (Opus)"), so you can weigh it when you decide between **Keep forever** and the
+default retention period. Next to it, **Download** saves the recording under the note's own name
+(`2026-10-11 - Product Sync.opus`); the same file is in the header **Download** menu as "The recording".
+Neither appears when there is no recording (it expired, was removed, or the meeting had none).
 
 ### How long the recording is kept
 
@@ -72,7 +81,9 @@ the tab without saving, the next time you open the note it offers **Restore my e
 them**.
 
 The note opens in **Preview**: the rendered note (raw HTML is not rendered; images are not loaded).
-Choose **Edit** above the note to change it; choose **Preview** to see your edits rendered, saved or not.
+One button above the note always names what it will do: **Edit note** while you are viewing, **Show preview**
+while you are editing (to see your edits rendered, saved or not). A small label beside it says whether you
+are *Viewing* or *Editing*.
 The page picks the right mode for you: restoring a draft or accepting a regenerated section opens Edit.
 Saving keeps the mode you are in. The browser remembers the last mode you used. A read-only note shows
 the preview only.
@@ -90,7 +101,8 @@ does not overwrite it. You see both versions side by side and choose:
 
 Each section has **Regenerate…**. Add instructions if you like ("Make it shorter", "Focus on the
 budget") and, under **Model**, pick another backend or model. A cloud backend asks for your consent
-for this request. The new version is compared with the section as it is in the editor now (your
+for this request. While it works you see a progress bar, the time elapsed and a time-left estimate (see
+[Progress while a template switch runs](#progress-while-the-model-works)); **Cancel** stops it. The new version is compared with the section as it is in the editor now (your
 unsaved edits included). Switch between **Side by side** and **Unified** views, then:
 
 - **Accept:** replace the section in the editor.
@@ -109,7 +121,7 @@ Archived versions go to an `Archive` folder next to the note:
 - One section: `Archive/2026-10-11 - Title.<section-id>.20261011-1530.md`
 - A whole note (template switch): `Archive/2026-10-11 - Title.20261011-1530.md`
 
-Archives carry an `mm3-archived` property, so they are not offered by **Open a note**.
+Archives carry an `mm3-archived` property, so they are not offered by **Browse the vault**.
 
 ## Rating and downloading
 
@@ -126,6 +138,23 @@ anything is written. Applying it archives the current note whole, then writes th
 you wrote outside the sections is kept at the end of the new note under **Preserved notes**, and your
 own properties (for example `aliases`) are kept. Save your edits first: switching works on the note as
 saved in the vault.
+
+### Progress while the model works
+
+A template switch (and a section regeneration) shows a bar with the step it is on ("Section 3 of 9:
+Summary Detailed"), the **elapsed** time and **about N minutes left**. The bar's stripes keep moving even
+when a long section is being written, and the clock keeps ticking, so you can tell that nothing has locked
+up (with *reduce motion* set in your system, the stripes stop but the clock still ticks).
+
+- The first time left is an estimate from your hardware profile (shown as "Roughly …"); once some sections
+  are done it becomes a rate measured on this very run, smoothed so it does not jump about. With a cloud model
+  there is no estimate until it can be measured. Past the estimate it says "Taking longer than expected, still
+  working" instead of counting down to zero.
+- You can keep reading the note while it runs. **Hide and keep running** (or pressing <kbd>Esc</kbd>, which
+  asks) closes the window; a button next to **Switch template…** brings it back, and the preview waits there
+  when it is ready. Reloading the page picks a running switch up again, but restarting MeetingMaster3 ends it.
+- **Cancel the switch** stops the model call at once. Nothing is written or archived until you apply a preview.
+- Only one long action runs per note at a time.
 
 ## Renaming speakers
 

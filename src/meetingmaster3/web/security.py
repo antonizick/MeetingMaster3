@@ -29,6 +29,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+        if request.url.path.startswith("/static/"):
+            # Revalidate (ETag) on every load, so an upgraded page never runs with a stale
+            # script or stylesheet from the browser's heuristic cache.
+            response.headers["Cache-Control"] = "no-cache"
         return response
 
 

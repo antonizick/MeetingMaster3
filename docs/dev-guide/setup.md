@@ -28,7 +28,8 @@ MM3_E2E_BROWSER=/usr/bin/chromium uv run pytest -m e2e tests/e2e   # or: uv run 
 MM3_AXE_REPORT=/tmp/axe.json ...                                    # also write the full axe-core report
 ```
 They use the fake pipeline (`MM3_FAKE_PIPELINE=1`; `MM3_FAKE_STAGE_SECONDS` sets each fake stage's
-duration, `MM3_FAKE_OOM=1` makes the fake transcription run out of GPU memory unless retried with
+duration, `MM3_FAKE_LLM_SECONDS` how long each fake model call takes (so progress bars can be watched),
+`MM3_FAKE_OOM=1` makes the fake transcription run out of GPU memory unless retried with
 `medium`). They fail on any request to a host other than the app and on any page error. The
 accessibility test injects the vendored axe-core (`tests/e2e/vendor/`) and fails on serious or
 critical WCAG 2.1 AA violations.

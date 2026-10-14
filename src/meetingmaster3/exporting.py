@@ -43,7 +43,7 @@ def _not_found(what: str) -> MM3Error:
     return MM3Error(
         "E_NOTE_NOT_FOUND",
         f"{what} was not found in the vault.",
-        "Open it from the Recent list, or check that the file was not moved.",
+        "Open it from the Meetings page, or check that the file was not moved.",
         status_code=404,
     )
 

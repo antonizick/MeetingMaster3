@@ -24,6 +24,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   "I'll …" remarks in an informal call no longer become tasks.
 - Eval: a synthetic introductory-call meeting for Default Notes and two new checks, `expected.numbered`
   (numbered headings in a section) and `expected.limits` (sentences and words in a section).
+- Pre-operational tuning, round 3 (Phase 15c, R27, ADR-0038):
+  - **Switch template** and **Regenerate** run in the background with a moving progress bar, the current step,
+    elapsed time and time left (estimate from your hardware profile, then the run's measured rate), a motion cue
+    (off with reduced motion), **Cancel**, and **Hide and keep running**; a reloaded page reattaches.
+    New endpoints under `/ui/review/{id}/task`; `POST …/switch/preview` and `POST …/regenerate` return a task.
+  - The review page shows the **size and format of the stored recording** and offers it for **download**
+    (`GET /api/jobs/{id}/audio?download=1`), also in the header Download menu.
+  - The Preview/Edit control is one button named after its action ("Edit note" / "Show preview").
+  - **Meetings** (was Recent) is the one place for jobs, notes and **Browse the vault**; each section pages
+    (10, 10, 25 rows) with bookmarkable `jobs_page`, `notes_page`, `browse_page` links. `/open` redirects to it.
+  - `MM3_FAKE_LLM_SECONDS` slows the fake model for browser tests.
 - Pre-operational tuning, round 2 (Phase 15b, R26, ADR-0036):
   - The review screen opens the note in **Preview** (rendered on the server); **Edit** is one click away, and
     the last mode is remembered.
@@ -161,6 +172,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   makes no network calls (verified with a socket audit).
 
 ### Fixed
+- Static files are sent with `Cache-Control: no-cache`, so a browser that cached an older `review.js` no longer breaks the review page (for example an Edit note button that did nothing) after an upgrade.
 - With no default model set for Ollama, the new-meeting page filled in the first installed model, which could be
   an embedding model such as `nomic-embed-text` (2,048-token window). The job then failed at *Generating notes*
   with a context error, after the whole transcription, and the error's advice (raise `generation.max_context`)

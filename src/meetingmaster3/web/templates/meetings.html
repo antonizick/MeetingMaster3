@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Meetings · MeetingMaster3{% endblock %}
+{% block content %}
+<h1>Meetings</h1>
+{% include "partials/meetings_jobs.html" %}
+
+<div hx-get="/ui/notes/upgrade" hx-trigger="load" hx-swap="outerHTML"></div>
+
+{% include "partials/meetings_notes.html" %}
+
+<section id="sec-browse" aria-labelledby="h-browse" class="card">
+  <h2 id="h-browse" tabindex="-1">Browse the vault</h2>
+  <p class="hint">Only notes written by MeetingMaster3 are listed (files with an <code>mm3-id</code> property). Transcripts and archived versions are hidden.</p>
+  <div id="picker">{% include "partials/picker.html" %}</div>
+</section>
+{% endblock %}
