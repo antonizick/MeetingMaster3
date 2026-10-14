@@ -94,6 +94,9 @@ def test_logo_on_navigation_pages_only(server: tuple[str, Path], tmp_path: Path)
         h1 = page.locator("h1").bounding_box()
         assert box is not None and h1 is not None and round(box["width"]) == 320
         assert round(box["height"]) == 230 and box["y"] + box["height"] <= h1["y"]
+        main = page.locator("main").bounding_box()
+        assert main is not None  # centred in the content column
+        assert abs((box["x"] + box["width"] / 2) - (main["x"] + main["width"] / 2)) <= 1
         page.set_viewport_size({"width": 380, "height": 800})
         page.goto(base + "/")
         box = page.locator("img.brand-logo").bounding_box()

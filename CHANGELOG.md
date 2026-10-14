@@ -31,7 +31,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     `scripts/make_logo.py`. The logo is © Nick Antonizick, all rights reserved, and not under Apache-2.0
     (`NOTICE`).
 - The New meeting page shows the logo picture large above its heading: the whole scene as a 320 px wide
-  rectangle with slightly rounded corners, full width on a phone (ADR-0033). The small header logo is unchanged.
+  rectangle with slightly rounded corners, centred, full width on a phone (ADR-0033). The small header logo is unchanged.
 - Model choice that cannot fail late: for Ollama the app reads each model's capabilities and context length.
   The new-meeting picker leaves out embedding models and models whose context window is too small, pre-selects
   a tested model when no default is set, and explains a bad typed-in model before starting. The upload API and

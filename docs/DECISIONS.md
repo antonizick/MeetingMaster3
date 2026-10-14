@@ -742,7 +742,7 @@ at the table, which ADR-0032 had kept out of the small crop.
 **Decision.** `scripts/make_logo.py` also writes `hero.webp`, `hero@2x.webp`, `hero.png` and `hero@2x.png`:
 the whole image, uncropped, resized to 320×230 and 640×460, corners rounded (12 px), all metadata stripped.
 `new.html` shows it in a `<picture>` above the `<h1>`, with descriptive alt text, 320 px wide and
-`max-width: 100%` so it fits a phone. Only the New meeting page requests it. It is covered by the same
+`max-width: 100%` so it fits a phone, centred in the content column. Only the New meeting page requests it. It is covered by the same
 all-rights-reserved notice (`NOTICE`, `THIRD_PARTY_NOTICES.md`). The full-resolution original is still
 never committed.
 **Status.** Accepted (2026-10-13).
