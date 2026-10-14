@@ -11,7 +11,7 @@ The full list, with when to use each one and its sections, is the generated
 
 | If the meeting is... | Try |
 |---|---|
-| Anything, and you want a full briefing by topic (the default) | **Default Notes** (`default-notes`): a one-line summary, a detailed summary, numbered topics dense with figures, names and dates, questions and answers when there were many, a conclusion and action items. It takes longer to write than the others. |
+| Anything, and you want a full briefing by topic (the default) | **Default Notes** (`default-notes`): a one-line summary, a detailed summary, numbered topics dense with figures, names and dates, questions and answers when there were many, a conclusion and action items. It takes longer to write than the others. For hiring interviews prefer **Job Interview Notes**: with a small local model, Default Notes may keep a personal remark a candidate volunteers (ADR-0039). |
 | Anything, and you want a short brief | **Executive Summary** (`executive-summary`) |
 | Anything, and you want a neutral overview | **General Discussion Summary**, **Just the Facts**, or **Key Takeaways & Next Steps** for the shortest version |
 | A full record, to be consulted later | **Detailed Meeting Minutes**, **Chronological Timeline**, or **Speaker-Attributed Notes** |

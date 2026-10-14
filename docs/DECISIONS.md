@@ -950,11 +950,15 @@ than chasing every sample detail. Topic density does **not** scale with length: 
    | No list at all | stable 3 tasks, but the role's duties became tasks and the real follow-up was lost |
    | **Only candidates naming follow-up work (chosen)** | stable: exactly the one real follow-up, 3 runs out of 3 |
 
-   `relevant` filters the candidates with a verb list (`cues.follow_up_cues`: send, email, share, schedule,
-   sync, review, prepare, put together, follow up, let … know…) in the prompt and in the map step, shows them as
-   hints, and drops the "must appear" rule. The owner guard still uses every candidate. Every other template keeps
-   the full list and the strict wording (their golden prompts are unchanged), so their eval task recall is
-   unaffected.
+   The filter alone then missed real tasks in the synthetic business meetings ("I'll finish the migration", "I'll
+   tell the exec team", "we should measure…"): 3 of 4 eval notes failed `actions_captured`. **Final form:** with
+   `relevant` the candidates are split (`cues.split_follow_up`): those naming follow-up work (a broad verb list:
+   send, schedule, review, prepare, finish, run, tell, ask, measure, negotiate, follow up…) are listed as likely
+   tasks, the others under "may be only conversation; include one only if it is clearly work to be done after the
+   meeting", and the "must appear" rule is dropped. The map step shows only the first group. The owner guard
+   still uses every candidate. Every other template keeps one list and the strict wording (their golden prompts are
+   unchanged), so their eval task recall is unaffected. Result: all expected actions found in all 4 eval notes
+   (19/19), and the real meetings keep their real follow-ups without the conversational ones.
 
 **Prompt iterations** (owner's three meetings, `qwen3:8b`, 16 384-token window; "specifics" = the share of the
 sample's numbers and proper nouns that also occur in the transcript and appear in the generated note; the GPU was
@@ -970,6 +974,18 @@ shared with another session's test server, so times are high):
 | v6 | Q&A: one group per asker, third person; personal plans and small talk are not tasks (prompt only) | 5 / 729 / 65 %; tasks still listed small talk | 5 / 763 / 70 % | not run |
 | v7 | `task_candidates: relevant`, first form: advisory wording; Q&A grew past its limit | 5 / 913 / 60 %; tasks still small talk | 6 / 867 / 70 %; 12 conversational tasks | not run |
 | v8 | candidates filtered to follow-up work (prompt and map step); "after the meeting" task test; Q&A at most 12 questions | 5 / 897 / 65 %; tasks: exactly the two real follow-ups | 6 / 914 / 70 %; tasks: the one real follow-up | 5 / 786 / 68 %; tasks: the three real ones and one small-talk leftover the map step extracted itself |
+
+v9 (shipped) splits the candidates instead of filtering them (see 5) and adds a general privacy paragraph to
+`_system`; it changes only the task and privacy rules, so the v8 topic numbers stand.
+
+**Known limitation (owner's decision, 2026-10-14: document it).** On the synthetic introductory call, where the
+candidate volunteers a family reason for asking about flexible hours, qwen3:8b keeps that remark in Discussion by
+Topic despite the privacy rules; five more prompt variants (rule last in the section prompt, "business reasons"
+only, privacy-first in `_system`) did not remove it and cost other specifics, so they were reverted. A deterministic
+sentence filter was rejected (it would delete legitimate sentences, e.g. about a children's product). The eval
+records this note as failing `nothing_forbidden` (and, in that run, `type_content`: 8 of 10 specifics), and the
+user guide recommends **Job Interview Notes** for hiring interviews. Final eval for Default Notes: 3/4 notes pass
+every check; actions 19/19; Summary Detailed 2-4 paragraphs in all four.
 
 Final (v8), for comparison with the samples: about 800-900 topic words in 5-6 topics where the samples have
 about 1 000 in 5-9; 65-70 % of the samples' specifics that were said in the meeting appear; Summary Succinct 26-41

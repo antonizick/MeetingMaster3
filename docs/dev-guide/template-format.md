@@ -232,7 +232,9 @@ new built-ins should too:
   only, no protected characteristics, advisory recommendation), `one-on-one-coaching` (respectful,
   non-judgmental tone), `board-governance-minutes` (formal style, motions and votes exactly as
   stated, never an inferred outcome), and `default-notes` (used for interviews too: the
-  job-relevant-only and protected-characteristics rules, no hiring decision).
+  job-relevant-only and protected-characteristics rules, no hiring decision; with `qwen3:8b` it can
+  still keep a family remark a candidate volunteers, a known limitation recorded in the eval
+  baseline, ADR-0039).
 * Golden prompt snapshots are in `tests/fixtures/assembler/<id>.txt`
   (`MM3_UPDATE_GOLDEN=1 uv run pytest tests/unit/templates/test_assembler.py`).
 * `docs/user-guide/template-catalogue.md` is generated: after changing a template run

@@ -2263,6 +2263,141 @@
       "mode": "full",
       "calls": 6,
       "seconds": 27.8
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "default-notes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "actions": 4
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 333,
+        "succinct_sentences": 2,
+        "succinct_words": 36
+      },
+      "mode": "full",
+      "calls": 8,
+      "seconds": 59.8
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "default-notes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "actions": 5
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 402,
+        "succinct_sentences": 2,
+        "succinct_words": 36
+      },
+      "mode": "full",
+      "calls": 8,
+      "seconds": 95.8
+    },
+    {
+      "meeting": "intro-call-platform-lead",
+      "template": "default-notes",
+      "passed": false,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "type_content": false,
+        "numbered_topic-count": true,
+        "limit_succinct-short": true,
+        "nothing_forbidden": false,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "actions": 3,
+        "content": 8
+      },
+      "missing": {
+        "content": [
+          "order-volume",
+          "stores"
+        ]
+      },
+      "metrics": {
+        "topics_numbered": 6,
+        "detailed_paragraphs": 3,
+        "detailed_words": 360,
+        "succinct_sentences": 1,
+        "succinct_words": 41
+      },
+      "mode": "full",
+      "calls": 8,
+      "seconds": 111.4
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "default-notes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "actions": 7
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 434,
+        "succinct_sentences": 1,
+        "succinct_words": 29
+      },
+      "mode": "full",
+      "calls": 8,
+      "seconds": 91.2
     }
   ]
 }
