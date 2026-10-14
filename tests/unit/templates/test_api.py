@@ -78,12 +78,12 @@ def test_templates_are_installed_and_listed(api: TestClient, vault: Path) -> Non
     folder = vault / "MeetingMaster3" / "templates"
     assert sorted(p.stem for p in folder.glob("*.md")) == sorted(BUILTIN_IDS)
     data = api.get("/api/templates").json()
-    assert data["default"] == "executive-summary"
+    assert data["default"] == "default-notes"
     ids = {t["id"]: t for t in data["templates"]}
     assert set(ids) == {p.stem for p in folder.glob("*.md")}
     assert ids["decision-log"]["source"] == "vault" and ids["decision-log"]["valid"]
     assert ids["decision-log"]["sections"][-1]["id"] == "ai-recommendations"
-    assert len(ids) == 22
+    assert len(ids) == 23
 
     (folder / "broken.md").write_text("---\nid: broken\n---\n", encoding="utf-8")
     listed = api.get("/api/templates").json()["templates"]

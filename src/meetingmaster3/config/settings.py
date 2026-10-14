@@ -114,7 +114,7 @@ class LLMSettings(BaseModel):
 class GenerationSettings(BaseModel):
     """Note generation (Phase 09; templates in docs/dev-guide/template-format.md)."""
 
-    default_template: str = Field(default="executive-summary", pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")
+    default_template: str = Field(default="default-notes", pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")
     write_companion: bool = True
     """Write the companion transcript next to the note (Q2). Without it, a note cannot be
     re-opened for regeneration or speaker renaming."""

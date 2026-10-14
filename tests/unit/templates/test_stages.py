@@ -102,7 +102,7 @@ async def test_audio_to_vault_note_and_companion(tmp_path: Path, vault: Path) ->
         parsed = parse_note(note_path.read_text("utf-8"))
         assert parsed.ok and parsed.warnings == ()
         meta = parsed.note.meta
-        assert meta.template_id == "executive-summary" and meta.model == "fake-model"
+        assert meta.template_id == "default-notes" and meta.model == "fake-model"
         assert meta.backend == "ollama" and meta.generated_at is not None
         assert meta.participants == ["Alice Chen", "Bob Okafor"]
         assert meta.speakers.names == {"SPEAKER_00": "Alice Chen", "SPEAKER_01": "Bob Okafor"}
@@ -134,7 +134,7 @@ async def test_audio_to_vault_note_and_companion(tmp_path: Path, vault: Path) ->
             folder / "generate.partial.json"
         ).exists()
         gen = json.loads((folder / "generation.json").read_text("utf-8"))
-        assert gen["mode"] == "full" and gen["template"] == "executive-summary"
+        assert gen["mode"] == "full" and gen["template"] == "default-notes"
     finally:
         await runner.stop()
 

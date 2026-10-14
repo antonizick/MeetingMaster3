@@ -30,6 +30,6 @@ def test_catalogue_lists_every_template() -> None:
     module = load_script()
     text = module.TARGET.read_text(encoding="utf-8")
     templates = module.load_templates()
-    assert len(templates) == 22
+    assert len(templates) == 23
     for t in templates:
         assert f"`{t.id}`" in text and f"## {t.name}" in text

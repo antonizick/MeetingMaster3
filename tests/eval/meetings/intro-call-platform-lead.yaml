@@ -1,0 +1,87 @@
+# Synthetic meeting written for MeetingMaster3's generation eval (Phase 15e). Fictional people and
+# company; no real recording. License: CC0. A 38-minute introductory call for a data platform lead
+# role, shaped like the notes Default Notes is designed for: many figures, tool names, org changes
+# and dates, a stretch of questions and answers, a few commitments, and one remark about a child
+# that must stay out of the notes (templates: default-notes).
+title: Platform Lead Introductory Call
+date: 2026-10-06T15:00:00
+templates: [default-notes]
+speakers:
+  SPEAKER_00: Dana Whitfield
+  SPEAKER_01: Marco Ruiz
+turns:
+  - [0, SPEAKER_00, "Thanks for making time, Marco. I'm Dana Whitfield, I run data engineering at Kestrel Outdoor Gear. This is an informal introductory call about the platform lead role, not a formal interview."]
+  - [42, SPEAKER_01, "Thanks, Dana. Happy to be here. Elena Brooks from your analytics team suggested I talk to you; we worked together at Lumen Logistics for three years."]
+  - [90, SPEAKER_00, "Elena speaks highly of you. Let me start with where we are, then I'd like to hear your story."]
+  - [126, SPEAKER_00, "Some context on the organisation first. Our CTO, Graham Lowe, leaves at the end of December, and Priya Shah, who runs infrastructure today, takes over as CTO on January 1. At the same time the analytics team moves out of technology and under the finance director."]
+  - [210, SPEAKER_00, "I'm also changing roles: in February I move up to head of data, which is why this platform lead position is open. Whoever takes it inherits my current team."]
+  - [270, SPEAKER_01, "So the platform lead reports to you after February?"]
+  - [285, SPEAKER_00, "Yes, to me. The team is seven engineers in Denver plus two contractors in Kraków. The contractors' agreement ends in June and we haven't decided whether to renew it."]
+  - [390, SPEAKER_00, "Now the stack. We process about 4.2 million online orders a year, plus point-of-sale data from 38 stores. The warehouse is Snowflake, transformations are in dbt, orchestration is Airflow, and the business reads everything through Looker."]
+  - [495, SPEAKER_00, "The big project is the order database. It's still on Oracle 12c, which goes out of support for us next year, and we're migrating it to PostgreSQL 16. The target is cut-over by the end of March."]
+  - [585, SPEAKER_01, "How far along is the migration?"]
+  - [600, SPEAKER_00, "Schema conversion is done. Data validation is about sixty percent done. The risky part is the nightly inventory sync, which has twelve stored procedures nobody fully understands."]
+  - [690, SPEAKER_01, "Twelve stored procedures with no owners is exactly where these migrations stall. I'd want those documented before anything else."]
+  - [735, SPEAKER_00, "Agreed. Costs are the other pressure. Our Snowflake bill was about 41,000 dollars a month in August, up from 26,000 a year ago, and finance wants it under 30,000 by the end of next year."]
+  - [825, SPEAKER_01, "What's driving the growth?"]
+  - [840, SPEAKER_00, "Mostly Looker dashboards refreshing every fifteen minutes on full tables, and two dbt models that rebuild three years of history every night."]
+  - [915, SPEAKER_01, "Those are both fixable. Incremental models and an hourly refresh for most dashboards usually cut a bill like that by a third."]
+  - [975, SPEAKER_00, "That's what we hope. OK, your turn. Tell me about your background."]
+  - [1005, SPEAKER_01, "I started as a database administrator at a regional bank, Pinecrest Credit Union, for four years, mostly Oracle. Then six years at Lumen Logistics, where I moved from data engineer to leading a team of five."]
+  - [1110, SPEAKER_01, "At Lumen I led our move from an on-premises Teradata warehouse to Snowflake in 2023. We moved about 300 terabytes over nine months and switched off Teradata two weeks ahead of plan."]
+  - [1200, SPEAKER_01, "I also brought in dbt there and set up data contracts with the product teams, so a schema change upstream fails a test instead of breaking a dashboard."]
+  - [1275, SPEAKER_00, "Why are you looking to leave Lumen?"]
+  - [1290, SPEAKER_01, "Lumen was acquired in the spring and the new parent is consolidating all data work into its own team in Atlanta. My role ends in January, so I'm looking now."]
+  - [1365, SPEAKER_01, "Also, my daughter starts school next September, so I'd love to know how flexible the hours are."]
+  - [1395, SPEAKER_00, "We're hybrid: two days a week in the Denver office, Tuesday and Thursday. Core hours are ten to three."]
+  - [1440, SPEAKER_01, "That works for me."]
+  - [1470, SPEAKER_00, "Let me ask a few things I ask everyone. How do you handle a migration when the business keeps changing requirements?"]
+  - [1500, SPEAKER_01, "I freeze the scope of the cut-over itself and put every new request into a list for after go-live. At Lumen we published that list weekly so people could see their request wasn't lost."]
+  - [1575, SPEAKER_00, "How do you decide between building something and buying it?"]
+  - [1596, SPEAKER_01, "If it's core to how we make money and we can staff it, build. If it's plumbing, buy. For example, at Lumen we bought Fivetran for ingestion but built our own data quality checks in dbt."]
+  - [1680, SPEAKER_00, "How hands-on would you want to be?"]
+  - [1695, SPEAKER_01, "About half my time. I want to review designs and write some of the hard code myself, like the stored procedure work, but I also want time for the team: one-to-ones every week and a career plan for each person."]
+  - [1785, SPEAKER_00, "Good. Do you have questions for me?"]
+  - [1800, SPEAKER_01, "Yes. First, what does success look like after six months?"]
+  - [1818, SPEAKER_00, "The Oracle cut-over done by March, the Snowflake bill on a clear path to under 30,000, and a decision on the Kraków contractors by May."]
+  - [1890, SPEAKER_01, "Second, who owns data quality today?"]
+  - [1905, SPEAKER_00, "Honestly, nobody. Analytics finds problems when a dashboard looks wrong. After the move under finance, they'll expect us to own it."]
+  - [1965, SPEAKER_01, "Third, is there budget for training? The team will need PostgreSQL skills."]
+  - [1986, SPEAKER_00, "Yes, about 2,000 dollars per engineer per year, and we can add a PostgreSQL course for the migration."]
+  - [2040, SPEAKER_01, "And what's the hiring timeline?"]
+  - [2055, SPEAKER_00, "The job description goes to HR this week. We'd like someone to start in January. The next step would be a technical interview with two of my senior engineers, Sam Ortiz and Lena Fischer."]
+  - [2145, SPEAKER_01, "That timing fits well with my notice at Lumen."]
+  - [2175, SPEAKER_00, "Great. I'll send you the job description by Friday."]
+  - [2196, SPEAKER_01, "And I'll send you my portfolio, including the Lumen migration write-up, by Monday."]
+  - [2226, SPEAKER_00, "Perfect. Someone should also put together a short brief on the stored procedures for the technical interview, but let's see who has time."]
+  - [2274, SPEAKER_01, "Sounds good. Thanks, Dana, this was really useful."]
+  - [2295, SPEAKER_00, "Thanks, Marco. Talk soon."]
+expected:
+  decisions: []
+  actions:
+    - id: send-job-description
+      owner: Dana Whitfield
+      any: [["job description"]]
+    - id: send-portfolio
+      owner: Marco Ruiz
+      any: [["portfolio", "write-up", "migration"]]
+    - id: stored-procedure-brief
+      any: [["brief", "stored procedure"]]
+      optional: true
+  sections:
+    - {id: org-change, section: topics, any: [["Priya"], ["CTO"]], templates: [default-notes]}
+    - {id: order-volume, section: topics, any: [["4.2 million", "4,2 million", "4.2M"]], templates: [default-notes]}
+    - {id: stores, section: topics, any: [["38"]], templates: [default-notes]}
+    - {id: migration-target, section: topics, any: [["PostgreSQL", "Postgres"], ["March"]], templates: [default-notes]}
+    - {id: snowflake-cost, section: topics, any: [["41,000", "41 000", "41k", "41K", "41000"]], templates: [default-notes]}
+    - {id: teradata-move, section: topics, any: [["Teradata"]], templates: [default-notes]}
+    - {id: contractors, section: topics, any: [["Kraków", "Krakow", "contractor"]], templates: [default-notes]}
+    - {id: qa-recorded, section: questions-answers, any: [["A:"]], templates: [default-notes]}
+    - {id: qa-success, section: questions-answers, any: [["six months", "6 months", "success"]], templates: [default-notes]}
+    - {id: context-roles, section: meeting-context, any: [["candidate", "hiring", "introduc", "platform lead"]], templates: [default-notes]}
+  numbered:
+    - {id: topic-count, section: topics, min: 4, max: 9, templates: [default-notes]}
+  limits:
+    - {id: succinct-short, section: summary, max_sentences: 2, max_words: 60, templates: [default-notes]}
+  forbidden:
+    - {id: family-status, any: ["daughter", "kids", "child", "school"], templates: [default-notes]}

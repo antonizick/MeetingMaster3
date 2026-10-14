@@ -1,7 +1,7 @@
 # Templates and note generation
 
 A **template** decides which sections a meeting note has and how each one is written.
-MeetingMaster3 ships **22 built-in templates** and you can change them or write your own in
+MeetingMaster3 ships **23 built-in templates** and you can change them or write your own in
 Obsidian. The file format is specified in
 [`../dev-guide/template-format.md`](../dev-guide/template-format.md).
 
@@ -11,7 +11,8 @@ The full list, with when to use each one and its sections, is the generated
 
 | If the meeting is... | Try |
 |---|---|
-| Anything, and you want a short brief (the default) | **Executive Summary** (`executive-summary`) |
+| Anything, and you want a full briefing by topic (the default) | **Default Notes** (`default-notes`): a one-line summary, a detailed summary, numbered topics dense with figures, names and dates, questions and answers when there were many, a conclusion and action items. It takes longer to write than the others. |
+| Anything, and you want a short brief | **Executive Summary** (`executive-summary`) |
 | Anything, and you want a neutral overview | **General Discussion Summary**, **Just the Facts**, or **Key Takeaways & Next Steps** for the shortest version |
 | A full record, to be consulted later | **Detailed Meeting Minutes**, **Chronological Timeline**, or **Speaker-Attributed Notes** |
 | About who does what | **Action-Focused**, **Project Team Sync**, or **Agile Stand-up** |
@@ -144,7 +145,7 @@ the old version, or discard it. It needs the note's companion transcript.
 ## Settings
 | Setting | Default | |
 |---|---|---|
-| `generation.default_template` | `executive-summary` | Template when a job does not choose one. |
+| `generation.default_template` | `default-notes` | Template when a job does not choose one, and the one the New meeting page pre-selects. The template you start a meeting with there becomes the new default (R29). |
 | `generation.write_companion` | `true` | The companion transcript. Without it a note cannot be re-opened for regeneration. |
 | `generation.readable_transcript` | `true` | The readable `… (Transcript).md` next to each note (needs the companion). |
 | `generation.max_context` | `16384` | Context planned for local models; raise it on bigger GPUs. |

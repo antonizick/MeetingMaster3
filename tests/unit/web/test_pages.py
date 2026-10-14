@@ -121,7 +121,8 @@ def test_new_meeting_page_lists_templates_and_backends(ui: TestClient, vault: Pa
     bad.write_text("---\nname: Broken\n---\nno sections here\n", encoding="utf-8")
     r = ui.get("/")
     assert r.status_code == 200
-    assert 'value="executive-summary"' in r.text and "selected" in r.text
+    assert 'value="executive-summary"' in r.text
+    assert re.search(r'value="default-notes"[^>]*\bselected\b', r.text)  # the default (ADR-0038)
     assert "Executive Summary" in r.text
     assert 'value="openrouter"' in r.text and 'data-consent="yes"' in r.text
     assert 'data-badge="local"' in r.text and "cloud: openrouter" in r.text

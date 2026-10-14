@@ -17,7 +17,7 @@ The CI badge above is a placeholder until the repository is published (Phase 16)
 ## Planned features (MVP)
 - Upload audio, get a diarized transcript (WhisperX: faster-whisper + wav2vec2 alignment + pyannote).
 - Name speakers once; optional local voiceprints recognise them in later meetings.
-- Structured notes from 22 templates (executive summary, decision log, action items, and more), each
+- Structured notes from 23 templates (Default Notes by topic, executive summary, decision log, action items, and more), each
   opening with a short and a detailed summary, written straight into your Obsidian vault with
   frontmatter, wikilinks, a readable colour-coded transcript and a full-fidelity companion transcript.
 - Side-by-side review with audio, per-section regeneration with diffs, and re-opening existing notes.
@@ -108,7 +108,7 @@ Optional voice recognition (`privacy.voiceprints_enabled: true`, off by default)
 you choose and suggests their names in later meetings; `uv run mm3 voiceprints list|delete|wipe`
 manages what is stored. Guide: [`docs/user-guide/speakers.md`](docs/user-guide/speakers.md).
 
-**Notes and templates.** 22 built-in templates (Executive Summary, Decision Log, Action-Focused,
+**Notes and templates.** 23 built-in templates (Default Notes, Executive Summary, Decision Log, Action-Focused,
 Job Interview Notes, Board Minutes, Stand-up, Retrospective and more; see the
 [catalogue](docs/user-guide/template-catalogue.md)) are copied into your vault's `MeetingMaster3/templates/` folder,
 where you can edit them or add your own. Action items are Obsidian checkboxes with an owner only when

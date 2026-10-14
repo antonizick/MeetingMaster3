@@ -109,6 +109,7 @@ better answer is kept and the job gets a warning; nothing is padded.
 | `temperature` | number 0–2 or `null` | `null` | Overrides the per-kind default for every section without its own `temperature`. |
 | `max_tokens_per_section` | integer ≥ 64 | `800` | Default output limit. |
 | `ai_recommendations` | boolean | `true` | When `true`, the template **must** have an `ai-recommendations` section and it **must be last** (spec §8, Appendix A). When `false` (e.g. formal board minutes), it must not have one. |
+| `detail` | `standard` \| `high` | `standard` | How much of a long meeting the map-reduce notes keep (§9, ADR-0038). `high` is for templates that write dense, topic-by-topic notes (`default-notes`): each part keeps up to 30 points with their specifics and a topic label, at the cost of a longer map step. |
 
 ## 4. Temperatures (R6)
 `section.temperature` → `params.temperature` → the kind default: **0.2** for `extraction`
@@ -197,7 +198,10 @@ If the system message, the transcript, the longest section prompt and the output
 1. **Map:** the transcript is cut into chunks on speaker-turn boundaries
    (`llm.budget.chunk_transcript`), and each chunk is turned into a JSON extraction: a summary plus
    decisions, actions, questions and (last, at most 10) key points, each with a `[mm:ss]`
-   timestamp and a speaker. Bad JSON is repaired (code fences, surrounding prose, trailing commas,
+   timestamp and a speaker. With `params.detail: high` each chunk keeps up to 30 points of up to
+   40 words, with their figures and names and a `topic` label, and the map call gets 3 000 output
+   tokens instead of 1 500, so the chunks are smaller. If the window is too small for that, the
+   template falls back to standard notes. Bad JSON is repaired (code fences, surrounding prose, trailing commas,
    an answer cut off by the output limit) and, if still invalid, requested once more with the
    parser error (or shorter); a chunk that still fails is skipped with a warning.
 2. **Merge:** the extractions are concatenated in time order and near-duplicates (the same
@@ -205,7 +209,8 @@ If the system message, the transcript, the longest section prompt and the output
 3. **Reduce:** every section is generated from the merged notes instead of the raw transcript.
 
 ## 10. The built-in library (Phase 13)
-22 templates ship in `starter_templates/` (spec §15.1 A3, Appendix A). Conventions they follow, which
+23 templates ship in `starter_templates/` (spec §15.1 A3, Appendix A; the 23rd, `default-notes`,
+is R29 and the default template). Conventions they follow, which
 new built-ins should too:
 * The file name is the `id` (`test_builtin_templates_are_valid` checks it), kebab-case.
 * Reuse the common section ids (§3.1) where the section means the same thing; type-specific ids
@@ -222,7 +227,8 @@ new built-ins should too:
   `test_sensitive_templates_keep_their_guardrails`: `job-interview-notes` (job-relevant evidence
   only, no protected characteristics, advisory recommendation), `one-on-one-coaching` (respectful,
   non-judgmental tone), `board-governance-minutes` (formal style, motions and votes exactly as
-  stated, never an inferred outcome).
+  stated, never an inferred outcome), and `default-notes` (used for interviews too: the
+  job-relevant-only and protected-characteristics rules, no hiring decision).
 * Golden prompt snapshots are in `tests/fixtures/assembler/<id>.txt`
   (`MM3_UPDATE_GOLDEN=1 uv run pytest tests/unit/templates/test_assembler.py`).
 * `docs/user-guide/template-catalogue.md` is generated: after changing a template run
@@ -230,5 +236,7 @@ new built-ins should too:
   `tests/unit/templates/test_catalogue.py` fails when it is stale).
 * Type-specific eval meetings declare `templates: [id]` in their YAML and may list
   `expected.sections` (keywords that must appear in a section) and `expected.forbidden` (words that
-  must not appear anywhere in the note). Run one with
+  must not appear anywhere in the note). Since Phase 15e they may also list `expected.numbered`
+  (`{section, min, max}`: the number of `### N. <Title>` headings in a section) and
+  `expected.limits` (`{section, max_sentences, max_words}`). Run one with
   `uv run python -m tests.eval.run_eval --model qwen3:8b --meetings <name> --templates <id>`.

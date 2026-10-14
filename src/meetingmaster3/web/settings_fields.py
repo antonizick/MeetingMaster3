@@ -104,7 +104,8 @@ TRANSCRIPTION_FIELDS = (
 
 NOTES_FIELDS = (
     Field("generation.default_template", "Default template", "select",
-          "Used when a meeting does not choose one."),
+          "Pre-selected on New meeting. Starting a meeting there with another template "
+          "makes that one the default."),
     Field("generation.write_companion", "Write the companion transcript", "bool",
           "A .transcript.md file next to each note.",
           warning="Without it a note cannot be re-opened to regenerate sections or rename "

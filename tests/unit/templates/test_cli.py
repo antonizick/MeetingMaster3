@@ -31,13 +31,13 @@ def fake(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_templates_list() -> None:
     r = cli.invoke(app, ["templates", "list"])
     assert r.exit_code == 0, r.output
-    assert "* ok      executive-summary" in r.output
-    assert r.output.count(" ok ") == 22
+    assert "* ok      default-notes" in r.output
+    assert r.output.count(" ok ") == 23
 
 
 def test_templates_validate(tmp_path: Path) -> None:
     good = cli.invoke(app, ["templates", "validate"])
-    assert good.exit_code == 0 and good.output.count("ok") == 22
+    assert good.exit_code == 0 and good.output.count("ok") == 23
     bad = tmp_path / "bad.md"
     bad.write_text("---\nmm3-template: 1\nid: Bad Id\n---\n", encoding="utf-8")
     r = cli.invoke(app, ["templates", "validate", str(bad)])
@@ -48,9 +48,9 @@ def test_templates_validate(tmp_path: Path) -> None:
 def test_templates_install(vault: Path) -> None:
     r = cli.invoke(app, ["templates", "install", "--vault", str(vault)])
     assert r.exit_code == 0, r.output
-    assert r.output.count("installed") == 22
+    assert r.output.count("installed") == 23
     again = cli.invoke(app, ["templates", "install", "--vault", str(vault)])
-    assert again.output.count("unchanged") == 22
+    assert again.output.count("unchanged") == 23
     missing = cli.invoke(app, ["templates", "install", "--vault", str(vault / "nope")])
     assert missing.exit_code == 1 and "does not exist" in missing.output
 

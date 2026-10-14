@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import logging
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -23,18 +24,23 @@ from meetingmaster3.audio.ingest import (
     safe_extension,
     save_stream,
 )
+from meetingmaster3.config.editing import apply_patch, save_settings
 from meetingmaster3.domain.filenames import parse_filename
 from meetingmaster3.errors import MM3Error
 from meetingmaster3.jobs.files import check_job_id, job_dir, new_job_id, remove_job_dir
 from meetingmaster3.jobs.models import FINAL, JobOptions, JobStatus, ProgressEvent
 from meetingmaster3.jobs.runner import JobRunner
 from meetingmaster3.templates.model_check import preflight
+from meetingmaster3.templates.stages import template_library
 
+log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/jobs")
 
 HEARTBEAT_SECONDS = 15.0
 MAX_OPTIONS_BYTES = 64 * 1024
 UPLOAD_SLACK_BYTES = 1024 * 1024  # multipart framing and the options field
+REMEMBER_TEMPLATE = "remember_template"
+"""Option sent by the New meeting page: the chosen template becomes the default (ADR-0038)."""
 
 
 def get_runner(request: Request) -> JobRunner:
@@ -162,20 +168,22 @@ async def _receive_upload(
     return upload, name, size
 
 
-def _parse_options(raw: bytes, filename: str) -> JobOptions:
+def _parse_options(raw: bytes, filename: str) -> tuple[JobOptions, bool]:
+    """The job options, and whether the page asked to remember the template."""
     try:
         data: Any = json.loads(raw) if raw.strip() else {}
     except json.JSONDecodeError as exc:
         raise _bad_upload("The options field is not valid JSON.") from exc
     if not isinstance(data, dict):
         raise _bad_upload("The options field must be a JSON object.")
+    remember = data.pop(REMEMBER_TEMPLATE, False) is True
     guess = parse_filename(filename)
     if not data.get("title") and guess.title:
         data["title"] = guess.title
     if not data.get("meeting_date") and guess.date:
         data["meeting_date"] = guess.date.isoformat()
     try:
-        return JobOptions.model_validate(data)
+        return JobOptions.model_validate(data), remember
     except ValidationError as exc:
         first = exc.errors()[0]
         where = ".".join(str(p) for p in first.get("loc", ()))
@@ -196,7 +204,7 @@ async def create_job(request: Request) -> dict[str, Any]:
         upload, audio_name, _ = await _receive_upload(request, runner, job_id)
         folder = job_dir(runner.jobs_root, job_id)
         filename = display_filename(upload.filename)
-        options = _parse_options(upload.options, filename)
+        options, remember = _parse_options(upload.options, filename)
         await preflight(
             request.app.state.llm_registry, runner.settings, options.backend, options.model
         )
@@ -213,7 +221,29 @@ async def create_job(request: Request) -> dict[str, Any]:
             if runner.jobs.find(job_id) is None:
                 remove_job_dir(runner.jobs_root, job_id)
         raise
+    if remember and options.template:
+        await _remember_template(request, options.template)
     return runner.describe(job_id)
+
+
+async def _remember_template(request: Request, template_id: str) -> None:
+    """Make the template chosen on New meeting the pre-selected one next time, by saving it as
+    ``generation.default_template`` (the Settings page shows the same choice). Only a valid
+    template of the library is remembered; a failure never fails the upload."""
+    settings = request.app.state.settings
+    if template_id == settings.generation.default_template:
+        return
+    try:
+        library = await asyncio.to_thread(
+            template_library, settings, request.app.state.paths.data_dir
+        )
+        if not any(e.valid and e.id == template_id for e in library.listing()):
+            return
+        if apply_patch(settings, {"generation.default_template": template_id}):
+            return
+        await asyncio.to_thread(save_settings, settings, request.app.state.paths.config_file)
+    except (MM3Error, OSError) as exc:
+        log.warning("Could not remember the template choice: %s", exc)
 
 
 @router.get("")

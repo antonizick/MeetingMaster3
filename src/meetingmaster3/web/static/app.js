@@ -311,6 +311,7 @@
         const opts = {
           title: v("title"),
           template: v("template"),
+          remember_template: true,
           backend: v("backend"),
           cloud_consent: this.consentValue === "true",
           diarize: form.elements.diarize.checked,

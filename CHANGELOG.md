@@ -8,6 +8,18 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Default Notes** (`default-notes`), the 23rd built-in template and the new default (Phase 15e, R29,
+  ADR-0038): a briefing for someone who missed the meeting. A one-line Summary Succinct, Summary Detailed,
+  Meeting Context, **Discussion by Topic** (numbered topics with bold-labelled, timestamped paragraphs that
+  keep the figures, names, dates and who said what), Questions & Answers when much of the meeting was
+  questions, a Conclusion, Action Items by owner and AI Recommendations. It keeps every MeetingMaster3
+  convention (frontmatter, header, file names, markers, task format) and the interview guardrails.
+- The template you start a meeting with on **New meeting** becomes the pre-selected one next time (saved as
+  `generation.default_template`, so Settings shows the same choice). API and CLI jobs do not change it.
+- Template parameter `params.detail: standard | high`: long meetings (map-reduce) keep up to 30 points per
+  part, with their specifics and a topic label, for templates that write dense, topic-by-topic notes.
+- Eval: a synthetic introductory-call meeting for Default Notes and two new checks, `expected.numbered`
+  (numbered headings in a section) and `expected.limits` (sentences and words in a section).
 - Pre-operational tuning, round 2 (Phase 15b, R26, ADR-0036):
   - The review screen opens the note in **Preview** (rendered on the server); **Edit** is one click away, and
     the last mode is remembered.
@@ -156,6 +168,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Frontmatter values PyYAML cannot build (an impossible date) gave HTTP 500 instead of a readable error.
 
 ### Changed
+- The default template for a new install is **Default Notes** instead of Executive Summary (R29). A
+  `default_template` already saved in `config.yaml` is kept.
 - The plain-text transcript export (`.txt`) uses the readable layout: time and name on one line, the text
   below, a blank line between turns.
 - The guessed title drops a date found in the file name, and a free-standing `_` (a `:` or `|` replaced by the

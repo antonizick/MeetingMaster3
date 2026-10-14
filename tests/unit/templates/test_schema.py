@@ -100,9 +100,9 @@ def test_builtin_templates_are_valid(path: Path) -> None:
     assert t.system_prompt.strip()
 
 
-def test_builtin_library_has_22_templates() -> None:
+def test_builtin_library_has_23_templates() -> None:
     assert sorted(p.stem for p in builtin_files()) == sorted(BUILTIN_IDS)
-    assert len(BUILTIN_IDS) == 22
+    assert len(BUILTIN_IDS) == 23
 
 
 def test_sensitive_templates_keep_their_guardrails() -> None:
@@ -119,6 +119,13 @@ def test_sensitive_templates_keep_their_guardrails() -> None:
     assert board is not None
     assert board.params.ai_recommendations is False
     assert "never infer" in board.system_prompt.casefold()
+    # Default Notes is used for interviews too (ADR-0038): same rules, no hiring decision.
+    default = parse_template_file(
+        next(p for p in builtin_files() if p.stem == "default-notes")
+    ).template
+    assert default is not None
+    text = default.system_prompt.casefold()
+    assert "protected characteristics" in text and "hiring decision" in text
 
 
 @pytest.mark.parametrize(

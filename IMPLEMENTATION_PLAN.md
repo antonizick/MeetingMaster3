@@ -66,7 +66,7 @@ Phases run in order. Phases whose dependencies are all complete may run in paral
 ### MVP definition of done (checked in Phase 16)
 - [ ] Upload audio → diarized transcript → named speakers → structured note written to the Obsidian vault, all on the 8 GB reference machine with Ollama, fully offline after model download.
 - [ ] Side-by-side review, edit, per-section regeneration with diff and archive, and re-open of an existing note.
-- [ ] 22 templates; library management; Bedrock and OpenRouter work with BYOK.
+- [ ] 23 templates; library management; Bedrock and OpenRouter work with BYOK.
 - [ ] Docker Compose deployment (GPU and CPU) documented and verified.
 - [ ] Repo is GitHub-ready: README, LICENSE, NOTICE, THIRD_PARTY_NOTICES, SECURITY, CONTRIBUTING, CoC, CHANGELOG, .gitignore, .dockerignore, CI green.
 - [ ] All docs in this table and the spec are accurate.

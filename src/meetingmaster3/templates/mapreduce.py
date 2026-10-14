@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
@@ -43,7 +43,32 @@ EXTRACTION_SCHEMA = """\
 MAX_POINTS = 10
 
 
-def extraction_prompt(part: int, parts: int, transcript_text: str, cues: Sequence[str] = ()) -> str:
+DetailLevel = Literal["standard", "high"]
+
+HIGH_DETAIL_POINTS = 30
+HIGH_DETAIL_SCHEMA = EXTRACTION_SCHEMA.replace(
+    '{"text": "a substantive fact, update, figure or position, in your own words",\n'
+    '     "speaker": "Name", "time": "mm:ss"}',
+    '{"topic": "the subject in 2-5 words, the same label for points on the same subject",\n'
+    '     "text": "a substantive fact, update, figure or position, with its specifics",\n'
+    '     "speaker": "Name", "time": "mm:ss"}',
+)
+"""``params.detail: high`` (ADR-0038): points carry a topic label, keep their specifics, and
+there are up to :data:`HIGH_DETAIL_POINTS` of them per part."""
+
+
+def max_points(detail: DetailLevel = "standard") -> int:
+    return HIGH_DETAIL_POINTS if detail == "high" else MAX_POINTS
+
+
+def extraction_prompt(
+    part: int,
+    parts: int,
+    transcript_text: str,
+    cues: Sequence[str] = (),
+    *,
+    detail: DetailLevel = "standard",
+) -> str:
     candidates = (
         "These sentences in this part sound like commitments, requests or suggestions; each "
         "commitment is an action item (owner: the speaker), a suggestion nobody took on is an "
@@ -51,25 +76,41 @@ def extraction_prompt(part: int, parts: int, transcript_text: str, cues: Sequenc
         if cues
         else ""
     )
+    if detail == "high":
+        schema = HIGH_DETAIL_SCHEMA
+        points = (
+            f"For points, record every substantive point, up to {HIGH_DETAIL_POINTS}, in the "
+            "order they were made, each in one sentence of at most 40 words. Keep the "
+            "specifics: numbers and quantities, names of products, tools, vendors, teams and "
+            "organisations, dates and deadlines, changes in roles or structure, and reasons "
+            "given. Give each point the person who said it. Keep the other texts short."
+        )
+    else:
+        schema = EXTRACTION_SCHEMA
+        points = (
+            f"For points, keep only the {MAX_POINTS} most important ones, each at most 20 words "
+            "in your own words (do not copy sentences). Keep every text short."
+        )
     return (
         f"This is part {part} of {parts} of a meeting transcript"
         + (" (the first line repeats the end of the previous part for context)" if part > 1 else "")
         + f".\n\n<transcript>\n{transcript_text}\n</transcript>\n\n"
         + candidates
         + "Extract the notes as JSON with exactly this shape (use empty lists when there is "
-        f"nothing; times come from the transcript):\n{EXTRACTION_SCHEMA}\n\n"
-        "Include every decision, action item and open question. For points, keep only the "
-        f"{MAX_POINTS} most important ones, each at most 20 words in your own words (do not copy "
-        "sentences). Keep every text short. Reply with the JSON object only."
+        f"nothing; times come from the transcript):\n{schema}\n\n"
+        "Include every decision, action item and open question. "
+        + points
+        + " Reply with the JSON object only."
     )
 
 
-def repair_prompt(error: str, *, truncated: bool = False) -> str:
+def repair_prompt(error: str, *, truncated: bool = False, detail: DetailLevel = "standard") -> str:
     if truncated:
+        limit = max_points(detail) // 2
         return (
             "Your reply was cut off because it was too long. Reply again with the same JSON "
-            f"shape but much shorter: at most {MAX_POINTS // 2} points, every text under 15 "
-            "words, and nothing before or after the object."
+            f"shape but much shorter: at most {limit} points, every text under "
+            f"{25 if detail == 'high' else 15} words, and nothing before or after the object."
         )
     return (
         f"Your reply could not be parsed as the requested JSON ({error}). Reply again with only "
@@ -94,6 +135,8 @@ class Point(_Item):
     text: str
     speaker: str = ""
     time: str = ""
+    topic: str = ""
+    """Only asked for with ``detail: high``."""
 
 
 class Decision(_Item):
@@ -351,7 +394,9 @@ def render_notes(notes: MergedNotes, max_tokens: int | None = None) -> tuple[str
         if points:
             parts.append("\nKey points:")
             parts += [
-                f"- {_t(p.time)}{p.speaker + ': ' if p.speaker else ''}{p.text}" for p in points
+                f"- {_t(p.time)}{'(' + p.topic.strip() + ') ' if p.topic.strip() else ''}"
+                f"{p.speaker + ': ' if p.speaker else ''}{p.text}"
+                for p in points
             ]
         parts.append("\nDecisions:")
         parts += [

@@ -61,7 +61,7 @@ Every setting below can also be changed on the **Settings** screen ([`settings.m
 | `llm.backends.<name>.context_window` | | auto | Override when the server cannot report the model's context size (Bedrock never does). Unknown windows are treated as 8192 tokens. |
 | `llm.backends.<name>.consent_remembered` | | `false` | Remember cloud-egress consent for this backend (skips the per-job prompt). |
 | `vault.attachments_subfolder` | `MM3_VAULT__ATTACHMENTS_SUBFOLDER` | `Meetings/attachments/` | Where the optional audio copy goes (inside the vault). Used only when `privacy.copy_audio_to_vault` is on. |
-| `generation.default_template` | `MM3_GENERATION__DEFAULT_TEMPLATE` | `executive-summary` | Template used when a job does not choose one. |
+| `generation.default_template` | `MM3_GENERATION__DEFAULT_TEMPLATE` | `default-notes` | Template used when a job does not choose one, and pre-selected on the New meeting page. Starting a meeting from that page with another template saves it here, so the choice sticks (R29). Was `executive-summary` before Phase 15e; a value already in your `config.yaml` is kept. |
 | `generation.write_companion` | `MM3_GENERATION__WRITE_COMPANION` | `true` | Write the companion `.transcript.md` next to each note. Turning it off saves space but the note can no longer be re-opened to regenerate sections or rename speakers (a warning says so on every job). |
 | `generation.readable_transcript` | `MM3_GENERATION__READABLE_TRANSCRIPT` | `true` | Also write a readable copy of the transcript, `<note> (Transcript).md`, next to each note: the time, the speaker's name highlighted in their colour, then the text (R25). It is made from the companion transcript (so it needs `write_companion`) and rewritten whenever the companion changes, for example after renaming a speaker. When off, no new readable transcripts are made; existing ones are still kept up to date. |
 | `generation.max_context` | `MM3_GENERATION__MAX_CONTEXT` | `16384` | The largest context window (tokens) planned for a **local** model. Models advertise windows (e.g. 40k) that an 8 GB GPU cannot hold next to the weights; longer meetings are summarised in parts (map-reduce). Raise it on bigger GPUs (e.g. 32768 on 16 GB). Cloud models use their own window. |
@@ -123,7 +123,7 @@ server:
 vault:
   path: /home/you/Documents/Vault
 generation:
-  default_template: executive-summary
+  default_template: default-notes
   max_context: 16384      # local models; raise on bigger GPUs
 privacy:
   audio_retention: days

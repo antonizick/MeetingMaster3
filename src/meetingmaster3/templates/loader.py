@@ -29,7 +29,7 @@ from meetingmaster3.vault.paths import confine, ensure_folder, is_inside
 log = logging.getLogger(__name__)
 
 BUILTIN_PACKAGE = "meetingmaster3.starter_templates"
-DEFAULT_TEMPLATE_ID = "executive-summary"
+DEFAULT_TEMPLATE_ID = "default-notes"
 MANIFEST_NAME = "templates.installed.json"
 E_TEMPLATE_NOT_FOUND = "E_TEMPLATE_NOT_FOUND"
 E_TEMPLATE_INVALID = "E_TEMPLATE_INVALID"

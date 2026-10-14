@@ -12,7 +12,7 @@ Pages are added as the features land. Planned index:
 | [`speakers.md`](speakers.md) (naming speakers, opt-in voice recognition, accuracy caveats, deleting voiceprints) | 07 (written) |
 | [`llm-backends.md`](llm-backends.md) (Ollama, Bedrock, OpenRouter) | 08 (written) |
 | [`templates.md`](templates.md) (built-in templates, choosing a model, customising templates, the template library, cloud consent, regeneration) | 09 and 13 (written), 12, 13 |
-| [`template-catalogue.md`](template-catalogue.md) (generated: the 22 built-in templates, when to use each, their sections) | 13 (written) |
+| [`template-catalogue.md`](template-catalogue.md) (generated: the 23 built-in templates, when to use each, their sections) | 13 (written) |
 | [`getting-started.md`](getting-started.md) (upload to vault note) | 10 (written) |
 | [`reviewing-and-editing.md`](reviewing-and-editing.md) (workspace, shortcuts, regeneration, archives, template switch, renaming speakers, re-open, damaged markers) | 11 (written) |
 | `settings.md` | 12 |

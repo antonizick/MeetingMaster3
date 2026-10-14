@@ -109,7 +109,7 @@ def test_templates_folder_cannot_escape(vault: Path) -> None:
 def test_install_never_overwrites_user_edits(vault: Path, tmp_path: Path) -> None:
     manifest = tmp_path / "data" / "templates.installed.json"
     first = install_builtins(vault, SUB, manifest)
-    assert {r.action for r in first} == {"installed"} and len(first) == 22
+    assert {r.action for r in first} == {"installed"} and len(first) == 23
     folder = vault / SUB
     assert (folder / "executive-summary.md").read_text("utf-8") == builtin_text()
 

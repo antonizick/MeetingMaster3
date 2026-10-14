@@ -39,6 +39,7 @@ from meetingmaster3.templates.cues import Cue, guard_owners
 from meetingmaster3.templates.mapreduce import (
     EXTRACTION_SYSTEM,
     ChunkExtraction,
+    DetailLevel,
     ExtractionError,
     extraction_prompt,
     merge,
@@ -59,6 +60,8 @@ from meetingmaster3.templates.schema import Template, TemplateSection
 log = logging.getLogger(__name__)
 
 EXTRACTION_MAX_TOKENS = 1500
+HIGH_DETAIL_EXTRACTION_MAX_TOKENS = 3000
+"""Output room of one map call for a ``detail: high`` template (30 points of up to 40 words)."""
 CUE_TOKENS = 600
 """Most room kept in each map prompt for the chunk's task candidates (and at most 10% of the
 usable window)."""
@@ -70,11 +73,15 @@ MAP_SHARE = 0.6
 """Share of the progress bar given to the map step in map-reduce mode."""
 
 
-def map_budget(window: int) -> int:
+def extraction_max_tokens(detail: DetailLevel = "standard") -> int:
+    return HIGH_DETAIL_EXTRACTION_MAX_TOKENS if detail == "high" else EXTRACTION_MAX_TOKENS
+
+
+def map_budget(window: int, detail: DetailLevel = "standard") -> int:
     """Tokens of transcript one map-reduce extraction call can hold in ``window``."""
-    overhead = estimate_tokens(EXTRACTION_SYSTEM + extraction_prompt(99, 99, ""))
+    overhead = estimate_tokens(EXTRACTION_SYSTEM + extraction_prompt(99, 99, "", detail=detail))
     cue_room = min(CUE_TOKENS, usable_tokens(window) // 10)
-    return usable_tokens(window) - overhead - EXTRACTION_MAX_TOKENS - cue_room
+    return usable_tokens(window) - overhead - extraction_max_tokens(detail) - cue_room
 
 
 def window_is_workable(window: int) -> bool:
@@ -274,9 +281,13 @@ class NoteGenerator:
                 cues=cues,
             )
 
-        # Map: chunk on speaker turns so each extraction call fits the budget.
+        # Map: chunk on speaker turns so each extraction call fits the budget. A ``detail: high``
+        # template falls back to standard notes when the window is too small for it.
         cue_room = min(CUE_TOKENS, usable_tokens(window) // 10)
-        budget = map_budget(window)
+        detail: DetailLevel = self.template.params.detail
+        if detail == "high" and map_budget(window, "high") < MIN_CHUNK_TOKENS:
+            detail = "standard"
+        budget = map_budget(window, detail)
         if budget < MIN_CHUNK_TOKENS:
             raise context_error(self.model, window, self.backend.context_window(self.model))
         chunks = chunk_transcript(turns, budget)
@@ -289,7 +300,9 @@ class NoteGenerator:
                 start + (end - start) * chunk.index / len(chunks),
                 f"Reading part {chunk.index + 1} of {len(chunks)}",
             )
-            extractions.append(await self._extract(chunk, len(chunks), hours, num_ctx, cue_room))
+            extractions.append(
+                await self._extract(chunk, len(chunks), hours, num_ctx, cue_room, detail)
+            )
             ranges.append(_range(chunk, hours))
         merged = merge(extractions, ranges)
         for i in merged.skipped_chunks:
@@ -324,7 +337,13 @@ class NoteGenerator:
         )
 
     async def _extract(
-        self, chunk: Chunk, parts: int, hours: bool, num_ctx: int, cue_room: int = CUE_TOKENS
+        self,
+        chunk: Chunk,
+        parts: int,
+        hours: bool,
+        num_ctx: int,
+        cue_room: int = CUE_TOKENS,
+        detail: DetailLevel = "standard",
     ) -> ChunkExtraction | None:
         cues: list[str] = []
         for cue in assembler.task_cues(list(chunk.new_turns), hours=hours):
@@ -332,14 +351,19 @@ class NoteGenerator:
                 break
             cues.append(cue.render())
         prompt = extraction_prompt(
-            chunk.index + 1, parts, assembler.format_turns(chunk.turns, hours=hours), cues
+            chunk.index + 1,
+            parts,
+            assembler.format_turns(chunk.turns, hours=hours),
+            cues,
+            detail=detail,
         )
+        max_tokens = extraction_max_tokens(detail)
         messages = [Message("user", prompt)]
         text, finish = await self._call(
             EXTRACTION_SYSTEM,
             messages,
             temperature=EXTRACTION_TEMPERATURE,
-            max_tokens=EXTRACTION_MAX_TOKENS,
+            max_tokens=max_tokens,
             num_ctx=num_ctx,
             json_mode=True,
         )
@@ -349,13 +373,15 @@ class NoteGenerator:
             log.info("Chunk %d: unusable extraction (%s); asking again", chunk.index, exc)
             messages += [
                 Message("assistant", text[:4000]),
-                Message("user", repair_prompt(str(exc), truncated=finish == "length")),
+                Message(
+                    "user", repair_prompt(str(exc), truncated=finish == "length", detail=detail)
+                ),
             ]
         text, _ = await self._call(
             EXTRACTION_SYSTEM,
             messages,
             temperature=EXTRACTION_TEMPERATURE,
-            max_tokens=EXTRACTION_MAX_TOKENS,
+            max_tokens=max_tokens,
             num_ctx=num_ctx,
             json_mode=True,
         )

@@ -254,3 +254,22 @@ def test_runner_down_without_lifespan() -> None:
     client = TestClient(create_app(Settings()), base_url="http://localhost")
     r = client.get("/api/jobs")
     assert r.status_code == 503 and r.json()["code"] == "E_RUNNER_DOWN"
+
+
+def test_template_chosen_on_new_meeting_becomes_the_default(
+    api: TestClient, tone: Path, settings: Settings
+) -> None:
+    """ADR-0038: the New meeting page sends ``remember_template``; the page pre-selects the
+    saved default (test_pages) and Settings shows it."""
+    assert settings.generation.default_template == "default-notes"  # first-run default
+    r = upload(api, tone, {"template": "action-focused", "remember_template": True})
+    assert r.status_code == 201, r.text
+    assert "remember_template" not in json.dumps(r.json())  # not stored with the job
+    assert settings.generation.default_template == "action-focused"
+    saved = resolve_paths().config_file.read_text("utf-8")
+    assert "default_template: action-focused" in saved
+
+    # an unknown template, or a client that does not ask (API, CLI), changes nothing
+    upload(api, tone, {"template": "no-such-template", "remember_template": True})
+    upload(api, tone, {"template": "agile-standup"})
+    assert settings.generation.default_template == "action-focused"

@@ -233,6 +233,7 @@ SUCCINCT_MAX_SENTENCES = 6
 _LIST_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+", re.M)
 _HEADING_RE = re.compile(r"^#{1,6}\s", re.M)
 _SENTENCE_RE = re.compile(r"[.!?](?:\s|$)")
+_NUMBERED_RE = re.compile(r"^#{2,4}\s+\d+[.)]\s+\S", re.M)
 
 
 def _check_summaries(s: Score, parsed: Any) -> None:
@@ -282,6 +283,26 @@ def _check_sections(s: Score, parsed: Any, template: Template, exp: dict[str, An
         (s.found if hit else s.missing).setdefault("content", []).append(entry["id"])
     if s.found.get("content") or s.missing.get("content"):
         s.checks["type_content"] = not s.missing.get("content")
+    # Phase 15e: ``expected.numbered`` bounds the number of ``### N. <Title>`` headings in a
+    # section; ``expected.limits`` caps a section's sentences and words.
+    for entry in [e for e in exp.get("numbered", []) if applies(e)]:
+        section = parsed.note.section(entry["section"])
+        count = len(_NUMBERED_RE.findall(section.body_markdown)) if section is not None else 0
+        s.metrics[f"{entry['section']}_numbered"] = count
+        ok = entry["min"] <= count <= entry["max"]
+        s.checks[f"numbered_{entry['id']}"] = ok
+        if not ok:
+            s.problems.append(f"{entry['section']} has {count} numbered headings")
+    for entry in [e for e in exp.get("limits", []) if applies(e)]:
+        section = parsed.note.section(entry["section"])
+        body = section.body_markdown.strip() if section is not None else ""
+        sentences, words = len(_SENTENCE_RE.findall(body + " ")), len(body.split())
+        ok = sentences <= entry.get("max_sentences", sentences) and words <= entry.get(
+            "max_words", words
+        )
+        s.checks[f"limit_{entry['id']}"] = ok
+        if not ok:
+            s.problems.append(f"{entry['section']} has {sentences} sentences, {words} words")
     forbidden = [e for e in exp.get("forbidden", []) if applies(e)]
     if forbidden:
         body = "\n".join(sec.body_markdown for sec in parsed.note.sections).casefold()

@@ -418,6 +418,36 @@ async def test_cut_off_extraction_asks_for_a_shorter_answer() -> None:
     assert "cut off because it was too long" in retry.messages[2].content
 
 
+async def test_high_detail_template_keeps_more_points_with_topics() -> None:
+    """ADR-0038: ``params.detail: high`` (Default Notes) asks the map step for up to 30 points
+    with their specifics and a topic label, gives it more output room, and shows the topics to
+    the reduce step. Too small a window falls back to standard notes."""
+    point = {"topic": "Order database", "text": "Oracle 12c moves to PostgreSQL 16 by March",
+             "speaker": "Priya", "time": "00:10"}  # fmt: skip
+
+    def respond(req: GenerateRequest) -> str:
+        return json.dumps({"summary": "Part.", "points": [point]}) if req.json_mode else "ok"
+
+    backend = FakeLLMBackend(window=16384, responder=respond)
+    result = await generator(backend, "default-notes").generate(meta(), transcript(repeat=400))
+    assert result.mode == "map-reduce"
+    json_calls = [c for c in backend.calls if c.json_mode]
+    assert all(c.max_tokens == 3000 for c in json_calls)
+    assert all("up to 30" in c.messages[0].content and '"topic"' in c.messages[0].content
+               for c in json_calls)  # fmt: skip
+    notes = next(c for c in backend.calls if not c.json_mode).messages[0].content
+    assert "- [00:10] (Order database) Priya: Oracle 12c moves to PostgreSQL 16 by March" in notes
+
+    small = FakeLLMBackend(window=4096, responder=respond)
+    await generator(small, "default-notes").generate(meta(), transcript(repeat=60))
+    assert all(c.max_tokens == 1500 and "most important" in c.messages[0].content
+               for c in small.calls if c.json_mode)  # fmt: skip
+    # Standard templates are unchanged.
+    plain = FakeLLMBackend(window=16384, responder=respond)
+    await generator(plain).generate(meta(), transcript(repeat=400))
+    assert all(c.max_tokens == 1500 for c in plain.calls if c.json_mode)
+
+
 @pytest.mark.parametrize("template_id", BUILTIN_IDS)
 async def test_every_builtin_template_generates_a_valid_note(template_id: str) -> None:
     template = load_library().get(template_id)
