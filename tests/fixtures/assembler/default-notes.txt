@@ -114,8 +114,9 @@ Record the questions and answers only if a large part of the meeting was people 
 answering questions (an interview, a Q&A session, a panel, a technical assessment). Then list
 the substantive questions in the order asked, grouped by who asked them, each shortened to one
 line, followed by the answer in 1-4 sentences with the specifics given. List each question
-once, under the person who asked it. Skip small talk and logistics. In meeting notes, a point that starts with "Asked by <Name>:" is one question (asked
-by that person) and its answer (by the point's speaker).
+once, under the person who asked it. Skip small talk and logistics. If you were given meeting notes instead of the transcript, use their "Questions and
+answers" list, keep each answer with the question it belongs to, and never pair a question with
+an answer to something else.
 
 Structure:
 **Questions from <Name>:**
@@ -142,14 +143,16 @@ together, in the order the owners first appear).
 
 Structure:
 - [ ] **<Owner>:** <task, starting with a verb> (due: <deadline as said, or "not stated">) [mm:ss]
-- [ ] **Unassigned:** <task the group said should be done but nobody took on> (due: <...>) [mm:ss]
+- [ ] **Unassigned:** <task the group agreed should be done but nobody took on> (due: <...>) [mm:ss]
 
 The owner is the person who said they will do the task ("I'll...", "I can...") or who was asked
 and agreed. Raising an issue or saying "we should..." does not make someone the owner, and
 neither does describing plans that another team, a vendor or the organisation will carry out:
 those are not action items of this meeting unless someone here took them on. Steps someone
 describes while answering a question or a hypothetical scenario ("I would reset the password"),
-and practices described as already in place ("we hold weekly one-on-ones"), are not tasks. Give deadlines
+and practices described as already in place ("we hold weekly one-on-ones"), are not tasks, and
+neither is general advice ("you need to audit the endpoint"). **Unassigned** is only for work
+the participants agreed should actually be done. Give deadlines
 exactly as said ("Friday", "end of Q3"), not as dates. Put the **Unassigned:** tasks last. If
 there are no tasks, write exactly: No action items were agreed.
 

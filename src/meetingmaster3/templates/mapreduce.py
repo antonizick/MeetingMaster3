@@ -46,15 +46,30 @@ MAX_POINTS = 10
 DetailLevel = Literal["standard", "high"]
 
 HIGH_DETAIL_POINTS = 30
-HIGH_DETAIL_SCHEMA = EXTRACTION_SCHEMA.replace(
-    '{"text": "a substantive fact, update, figure or position, in your own words",\n'
-    '     "speaker": "Name", "time": "mm:ss"}',
-    '{"topic": "the subject in 2-5 words, the same label for points on the same subject",\n'
-    '     "text": "a substantive fact, update, figure or position, with its specifics",\n'
-    '     "speaker": "Name", "time": "mm:ss"}',
-)
-"""``params.detail: high`` (ADR-0038): points carry a topic label, keep their specifics, and
-there are up to :data:`HIGH_DETAIL_POINTS` of them per part."""
+HIGH_DETAIL_EXCHANGES = 10
+HIGH_DETAIL_SCHEMA = """\
+{
+  "summary": "3-5 sentences: what this part of the meeting covered and concluded",
+  "decisions": [
+    {"text": "a decision that was actually made", "rationale": "reason given, or empty",
+     "by": "Name, or empty", "time": "mm:ss"}],
+  "actions": [
+    {"task": "what someone committed to do, starting with a verb", "owner": "Name, or Unassigned",
+     "due": "deadline as stated, or not stated", "time": "mm:ss"}],
+  "questions": [
+    {"text": "a question or issue left unresolved", "raised_by": "Name, or empty",
+     "time": "mm:ss"}],
+  "points": [
+    {"topic": "the subject in 2-5 words, the same label for points on the same subject",
+     "text": "a substantive fact, update, figure or position, with its specifics",
+     "speaker": "Name", "time": "mm:ss"}],
+  "exchanges": [
+    {"asked_by": "Name", "question": "the question in a few words",
+     "answered_by": "Name", "answer": "the answer with its specifics", "time": "mm:ss"}]
+}"""
+"""``params.detail: high`` (ADR-0038): points carry a topic label and keep their specifics, there
+are up to :data:`HIGH_DETAIL_POINTS` of them per part, and answered questions are kept as
+``exchanges`` with who asked and who answered."""
 
 
 def max_points(detail: DetailLevel = "standard") -> int:
@@ -83,12 +98,14 @@ def extraction_prompt(
             "order they were made, each in one sentence of at most 40 words. Keep the "
             "specifics: numbers and quantities, names of products, tools, vendors, teams and "
             "organisations, dates and deadlines, changes in roles or structure, and reasons "
-            "given. Give each point the person who said it. When someone answers another "
-            "person's question, the point is the answer: its speaker is the person who "
-            "answered, and its text starts with 'Asked by <Name>: <question in a few words>.' "
-            "Steps someone describes when answering a question or a hypothetical scenario "
-            "('I would reset the password') are points, not action items. Keep the other "
-            "texts short."
+            "given. Give each point the person who said it: when someone answers another "
+            "person's question, the answer's points belong to the person who answered. "
+            f"Also list up to {HIGH_DETAIL_EXCHANGES} substantive questions that were answered "
+            "in 'exchanges', each with who asked, who answered and the answer in at most 40 "
+            "words. Action items are only what someone committed to do or was asked to do and "
+            "agreed: steps someone describes when answering a question or a hypothetical "
+            "scenario ('I would reset the password') and practices already in place are "
+            "points, not action items. Keep the other texts short."
         )
     else:
         schema = EXTRACTION_SCHEMA
@@ -174,6 +191,14 @@ def _items(v: Any) -> Any:
     return v
 
 
+class Exchange(_Item):
+    question: str
+    asked_by: str = ""
+    answer: str = ""
+    answered_by: str = ""
+    time: str = ""
+
+
 class ChunkExtraction(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -182,8 +207,10 @@ class ChunkExtraction(BaseModel):
     decisions: list[Decision] = Field(default_factory=list)
     actions: list[Action] = Field(default_factory=list)
     questions: list[Question] = Field(default_factory=list)
+    exchanges: list[Exchange] = Field(default_factory=list)
+    """Only asked for with ``detail: high``."""
 
-    @field_validator("points", "decisions", "questions", "actions", mode="before")
+    @field_validator("points", "decisions", "questions", "actions", "exchanges", mode="before")
     @classmethod
     def _lists(cls, v: Any) -> Any:
         return _items(v)
@@ -358,6 +385,7 @@ class MergedNotes(BaseModel):
     decisions: list[Decision] = Field(default_factory=list)
     actions: list[Action] = Field(default_factory=list)
     questions: list[Question] = Field(default_factory=list)
+    exchanges: list[Exchange] = Field(default_factory=list)
     skipped_chunks: list[int] = Field(default_factory=list)
 
 
@@ -375,10 +403,12 @@ def merge(chunks: list[ChunkExtraction | None], ranges: list[str] | None = None)
         out.decisions += c.decisions
         out.actions += c.actions
         out.questions += c.questions
+        out.exchanges += c.exchanges
     out.points = _dedupe(out.points, "text")
     out.decisions = _dedupe(out.decisions, "text")
     out.actions = _dedupe(out.actions, "task", owner_key="owner")
     out.questions = _dedupe(out.questions, "text")
+    out.exchanges = _dedupe(out.exchanges, "question")
     return out
 
 
@@ -388,10 +418,13 @@ def _t(time: str) -> str:
 
 def render_notes(notes: MergedNotes, max_tokens: int | None = None) -> tuple[str, bool]:
     """The merged notes as compact text for the reduce step. When ``max_tokens`` is given and
-    the text is too long, the least important material (points, then summaries) is cut first;
-    decisions, actions and questions are always kept. Returns ``(text, truncated)``."""
+    the text is too long, the least important material (points, then question-and-answer
+    exchanges, then summaries) is cut first; decisions, actions and open questions are always
+    kept. Returns ``(text, truncated)``."""
 
-    def build(points: list[Point], summaries: list[tuple[str, str]]) -> str:
+    def build(
+        points: list[Point], summaries: list[tuple[str, str]], exchanges: list[Exchange]
+    ) -> str:
         parts: list[str] = []
         if summaries:
             parts.append("Summary of each part:")
@@ -402,6 +435,13 @@ def render_notes(notes: MergedNotes, max_tokens: int | None = None) -> tuple[str
                 f"- {_t(p.time)}{'(' + p.topic.strip() + ') ' if p.topic.strip() else ''}"
                 f"{p.speaker + ': ' if p.speaker else ''}{p.text}"
                 for p in points
+            ]
+        if exchanges:  # only with ``detail: high``
+            parts.append("\nQuestions and answers:")
+            parts += [
+                f"- {_t(e.time)}{e.asked_by or 'Someone'} asked: {e.question}"
+                + (f" | {e.answered_by or 'Answer'}: {e.answer}" if e.answer else "")
+                for e in exchanges
             ]
         parts.append("\nDecisions:")
         parts += [
@@ -423,13 +463,20 @@ def render_notes(notes: MergedNotes, max_tokens: int | None = None) -> tuple[str
         return "\n".join(parts).strip()
 
     points, summaries = list(notes.points), list(notes.summaries)
-    text = build(points, summaries)
+    exchanges = list(notes.exchanges)
+    text = build(points, summaries, exchanges)
     truncated = False
-    while max_tokens is not None and estimate_tokens(text) > max_tokens and (points or summaries):
+    while (
+        max_tokens is not None
+        and estimate_tokens(text) > max_tokens
+        and (points or summaries or exchanges)
+    ):
         truncated = True
         if points:
             points = points[::2] if len(points) > 3 else []  # thin evenly over time
+        elif exchanges:
+            exchanges = exchanges[::2] if len(exchanges) > 1 else []
         else:
             summaries = summaries[: len(summaries) // 2]
-        text = build(points, summaries)
+        text = build(points, summaries, exchanges)
     return text, truncated

@@ -109,7 +109,7 @@ better answer is kept and the job gets a warning; nothing is padded.
 | `temperature` | number 0–2 or `null` | `null` | Overrides the per-kind default for every section without its own `temperature`. |
 | `max_tokens_per_section` | integer ≥ 64 | `800` | Default output limit. |
 | `ai_recommendations` | boolean | `true` | When `true`, the template **must** have an `ai-recommendations` section and it **must be last** (spec §8, Appendix A). When `false` (e.g. formal board minutes), it must not have one. |
-| `detail` | `standard` \| `high` | `standard` | How much of a long meeting the map-reduce notes keep (§9, ADR-0038). `high` is for templates that write dense, topic-by-topic notes (`default-notes`): each part keeps up to 30 points with their specifics and a topic label, at the cost of a longer map step. |
+| `detail` | `standard` \| `high` | `standard` | How much of a long meeting the map-reduce notes keep (§9, ADR-0038). `high` is for templates that write dense, topic-by-topic notes (`default-notes`): each part keeps up to 30 points with their specifics and a topic label, and the questions that were answered, at the cost of a longer map step. |
 
 ## 4. Temperatures (R6)
 `section.temperature` → `params.temperature` → the kind default: **0.2** for `extraction`
@@ -199,9 +199,11 @@ If the system message, the transcript, the longest section prompt and the output
    (`llm.budget.chunk_transcript`), and each chunk is turned into a JSON extraction: a summary plus
    decisions, actions, questions and (last, at most 10) key points, each with a `[mm:ss]`
    timestamp and a speaker. With `params.detail: high` each chunk keeps up to 30 points of up to
-   40 words, with their figures and names and a `topic` label, and the map call gets 3 000 output
-   tokens instead of 1 500, so the chunks are smaller. If the window is too small for that, the
-   template falls back to standard notes. Bad JSON is repaired (code fences, surrounding prose, trailing commas,
+   40 words, with their figures and names and a `topic` label, plus up to 10 answered questions
+   (`exchanges`: who asked, the question, who answered, the answer), and the map call gets 3 500
+   output tokens instead of 1 500, so the chunks are smaller. If the window is too small for that,
+   the template falls back to standard notes. The reduce step then sees the points as
+   `- [mm:ss] (topic) Name: text` and a "Questions and answers" list. Bad JSON is repaired (code fences, surrounding prose, trailing commas,
    an answer cut off by the output limit) and, if still invalid, requested once more with the
    parser error (or shorter); a chunk that still fails is skipped with a warning.
 2. **Merge:** the extractions are concatenated in time order and near-duplicates (the same

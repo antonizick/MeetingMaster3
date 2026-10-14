@@ -41,6 +41,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0035 | 2026-10-14 | Logo and hero picture released under CC0 1.0 | Accepted; implemented in 15b | 15b |
 | ADR-0036 | 2026-10-14 | Review opens in Preview; one retention rule shared by the pruner and the countdown; Keep forever wording | Accepted | 15b |
 | ADR-0037 | 2026-10-14 | Tuning round 3 split into 15c/15d/15e; meeting rename updates backlinks after a backup; the Plaud-style template is topic-based and named neutrally | Accepted | 15c, 15d, 15e |
+| ADR-0038 | 2026-10-14 | Default Notes: topic-based template and new default; template choice on New meeting sticks; `params.detail: high` for richer map-reduce notes | Accepted | 15e |
 
 ---
 
@@ -883,3 +884,76 @@ per section (25 in Browse the vault).
 **Status.** Accepted (2026-10-14); to be implemented in Phases 15c, 15d and 15e.
 **Consequences.** The built-in library grows to 23 templates (spec A3 amended in 15e). MM3 gains its first write
 path into notes it did not create (15d), which goes into the threat model.
+
+## ADR-0038: Default Notes, a topic-based template that is also the default; sticky template choice; high-detail map-reduce (Phase 15e, R29)
+**Context.** ADR-0037 asked for a built-in template that writes notes like those a commercial AI recorder produced
+from three of the owner's meetings, under a neutral name. During the phase the owner chose the name **Default
+Notes** (`default-notes`) instead of "Topic Briefing", asked for it to be the default on a first run, and asked that
+the template picked on New meeting be pre-selected next time.
+
+**Sample analysis (anonymised; the samples and transcripts stay private and were only used locally).**
+
+| Sample | Meeting | Layout | Words | Topic part | Other parts |
+|---|---|---|---|---|---|
+| A | 59-min introductory call, 2 people | info block; 9 numbered `### N.` topics, each 2-3 `- Label:` points with a 2-5 sentence paragraph; conclusion; next steps as checkboxes | ~1 290 | ~1 000 words (75-210 per topic) | conclusion ~110, next steps ~100 |
+| B | 113-min follow-up interview, 2 people | one-paragraph overview; 5 `##` topics of 2-3 prose paragraphs; action items grouped by person | ~1 180 | ~1 000 words (~200 per topic) | overview ~60, actions 7 items |
+| C | 31-min panel interview, 4 people | interview assessment (history, expectations, strengths and concerns said vs self-reported, Q&A, to-dos) | ~2 870 | — | Q&A ~1 300 words, 16 questions with 1-6 sentence answers |
+
+What they keep: figures and quantities (host counts, data volumes, alert counts, team sizes), product, vendor and
+team names, dates of organisational changes, timelines and targets, and who said what. What they drop: greetings,
+small talk, the order of minor asides. Two of the samples also contain errors (one person's career history given to
+another person, inconsistent dates), so "never invent, never move a detail between people" stays a hard rule rather
+than chasing every sample detail. Topic density does **not** scale with length: about 1 000 topic words for both a
+59-minute and a 113-minute meeting.
+
+**Decisions.**
+1. **Name and default.** "Default Notes" is neutral (no other product's name) and becomes
+   `generation.default_template` for new installs, replacing Executive Summary. A value already saved in
+   `config.yaml` is kept.
+2. **Sticky choice on New meeting.**
+
+   | Option | Pros | Cons |
+   |---|---|---|
+   | Save the started meeting's template as `generation.default_template` (chosen) | One source of truth: Settings shows the same choice; works across browsers | A server-side write on upload |
+   | Remember it in the browser (`localStorage`) | No config write | Settings and the page disagree; lost with site data |
+   | Separate `last_template` setting | Keeps the "default" separate | Two settings that mean almost the same thing |
+
+   The page sends `remember_template: true` with the upload options; the API removes it before the options are
+   stored and saves the template only if it is a valid template in the library. API and CLI clients that do not
+   send it change nothing. A failure to save is logged and never fails the upload.
+3. **Shape** (as ADR-0037): Summary Succinct (1-2 sentences, at most about 50 words, stricter than other templates),
+   Summary Detailed (R25), Meeting Context, **Discussion by Topic**, Questions & Answers (only when much of the
+   meeting was questions; otherwise a fixed sentence), Conclusion, Action Items (MM3's owner format, grouped by
+   owner, replacing the samples' `@Speaker` groups) and AI Recommendations. The interview guardrails of
+   `job-interview-notes` are in `_system` and in `test_sensitive_templates_keep_their_guardrails`.
+4. **High-detail map-reduce (`params.detail: high`).** On the reference 8 GB machine (`generation.max_context`
+   16 384) a meeting longer than about 40 minutes goes through map-reduce with this template, whose map step kept 10 points of at most
+   20 words per part. That leaves the topic section about 20 short facts for an hour and makes the model fill gaps
+   with generic sentences. Options: raise the context (does not fit 8 GB next to the model), a template-specific
+   generator path, or a **generic template parameter (chosen)**. With `detail: high` each part keeps up to 30
+   points of up to 40 words, with a `topic` label and their specifics, plus up to 10 answered questions as
+   structured `exchanges` (who asked, question, who answered, answer), and the map call gets 3 500 output tokens
+   instead of 1 500 (so the parts are smaller). The reduce step sees `- [mm:ss] (topic) Name: text` and a
+   "Questions and answers" list; when the notes must be cut to fit, points go first, then exchanges. It falls back to standard notes when
+   the window is too small. Other templates are unchanged (standard is the default and its prompt is identical).
+
+**Prompt iterations** (owner's three meetings, `qwen3:8b`, 16 384-token window; "specifics" = the share of the
+sample's numbers and proper nouns that also occur in the transcript and appear in the generated note; the GPU was
+shared with another session's test server, so times are high):
+
+| Version | Change | 59-min call (map-reduce): topics / words / specifics | 31-min panel (full): topics / words / specifics | 113-min follow-up (map-reduce) |
+|---|---|---|---|---|
+| v1 | first draft, standard map step | 6 / 296 / 45 % | 4 / 347 / 66 % | not run |
+| v2 | `detail: high`; "dense paragraph" wording | 5 / 355 / 60 % | — | — |
+| v3 | structural counts: 6-9 topics, 3 bullets, 4-5 sentences each; placeholder example of that length; "do not stop early"; no banter | 6 / 742 / 63 % | 6 / 839 / 71 % | 5 / 1 118 / 59 % |
+| v4 | answers attributed to the person who answered (prompt rule, "Asked by" text points); hypothetical steps and described practices are not tasks | — | — | 6 / 853 / 62 %; attribution fixed, but the map step wrote no "Asked by" points and Q&A paired questions with unrelated answers |
+| v5 | structured `exchanges` in the high-detail map step; Q&A uses them and never re-pairs; advice is not a task, Unassigned only for agreed work | RESULTS_V5_0813 | RESULTS_V5_0922 | RESULTS_V5_0818 |
+
+Lessons: word targets alone do not lengthen an 8B model's answer; counts of topics, bullets and sentences, with a
+placeholder example of the same length, do. Map-reduce detail was the main limit on long meetings. Interviews need
+an explicit rule that an answer belongs to the person who gave it, or the summary credits the interviewer; a JSON
+field is followed where a free-text convention ("Asked by …") is ignored.
+**Status.** Accepted (2026-10-14).
+**Consequences.** 23 built-ins (spec A3, R29). Default Notes is the slowest built-in (more and longer sections;
+see `docs/PERFORMANCE.md`). Template schema version stays 1 (`detail` is an optional parameter; an older app would
+reject a template that sets it).

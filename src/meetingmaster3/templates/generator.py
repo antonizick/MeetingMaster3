@@ -60,8 +60,9 @@ from meetingmaster3.templates.schema import Template, TemplateSection
 log = logging.getLogger(__name__)
 
 EXTRACTION_MAX_TOKENS = 1500
-HIGH_DETAIL_EXTRACTION_MAX_TOKENS = 3000
-"""Output room of one map call for a ``detail: high`` template (30 points of up to 40 words)."""
+HIGH_DETAIL_EXTRACTION_MAX_TOKENS = 3500
+"""Output room of one map call for a ``detail: high`` template (30 points and 10 answered
+questions of up to 40 words)."""
 CUE_TOKENS = 600
 """Most room kept in each map prompt for the chunk's task candidates (and at most 10% of the
 usable window)."""

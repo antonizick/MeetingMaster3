@@ -89,6 +89,11 @@ or rolled back.
   `…20261012-1240.md`. Nick says it took place on **2026-08-18**. The title still begins with the import-time
   "09-22 " prefix. Also note: a separate, non-MM3 file `09-22 Interview Nick Antonizick - SOC Manager Cyber Defense
   Candidate.md` (a Plaud export) sits in the same folder and is **not** part of the meeting. Do not touch it.
+  **Update from Phase 15e (2026-10-14):** the vault now also has a separate MM3 meeting
+  `2026-08-18 - Cybersecurity Technical Interview and Role Alignment Follow On Discussion.md` (processed that day),
+  and Nick confirmed that it, not the 09-22 meeting, matches the 18 August Plaud sample, while the 09-22 meeting
+  matches the sample dated 2026-09-22. **Ask Nick whether the 09-22 meeting needs re-dating at all** before using
+  it as the example; if not, rename only its title (drop the "09-22 " prefix) or use a copy in a scratch vault.
 
 ## Tasks
 1. **Plan** (`review/retitle.py`, pure, no writes): `plan_retitle(vault_root, note_path, new_title, new_date,

@@ -14,6 +14,7 @@ from meetingmaster3.domain.meeting import MeetingMeta
 from meetingmaster3.domain.transcript import Segment, SpeakerMap, Transcript
 from meetingmaster3.errors import MM3Error
 from meetingmaster3.llm.base import E_CONSENT_REQUIRED, GenerateRequest
+from meetingmaster3.llm.budget import estimate_tokens
 from meetingmaster3.llm.fake import FakeLLMBackend
 from meetingmaster3.markdown.note_parser import parse_note
 from meetingmaster3.markdown.note_writer import build_note, render_note
@@ -425,27 +426,55 @@ async def test_high_detail_template_keeps_more_points_with_topics() -> None:
     point = {"topic": "Order database", "text": "Oracle 12c moves to PostgreSQL 16 by March",
              "speaker": "Priya", "time": "00:10"}  # fmt: skip
 
+    exchange = {"asked_by": "Marcus", "question": "Who owns the cut-over?", "answered_by": "Priya",
+                "answer": "Priya does, with two engineers", "time": "00:20"}  # fmt: skip
+
     def respond(req: GenerateRequest) -> str:
-        return json.dumps({"summary": "Part.", "points": [point]}) if req.json_mode else "ok"
+        if not req.json_mode:
+            return "ok"
+        return json.dumps({"summary": "Part.", "points": [point], "exchanges": [exchange]})
 
     backend = FakeLLMBackend(window=16384, responder=respond)
     result = await generator(backend, "default-notes").generate(meta(), transcript(repeat=400))
     assert result.mode == "map-reduce"
     json_calls = [c for c in backend.calls if c.json_mode]
-    assert all(c.max_tokens == 3000 for c in json_calls)
+    assert all(c.max_tokens == 3500 for c in json_calls)
     assert all("up to 30" in c.messages[0].content and '"topic"' in c.messages[0].content
-               for c in json_calls)  # fmt: skip
+               and '"exchanges"' in c.messages[0].content for c in json_calls)  # fmt: skip
     notes = next(c for c in backend.calls if not c.json_mode).messages[0].content
     assert "- [00:10] (Order database) Priya: Oracle 12c moves to PostgreSQL 16 by March" in notes
+    assert ("Questions and answers:\n- [00:20] Marcus asked: Who owns the cut-over? | Priya: "
+            "Priya does, with two engineers") in notes  # fmt: skip
 
     small = FakeLLMBackend(window=4096, responder=respond)
     await generator(small, "default-notes").generate(meta(), transcript(repeat=60))
     assert all(c.max_tokens == 1500 and "most important" in c.messages[0].content
+               and '"exchanges"' not in c.messages[0].content
                for c in small.calls if c.json_mode)  # fmt: skip
     # Standard templates are unchanged.
     plain = FakeLLMBackend(window=16384, responder=respond)
     await generator(plain).generate(meta(), transcript(repeat=400))
     assert all(c.max_tokens == 1500 for c in plain.calls if c.json_mode)
+    plain_notes = next(c for c in plain.calls if not c.json_mode).messages[0].content
+    assert "Questions and answers:" in plain_notes  # a model may volunteer them; still rendered
+
+
+def test_render_notes_cuts_points_before_exchanges() -> None:
+    chunk = ChunkExtraction.model_validate({
+        "summary": "Part.",
+        "points": [{"text": f"alpha{i} beta{i} gamma{i} delta{i} epsilon{i}", "time": "00:01"}
+                   for i in range(40)],
+        "exchanges": [{"asked_by": "A", "question": f"question {i}?", "answered_by": "B",
+                       "answer": "an answer"} for i in range(4)],
+        "actions": [{"task": "Send the plan", "owner": "B"}],
+    })  # fmt: skip
+    merged = merge([chunk, chunk])  # duplicates removed
+    assert len(merged.exchanges) == 4
+    full, cut = render_notes(merged)
+    assert not cut and full.count(" asked: ") == 4
+    small, cut = render_notes(merged, max_tokens=estimate_tokens(full) * 2 // 3)
+    assert cut and small.count(" asked: ") == 4 and 0 < small.count("alpha") < 40
+    assert "B: Send the plan" in small  # actions are always kept
 
 
 @pytest.mark.parametrize("template_id", BUILTIN_IDS)
