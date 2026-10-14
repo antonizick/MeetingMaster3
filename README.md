@@ -137,7 +137,8 @@ numbers: [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md); settings: [`docs/user-gui
 
 On 8 GB, transcription and the LLM take turns on the GPU (peak 2.8 GB for transcription, 5.8 GB for
 qwen3:8b). A 60-minute meeting goes from upload to a finished note in about 8-10 minutes with a local
-8B model. Override auto-detection with `hardware.profile` in `config.yaml`.
+8B model and a short template such as Executive Summary, or about 17-18 minutes with the default,
+Default Notes, which writes much fuller notes ([measurements](docs/PERFORMANCE.md)). Override auto-detection with `hardware.profile` in `config.yaml`.
 
 ## Known limitations
 - **No login.** Single user on `127.0.0.1`; do not expose the port (use an SSH tunnel for remote

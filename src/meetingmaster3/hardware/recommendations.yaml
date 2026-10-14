@@ -42,7 +42,11 @@ profiles:
       # 94-111 s, 72 min in 210-280 s (map-reduce); Ollama peaks at 5.5-5.8 GB VRAM.
       # Phase 15a adds Summary Detailed: +30 s on 72 min (289 s, action-focused), +77 s on
       # 31 min (262 s, detailed-meeting-minutes), so the range moves from [15, 21] to [12, 18].
-      notes_rtf: [12, 18]
+      # Phase 15e: the default template is now Default Notes (R29), measured at 3.7x (31 min,
+      # 497 s), 4.5x (59 min, 780 s) and 7.3x (113 min, 927 s, map-reduce); Executive Summary on
+      # the same machine and day: 11x (167 s, 318 s). The estimate describes the default, so
+      # other templates finish sooner than it says.
+      notes_rtf: [3.5, 7]
       summary: 7-8B models at Q4_K_M fit in 8 GB with a modest context window.
       models:
         - {family: "Llama 3.1 8B / Qwen 2.5 7B", size_b: 8, quant: Q4_K_M, context: "8k-16k", quality: good, speed: fast}

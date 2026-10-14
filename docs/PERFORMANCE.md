@@ -38,6 +38,24 @@ action-recall miss that did not repeat) at 50 s per note on average (max 93 s), 
 before; every Summary Detailed has 2-3 paragraphs and 277-517 words (mean 334). The long meeting
 still completes through map-reduce (630 s): decisions 6/6, actions 15/16, questions 3/5.
 
+**Default Notes** (Phase 15e, R29), the default template since then, writes much longer notes (about
+2 000 words, of which 800-1 000 are the numbered topics) and, for meetings over about 40 minutes,
+uses the high-detail map step (`params.detail: high`). Measured with `qwen3:8b` on the owner's three
+meetings, same machine, 2026-10-14, with Ollama holding a 13-15k context (7.3-7.7 GB, about 27 %
+of the model on the CPU next to the desktop's own GPU use):
+
+| Meeting | Mode | Default Notes | Executive Summary (same day) |
+|---|---|---|---|
+| 31 min, 4 people | full | 497 s (3.7×) | 167 s (11×) |
+| 59 min, 2 people | map-reduce, 2 parts | 780 s (4.5×) | 318 s (11×) |
+| 113 min, 2 people | map-reduce, 3 parts | 927 s (7.3×) | not run |
+
+So Default Notes takes **about 2.5-3 times as long** as Executive Summary: on this laptop a 60-minute
+meeting needs about 13 minutes for the notes, and the whole job about 17-18 minutes. The pre-job
+estimate (`notes_rtf` in `recommendations.yaml`) now uses 3.5-7× real time, since it describes the
+default; other templates finish sooner than it says. Pick a shorter template (Executive Summary, Key
+Takeaways) on New meeting when speed matters, or a cloud model.
+
 ## Raw numbers
 Per stage: wall time in seconds (real-time factor in brackets = audio seconds / wall seconds), then
 the peak GPU memory of the MeetingMaster3 process, of Ollama, and the app's peak resident memory

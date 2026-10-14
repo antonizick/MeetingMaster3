@@ -193,8 +193,10 @@ def test_eta_estimate() -> None:
     t = recommend(info_for(SMI_2070)).transcription
     assert t.estimate(1560) == (97.5, 120.0)  # measured 13-16x (Phase 15)
     llm = recommend(info_for(SMI_2070)).llm
-    assert llm.status == "measured" and llm.estimate(3600) == (200.0, 300.0)  # 12-18x, Phase 15a
-    assert recommend(info_for(SMI_2070)).to_dict()["llm"]["notes_rtf"] == [12.0, 18.0]
+    # 3.5-7x real time: Default Notes, the default template since Phase 15e (R29)
+    low, high = llm.estimate(3600)  # type: ignore[misc]
+    assert llm.status == "measured" and (round(low), round(high)) == (514, 1029)
+    assert recommend(info_for(SMI_2070)).to_dict()["llm"]["notes_rtf"] == [3.5, 7.0]
 
 
 def test_format_eta() -> None:
