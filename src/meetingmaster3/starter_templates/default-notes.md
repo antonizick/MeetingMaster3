@@ -121,25 +121,22 @@ the parties' needs or views aligned (as they said it), the main open points and 
 next. No bullet points. Do not introduce anything that was not discussed.
 
 <!-- mm3:prompt:action-items -->
-List every task that was agreed, one per line, grouped by owner (all of one person's tasks
-together, in the order the owners first appear).
+List the follow-up work that someone agreed to do after the meeting, one per line, grouped by
+owner (all of one person's tasks together, in the order the owners first appear). A task is
+something to be done after the meeting ends, such as sending, scheduling, preparing, reviewing
+or deciding something. What people say about the conversation itself, how they work or would
+work, the duties of a job or role being discussed, answers to hypothetical questions, practices
+already in place, advice, and personal plans from small talk are not tasks.
 
 Structure:
 - [ ] **<Owner>:** <task, starting with a verb> (due: <deadline as said, or "not stated">) [mm:ss]
 - [ ] **Unassigned:** <task the group agreed should be done but nobody took on> (due: <...>) [mm:ss]
 
-The owner is the person who said they will do the task ("I'll...", "I can...") or who was asked
-and agreed. Raising an issue or saying "we should..." does not make someone the owner, and
-neither does describing plans that another team, a vendor or the organisation will carry out:
-those are not action items of this meeting unless someone here took them on. Steps someone
-describes while answering a question or a hypothetical scenario ("I would reset the password"),
-and practices described as already in place ("we hold weekly one-on-ones"), are not tasks, and
-neither is general advice ("you need to audit the endpoint"). Personal plans and remarks made in
-small talk ("I'll paint the fence this weekend") are not tasks of this meeting, even if they
-appear in the list of candidate sentences. **Unassigned** is only for work the participants
-agreed should actually be done. Give deadlines exactly as said ("Friday", "end of Q3"), not as
-dates. Put the **Unassigned:** tasks last. If there are no tasks, write exactly: No action
-items were agreed.
+The owner is the person who said they will do the task ("I'll send...", "I can...") or who was
+asked and agreed. Raising an issue or saying "we should..." does not make someone the owner, and
+neither does describing what another team, a vendor or the organisation plans to do. Give
+deadlines exactly as said ("Friday", "end of Q3"), not as dates. Put the **Unassigned:** tasks
+last. If there are no tasks, write exactly: No action items were agreed.
 
 <!-- mm3:prompt:ai-recommendations -->
 Give 2-4 suggestions for the reader, grounded only in the discussion: a point that was left

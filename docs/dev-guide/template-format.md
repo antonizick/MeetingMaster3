@@ -110,7 +110,7 @@ better answer is kept and the job gets a warning; nothing is padded.
 | `max_tokens_per_section` | integer ≥ 64 | `800` | Default output limit. |
 | `ai_recommendations` | boolean | `true` | When `true`, the template **must** have an `ai-recommendations` section and it **must be last** (spec §8, Appendix A). When `false` (e.g. formal board minutes), it must not have one. |
 | `detail` | `standard` \| `high` | `standard` | How much of a long meeting the map-reduce notes keep (§9, ADR-0039). `high` is for templates that write dense, topic-by-topic notes (`default-notes`): each part keeps up to 30 points with their specifics and a topic label, and the questions that were answered, at the cost of a longer map step. |
-| `task_candidates` | `all` \| `relevant` | `all` | How `format: tasks` sections treat the candidate sentences (§7, ADR-0039). `all`: every commitment in the list must appear as a task. `relevant`: only real work related to the meeting's purpose; small talk and personal remarks are left out (`default-notes`, whose notes often follow an informal conversation). |
+| `task_candidates` | `all` \| `relevant` | `all` | Which candidate sentences task sections see (§7, ADR-0039). `all`: every candidate, and every commitment in the list must appear as a task. `relevant`: only the candidates that name follow-up work (send, schedule, review, prepare, sync…; `templates.cues.follow_up_cues`), as hints, in the map step too; for templates whose meetings are informal conversations (`default-notes`), where most "I'll …" sentences are not tasks. The owner guard still checks every candidate. |
 
 ## 4. Temperatures (R6)
 `section.temperature` → `params.temperature` → the kind default: **0.2** for `extraction`
@@ -174,8 +174,8 @@ For each section, one chat request (see `templates/assembler.py`):
   formatted as `[mm:ss] Name: text` per speaker turn (`[h:mm:ss]` past one hour); then the section
   title and its prompt block; for `format: tasks` sections, the **task candidates**: transcript
   sentences that sound like a commitment, a request, a suggestion or a refusal, tagged by kind
-  (`templates/cues.py`), with the rule that every commitment must appear (or, with
-  `params.task_candidates: relevant`, only those that are real work for the meeting); optional user instructions; on regeneration the previous section content
+  (`templates/cues.py`), with the rule that every commitment must appear (with
+  `params.task_candidates: relevant`, only the candidates that name follow-up work, as hints); optional user instructions; on regeneration the previous section content
   and the user's feedback; and the output rules.
 * One request per section, with the section's temperature and `max_tokens`, one `num_ctx` for the
   whole note, and `think: false` for reasoning models unless `generation.think` is set.

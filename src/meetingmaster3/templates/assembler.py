@@ -198,11 +198,15 @@ def section_prompt(
         context,
         f'Now write the section "{section.title}".\n\n{section_instructions(template, section)}',
     ]
-    if cues and section.format == "tasks":
+    # ``task_candidates: relevant`` (ADR-0039): in informal talk most "I'll ..." sentences are
+    # conversation, and small models copy them as tasks, so only the candidates that name
+    # follow-up work are shown, as hints. The owner guard still checks every candidate afterwards.
+    relevant = template.params.task_candidates == "relevant"
+    shown = cues_mod.follow_up_cues(cues) if relevant else list(cues)
+    if shown and section.format == "tasks":
         coverage = (
-            "Include the commitments that are real work related to the purpose of the meeting; "
-            "leave out small talk, personal remarks and things said in passing. "
-            if template.params.task_candidates == "relevant"
+            "A sentence is a task only if it is work to be done after the meeting. "
+            if relevant
             else "Every commitment in the list is a task and must appear once, however small. "
         )
         parts.append(
@@ -213,7 +217,7 @@ def section_prompt(
             "never the owner. "
             + coverage
             + "Some other lines are not tasks, and tasks can also appear elsewhere."
-            "\n<candidates>\n" + "\n".join(c.render() for c in cues) + "\n</candidates>"
+            "\n<candidates>\n" + "\n".join(c.render() for c in shown) + "\n</candidates>"
         )
     if instructions and instructions.strip():
         parts.append(f"Additional instructions from the user:\n{instructions.strip()}")

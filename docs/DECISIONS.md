@@ -937,13 +937,24 @@ than chasing every sample detail. Topic density does **not** scale with length: 
    "Questions and answers" list; when the notes must be cut to fit, points go first, then exchanges. It falls back to standard notes when
    the window is too small. Other templates are unchanged (standard is the default and its prompt is identical).
 
-5. **Advisory task candidates (`params.task_candidates: relevant`).** MM3's task sections list transcript
+5. **Follow-up task candidates (`params.task_candidates: relevant`).** MM3's task sections list transcript
    sentences that sound like commitments and say "every commitment in the list is a task and must appear once,
-   however small" (ADR-0017). After an informal call that turns small talk ("I'll …" about personal plans) into
-   tasks, and the template's own prompt cannot outweigh it (v6). The new opt-in parameter replaces that sentence
-   with "include the commitments that are real work related to the purpose of the meeting; leave out small talk";
-   the owner guard and the candidate list are unchanged. Every other template keeps the strict wording (their
-   golden prompts are unchanged), so their task recall in the eval is unaffected.
+   however small" (ADR-0017). In an informal call most "I'll …" sentences are conversation ("I'll put it that
+   way", "I'll take it from there"), and the model turned them into tasks; the template's own prompt could not
+   outweigh the list (v6, v7), and negative examples in the prompt made it worse.
+
+   | Option | Result on the 31-minute meeting (3 runs each) |
+   |---|---|
+   | Strict list (all templates today) | 3 to 10 tasks, mostly conversation, varying run to run |
+   | List shown, wording made advisory | 5 to 9 tasks, still conversation |
+   | No list at all | stable 3 tasks, but the role's duties became tasks and the real follow-up was lost |
+   | **Only candidates naming follow-up work (chosen)** | stable: exactly the one real follow-up, 3 runs out of 3 |
+
+   `relevant` filters the candidates with a verb list (`cues.follow_up_cues`: send, email, share, schedule,
+   sync, review, prepare, put together, follow up, let … know…) in the prompt and in the map step, shows them as
+   hints, and drops the "must appear" rule. The owner guard still uses every candidate. Every other template keeps
+   the full list and the strict wording (their golden prompts are unchanged), so their eval task recall is
+   unaffected.
 
 **Prompt iterations** (owner's three meetings, `qwen3:8b`, 16 384-token window; "specifics" = the share of the
 sample's numbers and proper nouns that also occur in the transcript and appear in the generated note; the GPU was
@@ -957,7 +968,8 @@ shared with another session's test server, so times are high):
 | v4 | answers attributed to the person who answered (prompt rule, "Asked by" text points); hypothetical steps and described practices are not tasks | — | — | 6 / 853 / 62 %; attribution fixed, but the map step wrote no "Asked by" points and Q&A paired questions with unrelated answers |
 | v5 | structured `exchanges` in the high-detail map step; Q&A uses them and never re-pairs; advice is not a task, Unassigned only for agreed work | 6 / 971 / 66 % | 6 / 857 / 70 % | 6 / 871 / 70 %; answers now match their questions, but Q&A listed each exchange under both people and the tasks picked up small talk ("I'll …" remarks) |
 | v6 | Q&A: one group per asker, third person; personal plans and small talk are not tasks (prompt only) | 5 / 729 / 65 %; tasks still listed small talk | 5 / 763 / 70 % | not run |
-| v7 | `params.task_candidates: relevant`: the candidate list is advisory instead of "every commitment must appear" | RESULTS_V7_0813 | RESULTS_V7_0922 | RESULTS_V7_0818 |
+| v7 | `task_candidates: relevant`, first form: advisory wording; Q&A grew past its limit | 5 / 913 / 60 %; tasks still small talk | 6 / 867 / 70 %; 12 conversational tasks | not run |
+| v8 | candidates filtered to follow-up work (prompt and map step); "after the meeting" task test; Q&A at most 12 questions | RESULTS_V8_0813 | RESULTS_V8_0922 | RESULTS_V8_0818 |
 
 Lessons: word targets alone do not lengthen an 8B model's answer; counts of topics, bullets and sentences, with a
 placeholder example of the same length, do. Map-reduce detail was the main limit on long meetings. Interviews need

@@ -120,14 +120,21 @@ def test_regeneration_prompt_parts() -> None:
 
 
 def test_task_candidates_policy() -> None:
-    """ADR-0039: ``params.task_candidates: relevant`` (Default Notes) makes the candidate list
-    advisory; every other template keeps the strict wording."""
-    cue = assembler.task_cues([Turn("Ann", "I'll paint the fence this weekend.", 5.0)])
+    """ADR-0039: with ``params.task_candidates: relevant`` (Default Notes) only the candidates
+    that name follow-up work are shown, as hints; every other template keeps the full list and
+    the strict wording."""
+    cues = assembler.task_cues([
+        Turn("Ann", "I'll send the plan on Friday.", 5.0),
+        Turn("Ben", "I'll put it that way.", 9.0),
+        Turn("Ann", "I'll put together a short brief.", 12.0),
+    ])  # fmt: skip
     library = load_library()
     for template_id, strict in (("action-focused", True), ("default-notes", False)):
         template = library.get(template_id)
         section = template.section("action-items")
         assert section is not None
-        prompt = assembler.section_prompt(template, section, "ctx", cues=cue)
+        prompt = assembler.section_prompt(template, section, "ctx", cues=cues)
+        assert "send the plan" in prompt and "short brief" in prompt
+        assert ("put it that way" in prompt) is strict
         assert ("must appear once, however small" in prompt) is strict
-        assert ("leave out small talk" in prompt) is not strict
+        assert ("work to be done after the meeting" in prompt) is not strict

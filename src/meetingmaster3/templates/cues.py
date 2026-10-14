@@ -81,6 +81,26 @@ def task_cues(turns: Sequence[Turn], stamp: object = None) -> list[Cue]:
     return out[:MAX_TASK_CUES]
 
 
+_FOLLOW_UP_RE = re.compile(
+    r"\b(send|sending|sent|email|e-mail|mail|share|forward|schedule|book|set up|setup|"
+    r"follow up|follow-up|get back|reach out|call|text|ping|sync|meet|review|check|look into|"
+    r"find out|prepare|draft|write|update|finali[sz]e|post|publish|submit|confirm|decide|"
+    r"approve|order|buy|fix|deploy|test|investigate|organi[sz]e|arrange|invite|introduce|"
+    r"connect|put together|pull together|compile|get (?:you|him|her|them|it|that) |"
+    r"let (?:you|him|her|them) know|keep (?:you|him|her|them) (?:posted|updated|"
+    r"informed|in the loop))\b",
+    re.I,
+)
+
+
+def follow_up_cues(cues: Sequence[Cue]) -> list[Cue]:
+    """The candidates that name follow-up work (send, schedule, review...), for templates whose
+    meetings are informal conversations (``params.task_candidates: relevant``, ADR-0039): there,
+    most "I'll ..." sentences are conversation ("I'll put it that way") and only these are
+    worth showing to the model."""
+    return [c for c in cues if _FOLLOW_UP_RE.search(c.sentence)]
+
+
 # -- owner guard ------------------------------------------------------------------------------
 
 _OWNER_RE = re.compile(r"^(?P<pre>- \[[ xX]\] \*\*)(?P<owner>[^*:\n]{1,80})(?P<post>:\*\*)")

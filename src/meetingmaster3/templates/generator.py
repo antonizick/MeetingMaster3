@@ -35,7 +35,7 @@ from meetingmaster3.llm.budget import (
 )
 from meetingmaster3.llm.consent import enforce_consent
 from meetingmaster3.templates import assembler
-from meetingmaster3.templates.cues import Cue, guard_owners
+from meetingmaster3.templates.cues import Cue, follow_up_cues, guard_owners
 from meetingmaster3.templates.mapreduce import (
     EXTRACTION_SYSTEM,
     ChunkExtraction,
@@ -347,7 +347,9 @@ class NoteGenerator:
         detail: DetailLevel = "standard",
     ) -> ChunkExtraction | None:
         cues: list[str] = []
-        for cue in assembler.task_cues(list(chunk.new_turns), hours=hours):
+        relevant = self.template.params.task_candidates == "relevant"
+        found = assembler.task_cues(list(chunk.new_turns), hours=hours)
+        for cue in follow_up_cues(found) if relevant else found:
             if estimate_tokens("\n".join([*cues, cue.render()])) > cue_room:
                 break
             cues.append(cue.render())
@@ -357,7 +359,7 @@ class NoteGenerator:
             assembler.format_turns(chunk.turns, hours=hours),
             cues,
             detail=detail,
-            relevant_tasks=self.template.params.task_candidates == "relevant",
+            relevant_tasks=relevant,
         )
         max_tokens = extraction_max_tokens(detail)
         messages = [Message("user", prompt)]
