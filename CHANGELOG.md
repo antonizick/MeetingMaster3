@@ -156,6 +156,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   makes no network calls (verified with a socket audit).
 
 ### Fixed
+- Static files are sent with `Cache-Control: no-cache`, so a browser that cached an older `review.js` no longer breaks the review page (for example an Edit note button that did nothing) after an upgrade.
 - With no default model set for Ollama, the new-meeting page filled in the first installed model, which could be
   an embedding model such as `nomic-embed-text` (2,048-token window). The job then failed at *Generating notes*
   with a context error, after the whole transcription, and the error's advice (raise `generation.max_context`)
