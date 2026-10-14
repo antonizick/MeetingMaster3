@@ -101,7 +101,10 @@ The upload's `options` JSON (and `POST /api/jobs/{id}/resume` `overrides`) accep
 * the note: `title`, `meeting_date` (`YYYY-MM-DD`), `meeting_time` (`HH:MM`), `participants` and
   `tags` (lists), `location`, `template`, `backend`, `model` (the **LLM** model), `instructions`
   (extra instructions for every section, up to 4000 characters) and `cloud_consent` (true = the
-  user already agreed to send this job's transcript to the chosen cloud backend, S6).
+  user already agreed to send this job's transcript to the chosen cloud backend, S6);
+* `remember_template` (upload only, not stored): `true` saves a valid `template` as
+  `generation.default_template`. The New meeting page always sends it, so the template you start
+  a meeting with is pre-selected next time (R29).
 
 `POST /api/jobs/{id}/generate` changes `template`, `backend`, `model`, `instructions` and
 `cloud_consent` of a job that has not finished (see [`templates.md`](templates.md)).

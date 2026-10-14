@@ -317,7 +317,7 @@ retention period. The pruner (`jobs.retention.prune`) runs at startup, every
 ## API summary
 | Method and path | Purpose |
 |---|---|
-| `POST /api/jobs` | multipart `file` + optional JSON `options` (`JobOptions`: `title`, `meeting_date`, `diarize`, `min_speakers`, `max_speakers`, `template`, `backend`, `model` (LLM), `cloud_consent`, `transcription_model`, `compute_type`, `batch_size`, `language`, `on_non_english`, plus any extra keys). Title and date are pre-filled from the filename. 201 + the job. |
+| `POST /api/jobs` | multipart `file` + optional JSON `options` (`JobOptions`: `title`, `meeting_date`, `diarize`, `min_speakers`, `max_speakers`, `template`, `backend`, `model` (LLM), `cloud_consent`, `transcription_model`, `compute_type`, `batch_size`, `language`, `on_non_english`, plus any extra keys). Title and date are pre-filled from the filename. `"remember_template": true` (sent by the New meeting page, not stored with the job) saves a valid `template` as `generation.default_template` (R29). 201 + the job. |
 | `GET /api/jobs?status=…&limit=&offset=` | List jobs, newest first. |
 | `GET /api/jobs/{id}` | Job, stages (with live fraction, message, ETA, `detail.warnings`, `detail.error.details`), `waiting_for` and `warnings` (all stages' warnings). |
 | `POST /api/jobs/{id}/cancel` | Cancel a queued, running, waiting or interrupted job. |

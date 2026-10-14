@@ -23,7 +23,8 @@ Obsidian vault, which is the source of truth. Bound to `127.0.0.1:8765` by defau
 - XDG paths for config, data and model cache, overridable by `MM3_*` variables (R3).
 - Per-stage checkpoints in SQLite and job artifacts; resume from the first incomplete stage (R4).
 - One GPU job at a time, with explicit VRAM handoff before the LLM stage (R5).
-- Map-reduce note generation when the transcript exceeds about 70% of the context window (R6).
+- Map-reduce note generation when the transcript exceeds about 70% of the context window (R6); a template
+  with `params.detail: high` (Default Notes) gets richer, topic-labelled map notes (R29).
 - Audio normalised to 16 kHz mono WAV, kept as Opus for 90 days by default (R7, R8).
 - Strict section markers so regeneration never touches content outside them (R11).
 - Security baseline S1-S8 applies to every component.

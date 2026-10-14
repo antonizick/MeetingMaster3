@@ -83,7 +83,12 @@ def extraction_prompt(
             "order they were made, each in one sentence of at most 40 words. Keep the "
             "specifics: numbers and quantities, names of products, tools, vendors, teams and "
             "organisations, dates and deadlines, changes in roles or structure, and reasons "
-            "given. Give each point the person who said it. Keep the other texts short."
+            "given. Give each point the person who said it. When someone answers another "
+            "person's question, the point is the answer: its speaker is the person who "
+            "answered, and its text starts with 'Asked by <Name>: <question in a few words>.' "
+            "Steps someone describes when answering a question or a hypothetical scenario "
+            "('I would reset the password') are points, not action items. Keep the other "
+            "texts short."
         )
     else:
         schema = EXTRACTION_SCHEMA
