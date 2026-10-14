@@ -17,6 +17,28 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0011 | 2026-10-11 | Line endings: preserve the file's own; LF for new files | Accepted | 03 |
 | ADR-0012 | 2026-10-11 | Note round-trip: verbatim user bytes, per-key frontmatter reuse, strict markers charged to the outer section, lenient properties | Accepted | 03 |
 | ADR-0013 | 2026-10-11 | Jobs: stdlib sqlite3 (WAL), thread-pool stages with a GPU semaphore held per GPU block, artifact checkpoints, generic input pauses, streamed uploads, retention by current setting incl. unfinished jobs | Accepted | 04 |
+| ADR-0014 | 2026-10-11 | Transcription stack pins, diarization model and stage design | Accepted | 06 |
+| ADR-0015 | 2026-10-11 | Speaker embeddings, voiceprint matching and threshold | Accepted | 07 |
+| ADR-0016 | 2026-10-11 | Map-reduce for long meetings | Accepted | 09 |
+| ADR-0017 | 2026-10-11 | Prompt layout, default temperatures and deterministic aids for small models | Accepted | 09 |
+| ADR-0018 | 2026-10-11 | Generation and write stages: consent pause, idempotent writes, fake pipeline | Accepted | 09 |
+| ADR-0019 | 2026-10-11 | Server-rendered UI with HTMX partials, SSE as a trigger, Alpine CSP build | Accepted | 10 |
+| ADR-0020 | 2026-10-11 | Settings screen: declarative fields, all-or-nothing validation, write-only secrets | Accepted | 12 |
+| ADR-0021 | 2026-10-11 | Feedback ratings and data export | Accepted | 12 |
+| ADR-0022 | 2026-10-11 | Optional copy of the retained audio into the vault (R8) | Accepted | 12 |
+| ADR-0023 | 2026-10-11 | Stage-2 template library: shared section ids, one exception to AI Recommendations, type-aware eval | Accepted | 13 |
+| ADR-0024 | 2026-10-11 | Review editor: textareas per note part instead of CodeMirror 6 | Accepted | 11 |
+| ADR-0025 | 2026-10-11 | Review workspace save model: base snapshots, conflict check, accept-then-save | Accepted | 11 |
+| ADR-0026 | 2026-10-11 | Docker images: python:3.12-slim + torch's own CUDA wheels; host-network override for Ollama | Accepted (base image superseded by ADR-0027) | 14 |
+| ADR-0027 | 2026-10-12 | Docker base image moves to Debian 13 (trixie); no curl or system pip at run time | Accepted | 15 |
+| ADR-0028 | 2026-10-12 | Phase 15 security hardening choices | Accepted | 15 |
+| ADR-0029 | 2026-10-12 | Check that a model can write notes before any work, and recover in place | Accepted | pre-release fix |
+| ADR-0030 | 2026-10-12 | Interim tuning rounds are numbered 15a, 15b, 15c… | Accepted (generalised by ADR-0034) | process |
+| ADR-0031 | 2026-10-12 | Readable transcript, dates without a year, two summaries, note upgrade path | Accepted | 15a |
+| ADR-0032 | 2026-10-12 | Logo committed and hidden on meeting pages; all rights reserved | Accepted (licence superseded by ADR-0035) | 15a |
+| ADR-0033 | 2026-10-13 | Large logo picture above "New meeting" | Accepted (licence superseded by ADR-0035) | after 15a |
+| ADR-0034 | 2026-10-14 | Inserting phases anywhere with `/phase-add` | Accepted | process |
+| ADR-0035 | 2026-10-14 | Logo and hero picture released under CC0 1.0 | Accepted; implemented in 15b | 15b |
 
 ---
 

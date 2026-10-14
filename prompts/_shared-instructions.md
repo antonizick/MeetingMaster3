@@ -68,7 +68,7 @@ MeetingMaster3/
 - [ ] `IMPLEMENTATION_PLAN.md`: Status set (`✅ Complete` or `⛔ Blocked`, icon plus word; a `⛔ Blocked` status is also committed to `main` per §1a), Phase Log entry added (date, summary, deviations, follow-ups, test counts).
 - [ ] `CHANGELOG.md` `[Unreleased]` updated.
 - [ ] README, SECURITY, ARCHITECTURE, user and dev guides, THIRD_PARTY_NOTICES, .gitignore and .dockerignore updated where affected.
-- [ ] ADR added to `docs/DECISIONS.md` for any notable choice; spec amendment added if the spec changed.
+- [ ] ADR added to `docs/DECISIONS.md` for any notable choice, **with its row in the index table at the top**; spec amendment added if the spec changed.
 - [ ] Later phase prompts corrected if your work changed their assumptions.
 - [ ] Obsidian note `02 Projects/Meeting Master 3 Implementation Plan.md` updated.
 - [ ] OSMods documentation updated if the host system was modified.

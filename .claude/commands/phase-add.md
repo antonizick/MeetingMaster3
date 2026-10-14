@@ -1,6 +1,6 @@
 ---
 description: Inject a new phase into the MeetingMaster3 plan from a change request (e.g. /phase-add after 15a <request>, /phase-add path/to/request.md)
-argument-hint: "[after NN] <change-request file | pasted request>"
+argument-hint: "[after NN] [change-request file | pasted request]  (no argument: it interviews you)"
 ---
 You are **planning** (not building) a new phase for MeetingMaster3. Argument: `$ARGUMENTS`.
 The output is a phase that Nick can run later with `/phase <ID>`: a row in the plan, a self-contained prompt,
@@ -15,6 +15,20 @@ a planning Phase Log entry, ADRs for any decisions made now, the vault note, and
   `docs/SPECIFICATION.md` §15 (amendments), and the **most recent phase prompt** as a style reference.
 
 ## 1. Intake
+**No argument (`$ARGUMENTS` is empty): interview Nick before anything else.** Never guess the request.
+1. Show a compact table of the plan from `main` (ID, name, status, model) and the next free letter after each
+   phase that is not complete.
+2. Ask, in plain text, for **what the new phase must deliver**: one bullet per change, ideally "today: … →
+   want: …", plus the reason and how he will check it is done. Say that he can instead paste a filled
+   `prompts/_change-request-template.md` or give its path. Wait for the answer.
+3. Ask **where it goes** with AskUserQuestion, giving 2-4 options derived from the table:
+   - your recommendation first: usually after the last completed or last inserted phase, so it runs next
+     and before release;
+   - after a specific earlier phase whose output it builds on;
+   - "as late as possible" (just before the release phase).
+   In the same call, ask any owner decisions you can already see (rule 4, "Classify each open point", below).
+4. Read the answers back as numbered items with the proposed ID, and continue with the steps below.
+
 1. The request is either a file path (read it in full, plus everything it attaches or links) or pasted text.
    The recommended shape is `prompts/_change-request-template.md`, but any free text works.
 2. Split it into numbered items. Keep Nick's wording: the prompt will quote it under "Nick's request (verbatim intent, DATE)".
@@ -74,7 +88,7 @@ a planning Phase Log entry, ADRs for any decisions made now, the vault note, and
    - add any owner questions;
    - add a Phase Log entry `### DATE: Planning: phase <ID> inserted (Planned)`: the request in brief, the
      scope, the placement and model rationale, the decisions taken, and the other files changed.
-3. **ADRs** in `docs/DECISIONS.md` for decisions made during intake (append; mark an ADR it supersedes).
+3. **ADRs** in `docs/DECISIONS.md` for decisions made during intake (append, add the row to the index table at the top, and mark any ADR it supersedes).
    Spec amendments are normally left to the phase; add one now only if Nick changed the product definition.
 4. **Later prompts:** edit any not-started prompt whose assumptions change (at least the release phase's
    "depends on" and anything about screenshots, notices or docs).

@@ -10,7 +10,7 @@ Open Claude Code in `/home/nick/Work/MeetingMaster3` and type one of:
 - `/phase`: run the next eligible phase. It checks dependencies, tells you if you're on the wrong model, resumes an `In progress` phase, and asks about any open questions it needs.
 - `/phase 03`: run a specific phase. Interim tuning rounds have a letter suffix: `/phase 15a`.
 - `/phase status`: show progress and what's next, without doing any work.
-- `/phase-add [after NN] <request or file>`: plan a **new** phase from a change request (ADR-0034). It grounds the request in the code, asks you about owner decisions once, writes the prompt, row and planning log entry, rewires Phase 16, and commits to `main`. It does no product work and does not claim; run the new phase later with `/phase <ID>`. A fill-in intake form is in [`prompts/_change-request-template.md`](prompts/_change-request-template.md).
+- `/phase-add [after NN] <request or file>` (or plain `/phase-add`, which asks you what and where): plan a **new** phase from a change request (ADR-0034). It grounds the request in the code, asks you about owner decisions once, writes the prompt, row and planning log entry, rewires Phase 16, and commits to `main`. It does no product work and does not claim; run the new phase later with `/phase <ID>`. A fill-in intake form is in [`prompts/_change-request-template.md`](prompts/_change-request-template.md).
 
 The command lives in `.claude/commands/phase.md`. Under the hood it reads `CLAUDE.md`, this file and `prompts/_shared-instructions.md`, then executes `prompts/phase-NN-*.md`. You never need to paste a prompt. Review the agent's close-out summary. Completed phases are merged into `main` automatically (the phase branch is then deleted); nothing is pushed without your confirmation.
 
