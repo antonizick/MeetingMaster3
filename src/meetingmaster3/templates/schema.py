@@ -67,6 +67,10 @@ class TemplateParams(_Model):
     """How much of a long meeting the map-reduce notes keep (ADR-0039). ``high`` keeps about three
     times as many points per part, with their figures and names and a topic label, for
     templates that write dense, topic-by-topic notes; it costs a longer map step."""
+    task_candidates: Literal["all", "relevant"] = "all"
+    """How task sections treat the candidate sentences (ADR-0039). ``all``: every commitment in the
+    list must appear as a task. ``relevant``: only real work related to the meeting's purpose;
+    small talk and personal remarks are left out."""
 
 
 class _Frontmatter(BaseModel):

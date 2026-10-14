@@ -14,7 +14,7 @@ sections:
   - {id: conclusion, title: Conclusion, kind: narrative, max_tokens: 400}
   - {id: action-items, title: Action Items, kind: extraction, format: tasks, max_tokens: 1200}
   - {id: ai-recommendations, title: AI Recommendations, kind: narrative}
-params: {temperature: null, max_tokens_per_section: 800, detail: high}
+params: {temperature: null, max_tokens_per_section: 800, detail: high, task_candidates: relevant}
 ---
 MeetingMaster3 starter template. Copy it to make your own: change the id and the name, then
 edit the sections and the prompt blocks below. Format: docs/dev-guide/template-format.md.

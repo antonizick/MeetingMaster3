@@ -199,13 +199,20 @@ def section_prompt(
         f'Now write the section "{section.title}".\n\n{section_instructions(template, section)}',
     ]
     if cues and section.format == "tasks":
+        coverage = (
+            "Include the commitments that are real work related to the purpose of the meeting; "
+            "leave out small talk, personal remarks and things said in passing. "
+            if template.params.task_candidates == "relevant"
+            else "Every commitment in the list is a task and must appear once, however small. "
+        )
         parts.append(
             "To help you, these transcript sentences sound like commitments, requests or "
             "suggestions. Check each one against the transcript. A commitment makes its speaker "
             "the owner; a request makes the person asked the owner if they agreed; a suggestion "
             "is an **Unassigned** task unless someone later took it on; someone who declines is "
-            "never the owner. Every commitment in the list is a task and must appear once, "
-            "however small. Some other lines are not tasks, and tasks can also appear elsewhere."
+            "never the owner. "
+            + coverage
+            + "Some other lines are not tasks, and tasks can also appear elsewhere."
             "\n<candidates>\n" + "\n".join(c.render() for c in cues) + "\n</candidates>"
         )
     if instructions and instructions.strip():

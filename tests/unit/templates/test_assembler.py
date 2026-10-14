@@ -117,3 +117,17 @@ def test_regeneration_prompt_parts() -> None:
     assert "What the user wants changed:\nShorter please." in prompt
     no_feedback = assembler.section_prompt(template, section, "CTX", previous="Old body.")
     assert "Write an improved version" in no_feedback
+
+
+def test_task_candidates_policy() -> None:
+    """ADR-0039: ``params.task_candidates: relevant`` (Default Notes) makes the candidate list
+    advisory; every other template keeps the strict wording."""
+    cue = assembler.task_cues([Turn("Ann", "I'll paint the fence this weekend.", 5.0)])
+    library = load_library()
+    for template_id, strict in (("action-focused", True), ("default-notes", False)):
+        template = library.get(template_id)
+        section = template.section("action-items")
+        assert section is not None
+        prompt = assembler.section_prompt(template, section, "ctx", cues=cue)
+        assert ("must appear once, however small" in prompt) is strict
+        assert ("leave out small talk" in prompt) is not strict
