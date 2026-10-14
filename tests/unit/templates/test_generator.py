@@ -441,6 +441,9 @@ async def test_high_detail_template_keeps_more_points_with_topics() -> None:
     assert all(c.max_tokens == 3500 for c in json_calls)
     assert all("up to 30" in c.messages[0].content and '"topic"' in c.messages[0].content
                and '"exchanges"' in c.messages[0].content for c in json_calls)  # fmt: skip
+    # ``task_candidates: relevant`` reaches the map step's candidate list too
+    assert all("small talk and personal remarks are not" in c.messages[0].content
+               for c in json_calls)  # fmt: skip
     notes = next(c for c in backend.calls if not c.json_mode).messages[0].content
     assert "- [00:10] (Order database) Priya: Oracle 12c moves to PostgreSQL 16 by March" in notes
     assert ("Questions and answers:\n- [00:20] Marcus asked: Who owns the cut-over? | Priya: "
@@ -454,7 +457,8 @@ async def test_high_detail_template_keeps_more_points_with_topics() -> None:
     # Standard templates are unchanged.
     plain = FakeLLMBackend(window=16384, responder=respond)
     await generator(plain).generate(meta(), transcript(repeat=400))
-    assert all(c.max_tokens == 1500 for c in plain.calls if c.json_mode)
+    assert all(c.max_tokens == 1500 and "each commitment is an action item" in c.messages[0].content
+               for c in plain.calls if c.json_mode)  # fmt: skip
     plain_notes = next(c for c in plain.calls if not c.json_mode).messages[0].content
     assert "Questions and answers:" in plain_notes  # a model may volunteer them; still rendered
 

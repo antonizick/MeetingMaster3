@@ -83,11 +83,22 @@ def extraction_prompt(
     cues: Sequence[str] = (),
     *,
     detail: DetailLevel = "standard",
+    relevant_tasks: bool = False,
 ) -> str:
+    """``relevant_tasks`` (``params.task_candidates: relevant``, ADR-0039) keeps small talk that
+    only sounds like a commitment out of the action items."""
+    commitment = (
+        "a commitment to real work for the meeting is an action item (owner: the speaker), "
+        "small talk and personal remarks are not"
+        if relevant_tasks
+        else "each commitment is an action item (owner: the speaker)"
+    )
     candidates = (
-        "These sentences in this part sound like commitments, requests or suggestions; each "
-        "commitment is an action item (owner: the speaker), a suggestion nobody took on is an "
-        "action with owner Unassigned:\n<candidates>\n" + "\n".join(cues) + "\n</candidates>\n\n"
+        "These sentences in this part sound like commitments, requests or suggestions; "
+        + commitment
+        + ", a suggestion nobody took on is an action with owner Unassigned:\n<candidates>\n"
+        + "\n".join(cues)
+        + "\n</candidates>\n\n"
         if cues
         else ""
     )

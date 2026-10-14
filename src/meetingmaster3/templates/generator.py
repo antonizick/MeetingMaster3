@@ -357,6 +357,7 @@ class NoteGenerator:
             assembler.format_turns(chunk.turns, hours=hours),
             cues,
             detail=detail,
+            relevant_tasks=self.template.params.task_candidates == "relevant",
         )
         max_tokens = extraction_max_tokens(detail)
         messages = [Message("user", prompt)]

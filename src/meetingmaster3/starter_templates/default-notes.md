@@ -99,12 +99,13 @@ the Conclusion comes later.
 <!-- mm3:prompt:questions-answers -->
 Record the questions and answers only if a large part of the meeting was people asking and
 answering questions (an interview, a Q&A session, a panel, a technical assessment). Then list
-the substantive questions in the order asked, grouped by who asked them, each shortened to one
-line, followed by the answer in 1-4 sentences, in the third person ("<Name> said ..."), with
-the specifics given. Make one group per person who asked questions, and list each question only
-once, in the group of the person who asked it. Skip small talk, pleasantries and logistics. If you were given meeting notes instead of the transcript, use their "Questions and
-answers" list, keep each answer with the question it belongs to, and never pair a question with
-an answer to something else.
+the substantive questions in the order asked (at most 12: keep the ones with the most
+substantive answers), each shortened to one line, followed by the answer in 1-4 sentences, in
+the third person ("<Name> said ..."), with the specifics given. Make one group per person who
+asked questions, and list each question only once, in the group of the person who asked it.
+Skip small talk, pleasantries and logistics. If you were given meeting notes instead of the
+transcript, use their "Questions and answers" list, keep each answer with the question it
+belongs to, and never pair a question with an answer to something else.
 
 Structure:
 **Questions from <Name>:**
@@ -134,11 +135,11 @@ those are not action items of this meeting unless someone here took them on. Ste
 describes while answering a question or a hypothetical scenario ("I would reset the password"),
 and practices described as already in place ("we hold weekly one-on-ones"), are not tasks, and
 neither is general advice ("you need to audit the endpoint"). Personal plans and remarks made in
-small talk ("I'll paint the fence this weekend") are not tasks of this meeting, even if they appear in the
-list of candidate sentences. **Unassigned** is only for work the participants agreed should
-actually be done. Give deadlines
-exactly as said ("Friday", "end of Q3"), not as dates. Put the **Unassigned:** tasks last. If
-there are no tasks, write exactly: No action items were agreed.
+small talk ("I'll paint the fence this weekend") are not tasks of this meeting, even if they
+appear in the list of candidate sentences. **Unassigned** is only for work the participants
+agreed should actually be done. Give deadlines exactly as said ("Friday", "end of Q3"), not as
+dates. Put the **Unassigned:** tasks last. If there are no tasks, write exactly: No action
+items were agreed.
 
 <!-- mm3:prompt:ai-recommendations -->
 Give 2-4 suggestions for the reader, grounded only in the discussion: a point that was left

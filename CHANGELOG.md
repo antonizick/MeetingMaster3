@@ -17,7 +17,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The template you start a meeting with on **New meeting** becomes the pre-selected one next time (saved as
   `generation.default_template`, so Settings shows the same choice). API and CLI jobs do not change it.
 - Template parameter `params.detail: standard | high`: long meetings (map-reduce) keep up to 30 points per
-  part, with their specifics and a topic label, for templates that write dense, topic-by-topic notes.
+  part, with their specifics and a topic label, and the questions that were answered (who asked, who
+  answered), for templates that write dense, topic-by-topic notes.
+- Template parameter `params.task_candidates: all | relevant`: with `relevant`, task sections leave out
+  small talk and personal remarks that only sound like commitments.
 - Eval: a synthetic introductory-call meeting for Default Notes and two new checks, `expected.numbered`
   (numbered headings in a section) and `expected.limits` (sentences and words in a section).
 - Pre-operational tuning, round 2 (Phase 15b, R26, ADR-0036):
