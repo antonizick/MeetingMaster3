@@ -107,7 +107,7 @@ def test_logo_on_navigation_pages_only(server: tuple[str, Path], tmp_path: Path)
         page.set_viewport_size({"width": 1280, "height": 900})
         brand.clear()
         page.goto(url)
-        page.wait_for_selector("#editor textarea.sec")
+        page.wait_for_selector("#preview:not([hidden]) h2")
         assert page.locator(".brand-logo").count() == 0 and brand == []
         assert page.locator(".brand").inner_text() == "MeetingMaster3"
 

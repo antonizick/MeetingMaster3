@@ -126,6 +126,7 @@
       for (const ta of parts()) markerSnapshot.set(ta, (ta.value.match(MARKER_LINES) || []).join("\n"));
       parts().forEach(checkMarkers);
       setStatus(isDirty() ? "Unsaved changes" : "Saved to vault " + out.saved_at, isDirty() ? "dirty" : "saved");
+      if (!preview.hidden) { previewStale = true; showPreview().catch(fail); }
       return true;
     } catch (err) {
       setStatus("Not saved", "error");
@@ -163,21 +164,38 @@
     save(Object.assign(JSON.parse(dlg.dataset.extra || "{}"), { allow_marker_changes: true }));
   });
 
-  // -- rendered preview ----------------------------------------------------------------------
+  // -- Preview / Edit ------------------------------------------------------------------------
+  // The page opens on the server-rendered note (Preview). Edit shows the textareas; going back to
+  // Preview renders the current, possibly unsaved, edits.
   const previewBtn = $("#btn-preview");
+  const editBtn = $("#btn-edit");
   const preview = $("#preview");
-  previewBtn.addEventListener("click", () => busy(previewBtn, async () => {
-    const showing = previewBtn.getAttribute("aria-pressed") === "true";
-    if (showing) {
-      preview.hidden = true; editor.hidden = false;
-      previewBtn.setAttribute("aria-pressed", "false");
-      return;
+  const MODE_KEY = "mm3.review.mode";
+  let previewStale = false; // true once the textareas differ from what the preview shows
+  const remember = (mode) => { try { localStorage.setItem(MODE_KEY, mode); } catch (e) { /* private window */ } };
+
+  function showMode(mode) {
+    const edit = mode === "edit";
+    editor.hidden = !edit;
+    preview.hidden = edit;
+    previewBtn.setAttribute("aria-pressed", String(!edit));
+    editBtn.setAttribute("aria-pressed", String(edit));
+    if (edit) parts().forEach(autosize);
+  }
+  const showEdit = () => { showMode("edit"); remember("edit"); };
+  async function showPreview() {
+    if (previewStale || isDirty()) {
+      const out = await call("/render", { path: data.path, base_sha: data.base_sha, edits: collect() });
+      preview.innerHTML = out.html; // sanitised by the server (raw HTML off, links filtered)
+      previewStale = isDirty();
     }
-    const out = await call("/render", { path: data.path, base_sha: data.base_sha, edits: collect() });
-    preview.innerHTML = out.html; // sanitised by the server (raw HTML off, links filtered)
-    preview.hidden = false; editor.hidden = true;
-    previewBtn.setAttribute("aria-pressed", "true");
-  }));
+    showMode("preview");
+    remember("preview");
+  }
+  previewBtn.addEventListener("click", () => busy(previewBtn, showPreview));
+  editBtn.addEventListener("click", showEdit);
+  editor.addEventListener("input", () => { previewStale = true; });
+  try { if (localStorage.getItem(MODE_KEY) === "edit") showMode("edit"); } catch (e) { /* default: Preview */ }
 
   // -- dialogs: close buttons, cloud-consent checkbox ---------------------------------------
   document.addEventListener("click", (evt) => {
@@ -294,6 +312,7 @@
         const out = await call("/archive-section", { path: data.path, section_id: pending.sectionId, inner: pending.ta.value });
         archived = out.archive;
       }
+      showEdit();
       pending.ta.value = pending.newInner;
       area.innerHTML = "";
       area.mm3 = null;
@@ -381,6 +400,7 @@
         checkMarkers(ta);
       }
       $("#draft-banner").remove();
+      showEdit();
       changed(null);
       toast("info", "Your edits are back.", "Save to vault to keep them.");
     });

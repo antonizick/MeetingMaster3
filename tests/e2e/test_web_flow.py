@@ -94,7 +94,7 @@ def test_happy_path_in_a_browser(server: tuple[str, Path], tmp_path: Path) -> No
         page.wait_for_selector("text=Written to your vault", timeout=30000)
         assert page.locator("a[href^='obsidian://open?path=']").count() == 1
         page.click("text=Review & edit")
-        page.wait_for_selector("#editor textarea.sec")
+        page.wait_for_selector("#preview:not([hidden]) h2")
         browser.close()
 
     notes = [p for p in vault.rglob("*.md") if "MeetingMaster3" not in p.parts]

@@ -8,6 +8,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Pre-operational tuning, round 2 (Phase 15b, R26, ADR-0036):
+  - The review screen opens the note in **Preview** (rendered on the server); **Edit** is one click away, and
+    the last mode is remembered.
+  - **Keep forever** / **Allow deletion** for a meeting's recording, with a line beside the player showing
+    how many days are left before it is deleted (the same rule the pruner uses), or that it is kept forever.
+    `GET /api/jobs/{id}` and the pin/unpin responses include `audio.retention`.
+  - The logo and hero picture are released under **CC0 1.0** (`brand/LICENSE.md`); forks may keep them.
 - Pre-operational tuning, round 1 (Phase 15a, R25):
   - **Readable transcript** in the vault, `<note> (Transcript).md`, next to the note: the time, each speaker's
     name highlighted in their own colour (the review screen's palette), then the text; long turns are split into

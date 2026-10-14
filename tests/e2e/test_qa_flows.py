@@ -106,7 +106,7 @@ def test_reopen_a_note_from_the_vault_picker(server: tuple[str, Path], tmp_path:
         picker.get_by_role("button", name="2026", exact=True).click()
         picker.get_by_role("link", name="Design Review", exact=True).click()
         page.wait_for_url(re.compile(r"/meetings/[0-9a-f-]{36}\?path="))
-        page.wait_for_selector("#editor textarea.sec")
+        page.wait_for_selector("#preview:not([hidden]) h2")
         assert "Design Review" in page.inner_text("main")
 
 
@@ -203,7 +203,7 @@ def test_keyboard_only_core_controls(server: tuple[str, Path], tmp_path: Path) -
         assert "file" in reached  # the file picker is reachable by Tab
 
         page.goto(url)
-        page.wait_for_selector("#editor textarea.sec")
+        page.wait_for_selector("#preview:not([hidden]) h2")
         splitter = page.locator("[role=separator]")
         splitter.focus()
         before = splitter.get_attribute("aria-valuenow")
@@ -258,6 +258,17 @@ def test_main_pages_have_no_serious_accessibility_violations(
                      "target": v["nodes"][0]["target"]}
                     for v in violations
                 ]  # fmt: skip
+    # The review workspace again, in Edit mode and with the retention line kept forever.
+    with browser_page(base, bypass_csp=True) as page:
+        page.goto(url)
+        page.click("#btn-edit")
+        page.click("#retention-btn")
+        page.wait_for_selector("#retention-text:has-text('kept forever')")
+        for mode in ("edit", "preview"):
+            bad = [v for v in _axe(page) if v["impact"] in BLOCKING]
+            assert not bad, (mode, [v["id"] for v in bad])
+            page.click("#btn-preview")
+            page.wait_for_selector("#preview:not([hidden])")
     out = os.environ.get("MM3_AXE_REPORT")
     if out:
         Path(out).write_text(json.dumps(report, indent=2), encoding="utf-8")

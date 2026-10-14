@@ -162,6 +162,7 @@ _Coming in Phase 16._
 - [Changelog](CHANGELOG.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 ## License
-Apache-2.0. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). The logo is not covered: it is © Nick
-Antonizick, all rights reserved, and forks must replace it. Model weights are not bundled and carry
+Apache-2.0. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). The logo and hero picture
+(`src/meetingmaster3/web/static/brand/`) are released by Nick Antonizick under
+[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/): free to keep and reuse. Model weights are not bundled and carry
 their own terms; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

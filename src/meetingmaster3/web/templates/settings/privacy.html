@@ -18,7 +18,7 @@
     <ul class="plain">{% for p in prune_preview %}<li>{{ p.title or p.job_id }} · {{ (p.bytes / 1048576)|round(1) }} MB</li>{% endfor %}</ul>
     <div><button class="danger" hx-post="/settings/privacy/prune" hx-target="#tab-body" hx-swap="innerHTML" hx-confirm="Delete this audio now? The notes and transcripts stay.">Delete it now</button></div>
   {% else %}<p class="muted">Nothing is due for deletion.</p>{% endif %}
-  <p class="hint">Pin or unpin a meeting’s audio on the meeting’s own page.</p>
+  <p class="hint">Keep a recording forever from its review page, next to the player. Meetings kept forever are never deleted.</p>
 </section>
 
 <section class="card stack" aria-labelledby="h-voices">

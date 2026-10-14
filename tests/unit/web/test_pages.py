@@ -710,10 +710,11 @@ def test_logo_files_carry_no_metadata() -> None:
     brand = Path(__file__).parents[3] / "src" / "meetingmaster3" / "web" / "static" / "brand"
     names = sorted(p.name for p in brand.iterdir())
     assert names == [
+        "LICENSE.md",  # the CC0 statement travels with the images (ADR-0035)
         "hero.png", "hero.webp", "hero@2x.png", "hero@2x.webp",
         "logo.png", "logo.webp", "logo@2x.png", "logo@2x.webp",
     ]  # fmt: skip
-    for p in brand.iterdir():
+    for p in brand.glob("*.[pw][ne][gb]*"):
         data = p.read_bytes()
         for marker in (b"Exif", b"GIMP", b"iCCP", b"ICCP", b"tEXt", b"XMP"):
             assert marker not in data, (p.name, marker)

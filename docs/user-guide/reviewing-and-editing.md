@@ -33,8 +33,22 @@ highlighted and kept in view. Scrolling the transcript yourself turns **Follow**
 follow the playback again. Drag the bar between the panes (or focus it and use the arrow keys) to
 change their widths; on a narrow screen the panes stack.
 
-If the recording was removed by the retention policy (see [configuration](configuration.md), `privacy.*`),
-the player is replaced by a notice. The transcript still works.
+### How long the recording is kept
+
+Under the player, one quiet line says what will happen to the recording, for example "Recording deleted
+in 23 days (13 Jan 2027) under your retention setting". The days are the ones the retention check will
+use (rounded up, so "1 day" can mean a few hours), and they change if you change the retention setting in
+**Settings → Privacy**.
+
+- **Keep forever** keeps this meeting's recording whatever the setting says (it is never deleted, and
+  deleting the meeting asks you to confirm). The line then reads "Recording kept forever."
+- **Allow deletion** undoes that, after asking. It tells you when the recording will then be deleted,
+  or that it is due at the next check (the check runs daily and at start-up).
+- If your setting is "keep forever" the line says so. **Keep this one even if the setting changes**
+  still protects the meeting from a later change.
+
+If the recording was already removed by the retention policy (see [configuration](configuration.md),
+`privacy.*`), the player is replaced by a notice. The transcript still works.
 
 ## Editing the note
 
@@ -57,7 +71,11 @@ Your unsaved edits are kept as a draft in MeetingMaster3's data folder while you
 the tab without saving, the next time you open the note it offers **Restore my edits** or **Discard
 them**.
 
-**Preview** shows the note rendered (raw HTML is not rendered; images are not loaded).
+The note opens in **Preview**: the rendered note (raw HTML is not rendered; images are not loaded).
+Choose **Edit** above the note to change it; choose **Preview** to see your edits rendered, saved or not.
+The page picks the right mode for you: restoring a draft or accepting a regenerated section opens Edit.
+Saving keeps the mode you are in. The browser remembers the last mode you used. A read-only note shows
+the preview only.
 
 ### When the note changed elsewhere
 

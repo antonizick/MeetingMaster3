@@ -1,0 +1,7 @@
+{# How long the recording is kept, with Keep forever / Allow deletion (R26). #}
+{% if retention %}
+<div class="retention row" id="retention" data-undo-text="{{ retention.undo_text }}">
+  <p class="hint" id="retention-text" role="status" aria-live="polite">{{ retention.text }}{% if retention.settings_link %} <a href="/settings/privacy">Change the setting</a>{% endif %}</p>
+  {% if retention.action %}<button type="button" id="retention-btn" data-action="{{ retention.action }}">{{ retention.button }}</button>{% endif %}
+</div>
+{% endif %}

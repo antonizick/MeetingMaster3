@@ -501,6 +501,7 @@ def test_reprocess_and_missing_audio(ui: TestClient, tone: Path, vault: Path) ->
         ("post", "speakers/apply"),
         ("post", "link-transcript"),
         ("post", "reprocess"),
+        ("post", "keep"),
     ],
 )
 def test_every_action_needs_csrf(ui: TestClient, method: str, action: str) -> None:
@@ -545,3 +546,106 @@ def test_workspace_embeds_feedback_and_downloads(ui: TestClient, fixture_note: P
     assert link
     download = ui.get(link.group(1).replace("&amp;", "&"))
     assert download.status_code == 200 and download.text == read_text(fixture_note)
+
+
+# -- Preview first, and the recording-retention line (R26) -----------------------------------------
+
+
+def test_note_opens_rendered_with_the_editor_hidden(ui: TestClient, fixture_note: Path) -> None:
+    ws = Workspace(ui, open_url(ui, f"Meetings/2026/{NOTE}"))
+    assert re.search(r'<div id="editor" class="editor" hidden>', ws.html)
+    preview = re.search(r'<div id="preview" class="note">(.*?)</div>\s*</section>', ws.html, re.S)
+    assert preview and "<h" in preview.group(1) and "mm3:section" not in preview.group(1)
+    assert 'id="btn-preview" aria-pressed="true"' in ws.html
+    assert 'id="btn-edit" aria-pressed="false"' in ws.html
+    assert 'data-kind="section"' in ws.html  # the editor is still in the page, just hidden
+
+
+def test_read_only_note_shows_the_preview_without_a_mode_switch(
+    ui: TestClient, vault: Path
+) -> None:
+    (vault / "bare.md").write_text(
+        f"---\nmm3-id: {FIXTURE_ID}\ntitle: Bare\n---\n# Bare\n\nJust text.\n", "utf-8"
+    )
+    ws = Workspace(ui, open_url(ui, "bare.md"))
+    assert '<article class="note">' in ws.html and "Just text." in ws.html
+    assert "btn-edit" not in ws.html and 'id="editor"' not in ws.html
+
+
+def _runner(ui: TestClient) -> Any:
+    return ui.app.state.runner  # type: ignore[attr-defined]
+
+
+@requires_ffmpeg
+def test_retention_line_and_keep_forever_roundtrip(ui: TestClient, tone: Path, vault: Path) -> None:
+    url, _note = processed(ui, tone, vault)
+    ws = Workspace(ui, url)
+    assert 'id="retention"' in ws.html
+    assert "Recording deleted in 90 days (" in ws.html and "Keep forever</button>" in ws.html
+    assert 'href="/settings/privacy"' in ws.html
+    job_id = re.search(r"/api/jobs/([0-9a-f-]+)/audio", ws.html)
+    assert job_id
+    jid = job_id.group(1)
+
+    r = ws.post("keep", keep=True)
+    assert r.status_code == 200 and r.json()["pinned"] is True
+    assert "Recording kept forever." in r.json()["html"] and "Allow deletion" in r.json()["html"]
+    assert _runner(ui).jobs.get(jid).audio_pinned
+    api = ui.get(f"/api/jobs/{jid}").json()["audio"]
+    assert api["pinned"] is True and api["retention"]["kind"] == "kept_pinned"
+    assert "Recording kept forever." in Workspace(ui, url).html  # survives a reload
+    assert _runner(ui).prune() == []  # and the pruner agrees
+
+    r = ws.post("keep", keep=False)
+    assert r.status_code == 200 and "deleted in 90 days" in r.json()["html"]
+    assert 'data-undo-text=""' in r.json()["html"]
+    assert ui.get(f"/api/jobs/{jid}").json()["audio"]["retention"]["days_left"] == 90
+
+
+@requires_ffmpeg
+def test_pin_api_returns_the_retention_status(ui: TestClient, tone: Path, vault: Path) -> None:
+    url, _note = processed(ui, tone, vault)
+    ws = Workspace(ui, url)
+    job_id = re.search(r"/api/jobs/([0-9a-f-]+)/audio", ws.html)
+    assert job_id
+    r = ui.post(f"/api/jobs/{job_id.group(1)}/pin")
+    assert r.status_code == 200 and r.json()["audio"]["retention"]["kind"] == "kept_pinned"
+    r = ui.post(f"/api/jobs/{job_id.group(1)}/unpin")
+    assert r.json()["audio"]["pinned"] is False
+
+
+@requires_ffmpeg
+def test_line_follows_a_changed_retention_setting(ui: TestClient, tone: Path, vault: Path) -> None:
+    url, _note = processed(ui, tone, vault)
+    runner = _runner(ui)
+    runner.settings.privacy.audio_retention = "forever"
+    html = Workspace(ui, url).html
+    assert "retention setting keeps recordings forever" in html
+    assert "Keep this one even if the setting changes" in html
+    runner.settings.privacy.audio_retention = "delete_after_write"
+    assert "at the next check" in Workspace(ui, url).html
+
+
+@requires_ffmpeg
+def test_keep_refuses_pruned_audio_and_unlinked_notes(
+    ui: TestClient, tone: Path, vault: Path, fixture_note: Path
+) -> None:
+    url, _note = processed(ui, tone, vault)
+    ws = Workspace(ui, url)
+    runner = _runner(ui)
+    jid = re.search(r"/api/jobs/([0-9a-f-]+)/audio", ws.html).group(1)  # type: ignore[union-attr]
+    runner.audio_file(jid).unlink()
+    runner.jobs.update(jid, audio_path=None, audio_pruned_at=runner.jobs.get(jid).updated_at)
+    r = ws.post("keep", keep=True)
+    assert r.status_code == 410 and r.json()["code"] == "E_AUDIO_EXPIRED"
+    again = Workspace(ui, url)
+    assert 'id="retention"' not in again.html and 'id="no-audio"' in again.html
+    # A note with no linked job has nothing to keep.
+    other = Workspace(ui, open_url(ui, f"Meetings/2026/{NOTE}"))
+    assert other.post("keep", keep=True).status_code == 404
+
+
+def test_privacy_hint_names_the_real_place(ui: TestClient) -> None:
+    page = ui.get("/settings/privacy").text
+    assert "Keep a recording forever from its review page" in page
+    assert "Pin or unpin" not in page

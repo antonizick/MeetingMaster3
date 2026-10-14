@@ -39,6 +39,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0033 | 2026-10-13 | Large logo picture above "New meeting" | Accepted (licence superseded by ADR-0035) | after 15a |
 | ADR-0034 | 2026-10-14 | Inserting phases anywhere with `/phase-add` | Accepted | process |
 | ADR-0035 | 2026-10-14 | Logo and hero picture released under CC0 1.0 | Accepted; implemented in 15b | 15b |
+| ADR-0036 | 2026-10-14 | Review opens in Preview; one retention rule shared by the pruner and the countdown; Keep forever wording | Accepted | 15b |
 
 ---
 
@@ -813,3 +814,30 @@ example to suggest endorsement). The original `wiz.jpg` is still never committed
 (`NOTICE`, `THIRD_PARTY_NOTICES.md`, README licence section, Phase 16 prompt).
 **Status.** Accepted (2026-10-14); implementation in Phase 15b.
 **Consequences.** Forks may keep the logo. ADR-0032's crop and placement and ADR-0033's hero picture are unchanged.
+
+
+## ADR-0036: Review opens in Preview; the countdown shares the pruner's rule (Phase 15b, R26)
+**Context.** Nick wanted the review screen to open on a readable note, and a way to keep a recording forever
+with a visible "days left" line. The pin existed in the API (ADR-0006) but no page offered it.
+**Decisions.**
+1. **Preview first, rendered on the server** in the page response (same renderer and sanitiser as `/render`),
+   so there is no flash of textareas. The editor stays in the page, hidden. Preview/Edit is a two-button
+   group with `aria-pressed`. Preview of unsaved edits still calls `/render`; it is skipped when nothing changed.
+   Switch template and Rename speakers work on the saved note and reload, so they do not force Edit
+   (regenerate, accepting a section and restoring a draft do). The last mode is remembered in `localStorage`
+   (try/catch); first visit is Preview.
+2. **One expiry rule.** `jobs.retention.effective_expiry(job, privacy)` is used by `prune` and by
+   `audio_retention_status`; there is no second copy of the maths. Days left are whole days rounded up, minimum 1;
+   "due" means `expiry <= now`, the pruner's own test. The status is in `GET /api/jobs/{id}` and in the pin/unpin
+   responses (`audio.retention`).
+3. **Keep forever = the pin**, no new flag. The page uses `POST /ui/review/{mm3_id}/keep` (CSRF, path-confined
+   like the other workspace actions), which calls the same `JobRunner.set_pinned` as the API and returns the
+   server-rendered line, so the wording lives in one place (`review/retention_view.py`). Allow deletion asks
+   first in a `<dialog>` and says when the recording would then go.
+4. **Retention set to "forever":** the line says so and still offers a button ("Keep this one even if the setting
+   changes"), because a later settings change would otherwise delete it.
+**Alternatives.** Calling `/api/jobs/{id}/pin` straight from the page and building the text in JS (two copies of
+the wording, and the JS would need the retention settings). Replaying the editor-first layout with a Preview
+toggle (what existed).
+**Consequences.** No change to retention defaults or the pruner's behaviour. Per-meeting custom retention periods
+and a "kept forever" marker on Recent are ideas, not done.

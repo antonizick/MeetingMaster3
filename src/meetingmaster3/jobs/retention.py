@@ -15,6 +15,7 @@ import datetime as dt
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from meetingmaster3.audio.ingest import encode_opus
 from meetingmaster3.config.settings import PrivacySettings, Settings
@@ -48,6 +49,59 @@ def _stale_expiry(job: JobRecord, privacy: PrivacySettings) -> dt.datetime | Non
     return job.updated_at + dt.timedelta(days=privacy.audio_retention_days)
 
 
+def effective_expiry(job: JobRecord, privacy: PrivacySettings) -> dt.datetime | None:
+    """When the pruner will delete this job's audio under the **current** setting.
+
+    ``None`` = never. Ignores pinning (callers check ``job.audio_pinned``). The pruner and the
+    review screen's countdown both use this, so they cannot disagree.
+    """
+    if job.status is JobStatus.WRITTEN and job.written_at is not None:
+        return compute_expiry(job.written_at, privacy)
+    return _stale_expiry(job, privacy)
+
+
+RetentionKind = Literal[
+    "none",  # no audio left to keep (never had any, or already pruned)
+    "kept_pinned",  # the user chose "keep forever"
+    "kept_setting",  # privacy.audio_retention is "forever"
+    "expires",  # will be deleted on ``expires_at`` (``days_left`` whole days away, at least 1)
+    "due",  # past its time; deleted at the next check
+]
+
+
+@dataclass(frozen=True)
+class RetentionStatus:
+    kind: RetentionKind
+    expires_at: dt.datetime | None = None
+    days_left: int | None = None
+
+    def to_dict(self) -> dict[str, object]:
+        return {"kind": self.kind, "expires_at": iso(self.expires_at), "days_left": self.days_left}
+
+
+def audio_retention_status(
+    job: JobRecord, privacy: PrivacySettings, now: dt.datetime | None = None
+) -> RetentionStatus:
+    """What the pruner will do with this job's audio, for the UI (R26).
+
+    Days left are whole days rounded up (23 h left = 1 day); 0 means due."""
+    now = now or utcnow()
+    if job.audio_path is None:
+        return RetentionStatus("none")
+    if job.audio_pinned:
+        return RetentionStatus("kept_pinned")
+    expiry = effective_expiry(job, privacy)
+    if expiry is None:
+        return RetentionStatus("kept_setting")
+    if expiry <= now:
+        return RetentionStatus("due", expiry, 0)
+    return RetentionStatus("expires", expiry, _days_up(expiry - now))
+
+
+def _days_up(delta: dt.timedelta) -> int:
+    return max(1, -(-int(delta.total_seconds()) // 86400))
+
+
 def playable_audio(folder: Path, job: JobRecord) -> Path | None:
     """The best audio file to play for a job: Opus, then the WAV, then the upload."""
     if job.audio_path is None:
@@ -63,8 +117,8 @@ def audio_expired_error() -> MM3Error:
     return MM3Error(
         "E_AUDIO_EXPIRED",
         "The audio for this meeting was deleted by the retention policy.",
-        "The transcript and the note are unaffected. Pin a meeting to keep its audio, or change "
-        "privacy.audio_retention in the settings.",
+        "The transcript and the note are unaffected. Use Keep forever on a meeting's review page "
+        "to keep its audio, or change privacy.audio_retention in the settings.",
         status_code=410,
     )
 
@@ -134,12 +188,14 @@ def prune(
     for job in jobs.list_jobs(limit=1_000_000):
         if job.audio_path is None or job.status in ACTIVE:
             continue
-        if job.status is JobStatus.WRITTEN and job.written_at is not None:
-            expiry = compute_expiry(job.written_at, settings.privacy)
-            if expiry != job.audio_expires_at and not dry_run:
-                jobs.update(job.id, audio_expires_at=expiry)
-        else:
-            expiry = _stale_expiry(job, settings.privacy)
+        expiry = effective_expiry(job, settings.privacy)
+        if (
+            job.status is JobStatus.WRITTEN
+            and job.written_at is not None
+            and expiry != job.audio_expires_at
+            and not dry_run
+        ):
+            jobs.update(job.id, audio_expires_at=expiry)
         if job.audio_pinned or expiry is None or expiry > now:
             continue
         folder = job_dir(jobs_root, job.id)

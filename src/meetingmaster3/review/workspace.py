@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Literal
 from meetingmaster3.domain.transcript import CompanionTranscript, natural_key
 from meetingmaster3.errors import MM3Error
 from meetingmaster3.jobs.files import job_dir
+from meetingmaster3.jobs.retention import RetentionStatus
 from meetingmaster3.markdown.editing import EditableDocument, split_document
 from meetingmaster3.markdown.note_parser import NoteParseError, ParsedNote, parse_note
 from meetingmaster3.markdown.transcript_format import ParsedTranscript
@@ -221,6 +222,8 @@ class Workspace:
     job_id: str | None = None
     audio: AudioState = "none"
     audio_message: str = ""
+    retention: RetentionStatus | None = None
+    audio_pinned: bool = False
     warnings: list[str] = field(default_factory=list)
 
     @property
@@ -286,6 +289,9 @@ def load_workspace(
     if runner is not None:
         ws.job_id = find_job(runner, mm3_id, entry)
         ws.audio, ws.audio_message = audio_state(runner, ws.job_id)
+        if ws.job_id is not None:
+            ws.audio_pinned = runner.jobs.get(ws.job_id).audio_pinned
+            ws.retention = runner.retention_status(runner.jobs.get(ws.job_id))
     return ws
 
 

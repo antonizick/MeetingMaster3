@@ -222,6 +222,7 @@ class JobRunner:
                 )
             stages.append(d)
         out = job.to_dict()
+        out["audio"]["retention"] = self.retention_status(job).to_dict()
         out["stages"] = stages
         out["waiting_for"] = next(
             (s["detail"].get("input") for s in stages if s["status"] == StageStatus.WAITING),
@@ -373,6 +374,9 @@ class JobRunner:
         remove_job_dir(self.jobs_root, job_id)
         self.jobs.delete(job_id)
         self.bus.forget(job_id)
+
+    def retention_status(self, job: JobRecord) -> retention.RetentionStatus:
+        return retention.audio_retention_status(job, self.settings.privacy)
 
     def set_pinned(self, job_id: str, pinned: bool) -> JobRecord:
         job = self.jobs.get(job_id)

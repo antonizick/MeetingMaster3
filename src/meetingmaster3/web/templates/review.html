@@ -6,6 +6,7 @@
 {% block scripts %}
   <script defer src="{{ url_for('static', path='js/transcript.js') }}"></script>
   <script defer src="{{ url_for('static', path='js/review.js') }}"></script>
+  <script defer src="{{ url_for('static', path='js/retention.js') }}"></script>
 {% endblock %}
 {% block content %}
 <script type="application/json" id="review-data">{{ data|tojson }}</script>
@@ -24,7 +25,10 @@
       {% if not ws.readonly %}
       <span id="save-status" class="save-status" role="status" aria-live="polite">Saved</span>
       <button type="button" class="primary" id="btn-save">Save to vault</button>
-      <button type="button" id="btn-preview" aria-pressed="false">Preview</button>
+      <div class="mode-switch" role="group" aria-label="Note view">
+        <button type="button" id="btn-preview" aria-pressed="true">Preview</button>
+        <button type="button" id="btn-edit" aria-pressed="false">Edit</button>
+      </div>
       <button type="button" id="btn-switch"{% if not ws.can_regenerate %} disabled title="Needs the companion transcript"{% endif %}>Switch template…</button>
       <button type="button" id="btn-rename"{% if not ws.can_regenerate or not ws.transcript or not ws.transcript.speakers %} disabled title="Needs a transcript with separate speakers"{% endif %}>Rename speakers…</button>
       {% endif %}
@@ -92,6 +96,7 @@
             </select>
           </label>
         </div>
+        <div id="retention-slot">{% include "partials/retention.html" %}</div>
         <p class="hint">Keys: <kbd>Space</kbd> or <kbd>K</kbd> play/pause · <kbd>J</kbd> back 5 s · <kbd>L</kbd> forward 5 s (not while typing). Click a word or time to jump there.</p>
         {% else %}
         <p class="alert info" id="no-audio">{{ ws.audio_message }}</p>
@@ -135,7 +140,7 @@
       {% if ws.readonly %}
       <article class="note">{{ rendered }}</article>
       {% else %}
-      <div id="editor" class="editor">
+      <div id="editor" class="editor" hidden>
         {% if ws.doc.frontmatter %}
         <details class="fm">
           <summary>Properties</summary>
@@ -161,10 +166,16 @@
         <textarea class="part text" data-kind="text" data-index="{{ ws.doc.sections|length }}" rows="1" aria-label="Your text after the last section" placeholder="Your own notes (outside the MeetingMaster3 sections)">{{ "\n" }}{{ ws.doc.texts[-1] }}</textarea>
         <p class="marker-warn alert warn" id="text-marker-warn" hidden>An edit outside the sections adds, removes or changes a section marker line. Saving will ask you to confirm.</p>
       </div>
-      <div id="preview" class="note" hidden></div>
+      <div id="preview" class="note">{{ rendered }}</div>
       {% endif %}
     </section>
   </div>
+
+  <dialog id="dlg-unkeep" aria-labelledby="dlg-unkeep-title">
+    <h2 id="dlg-unkeep-title">Allow this recording to be deleted?</h2>
+    <p id="unkeep-message"></p>
+    <div class="row"><button type="button" class="danger" id="unkeep-ok">Allow deletion</button> <button type="button" data-close>Keep it</button></div>
+  </dialog>
 
   {% if not ws.readonly %}
   <dialog id="dlg-regen" aria-labelledby="dlg-regen-title">

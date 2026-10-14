@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 from pathlib import Path
+from typing import Literal
 
 import pytest
 
@@ -173,3 +174,93 @@ async def test_opus_failure_keeps_audio(tmp_path: Path, monkeypatch: pytest.Monk
         assert job.audio_path == "original.wav" and job.audio_expires_at is not None
     finally:
         await runner.stop()
+
+
+# -- the review screen's countdown (R26): same rule as the pruner --------------------------------
+
+
+def _privacy(
+    mode: Literal["forever", "days", "delete_after_write"] = "days", days: int = 90
+) -> PrivacySettings:
+    return PrivacySettings(audio_retention=mode, audio_retention_days=days)
+
+
+def _status_job(
+    tmp_path: Path, written: dt.datetime | None, *, pinned: bool = False
+) -> tuple[JobRepository, Path, str]:
+    db = Database.open(tmp_path / "mm3.db")
+    jobs, root = JobRepository(db), tmp_path / "jobs"
+    if written is not None:
+        job_id = _written_job(jobs, root, written, pinned=pinned)
+    else:
+        job_id = new_job_id()
+        job_dir(root, job_id, create=True)
+        jobs.create(job_id, stages=["a"], audio_path="original.m4a", status=JobStatus.RUNNING)
+        jobs.set_status(job_id, JobStatus.FAILED, audio_pinned=pinned)
+    return jobs, root, job_id
+
+
+@pytest.mark.parametrize(
+    ("offset", "kind", "days"),
+    [
+        (dt.timedelta(days=90), "expires", 90),  # exactly 90 days left
+        (dt.timedelta(days=90, seconds=-1), "expires", 90),  # rounded up
+        (dt.timedelta(days=1, seconds=1), "expires", 2),
+        (dt.timedelta(days=1), "expires", 1),
+        (dt.timedelta(hours=1), "expires", 1),  # under a day is still "1 day", never 0
+        (dt.timedelta(0), "due", 0),  # the pruner deletes at expiry <= now
+        (dt.timedelta(days=-3), "due", 0),
+    ],
+)
+def test_days_left_rounding_and_boundaries(
+    tmp_path: Path, offset: dt.timedelta, kind: str, days: int
+) -> None:
+    jobs, _root, job_id = _status_job(tmp_path, T0)
+    now = T0 + dt.timedelta(days=90) - offset
+    status = retention.audio_retention_status(jobs.get(job_id), _privacy(), now)
+    assert (status.kind, status.days_left) == (kind, days)
+
+
+def test_status_for_every_setting_and_pin(tmp_path: Path) -> None:
+    jobs, _root, job_id = _status_job(tmp_path, T0)
+    job = jobs.get(job_id)
+    now = T0 + dt.timedelta(days=10)
+    assert retention.audio_retention_status(job, _privacy("forever"), now).kind == "kept_setting"
+    assert retention.audio_retention_status(job, _privacy("delete_after_write"), now).kind == "due"
+    pinned = _status_job(tmp_path / "p", T0, pinned=True)
+    pinned_job = pinned[0].get(pinned[2])
+    for mode in ("days", "forever", "delete_after_write"):
+        assert (
+            retention.audio_retention_status(pinned_job, _privacy(mode), now).kind == "kept_pinned"
+        )
+    # Unfinished jobs count from their last change, like the pruner does.
+    unfinished = _status_job(tmp_path / "u", None)
+    job_u = unfinished[0].get(unfinished[2])
+    status = retention.audio_retention_status(job_u, _privacy(), job_u.updated_at)
+    assert status.kind == "expires" and status.days_left == 90
+    # No audio left (pruned): nothing to keep.
+    jobs.update(job_id, audio_path=None)
+    assert retention.audio_retention_status(jobs.get(job_id), _privacy(), now).kind == "none"
+
+
+@pytest.mark.parametrize("mode", ["days", "forever", "delete_after_write"])
+@pytest.mark.parametrize("pinned", [False, True])
+@pytest.mark.parametrize("day", [0, 30, 89, 90, 91, 400])
+def test_status_agrees_with_the_pruner(
+    tmp_path: Path, mode: Literal["forever", "days", "delete_after_write"], pinned: bool, day: int
+) -> None:
+    """The line shown on the review screen never disagrees with what prune() will do."""
+    jobs, root, job_id = _status_job(tmp_path, T0, pinned=pinned)
+    settings = Settings()
+    settings.privacy = _privacy(mode)
+    now = T0 + dt.timedelta(days=day)
+    status = retention.audio_retention_status(jobs.get(job_id), settings.privacy, now)
+    would_delete = bool(retention.prune(jobs, root, settings, now=now, dry_run=True))
+    assert would_delete == (status.kind == "due")
+    # Changing the setting changes the answer for both, together.
+    settings.privacy = _privacy("days", 30)
+    status = retention.audio_retention_status(jobs.get(job_id), settings.privacy, now)
+    would_delete = bool(retention.prune(jobs, root, settings, now=now, dry_run=True))
+    assert would_delete == (status.kind == "due")
+    if status.kind == "expires":
+        assert status.expires_at == T0 + dt.timedelta(days=30)

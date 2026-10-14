@@ -97,8 +97,12 @@ def test_review_regenerate_archive_save(server: tuple[str, Path], tmp_path: Path
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
         page.goto(url)
-        page.wait_for_selector("#editor textarea.sec")
+        page.wait_for_selector("#preview:not([hidden]) h2")  # opens on the rendered note
+        assert page.locator("#editor").is_hidden()
         shot(page, "review-workspace")
+        page.click("#btn-edit")
+        page.wait_for_selector("#editor textarea.sec")
+        assert page.get_attribute("#btn-edit", "aria-pressed") == "true"
 
         # Clicking a timestamp in the transcript seeks the audio.
         stamp = page.locator(".transcript .ts").nth(2)
@@ -150,3 +154,44 @@ def test_review_regenerate_archive_save(server: tuple[str, Path], tmp_path: Path
     assert after[: span_after.inner_start] == before[: span_before.inner_start]
     assert not external, f"the browser contacted other hosts: {external}"
     assert not errors, errors
+
+
+def test_preview_first_edit_then_keep_forever(server: tuple[str, Path], tmp_path: Path) -> None:
+    base, vault = server
+    url = written_note(base, make_tone(tmp_path / "2026-10-11 Keep Me.m4a", 20.0))
+    note = next(p for p in vault.rglob("2026-10-11 - Keep Me.md"))
+    with playwright_sync.sync_playwright() as pw:
+        try:
+            browser = pw.chromium.launch(executable_path=os.environ.get("MM3_E2E_BROWSER") or None)
+        except playwright_sync.Error as exc:
+            pytest.skip(f"no Chromium available for Playwright: {exc}")
+        page = browser.new_page(viewport={"width": 1400, "height": 900})
+        page.goto(url)
+        page.wait_for_selector("#preview:not([hidden]) h2")
+        assert page.get_attribute("#btn-preview", "aria-pressed") == "true"
+        assert page.locator("#editor").is_hidden()
+        shot(page, "review-preview-retention")
+
+        # Edit, type, Preview shows the unsaved edit, then Save.
+        page.click("#btn-edit")
+        page.locator('textarea[data-kind="text"]').nth(1).fill("Typed in the editor.")
+        page.click("#btn-preview")
+        page.wait_for_selector("#preview:not([hidden]):has-text('Typed in the editor.')")
+        page.click("#btn-save")
+        page.wait_for_selector("#save-status:has-text('Saved to vault')")
+        assert page.locator("#preview").is_visible()  # Save keeps the mode
+        assert "Typed in the editor." in note.read_text("utf-8")
+
+        # Keep forever -> the line changes -> a reload keeps it -> Allow deletion -> days are back.
+        assert "deleted in 90 days" in page.inner_text("#retention-text")
+        page.click("#retention-btn")
+        page.wait_for_selector("#retention-text:has-text('Recording kept forever')")
+        page.reload()
+        page.wait_for_selector("#retention-text:has-text('Recording kept forever')")
+        page.click("#retention-btn")
+        page.wait_for_selector("#dlg-unkeep[open]")
+        assert "will be deleted in 90 days" in page.inner_text("#unkeep-message")
+        page.click("#unkeep-ok")
+        page.wait_for_selector("#retention-text:has-text('deleted in 90 days')")
+        shot(page, "review-retention-line")
+        browser.close()

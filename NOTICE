@@ -8,5 +8,8 @@ third-party model weights. See THIRD_PARTY_NOTICES.md for the component and
 model licence inventory.
 
 The MeetingMaster3 logo (src/meetingmaster3/web/static/brand/logo* and hero*) is
-Copyright 2026 Nick Antonizick, all rights reserved. It is NOT licensed under
-the Apache License, Version 2.0; forks and redistributions must replace it.
+released by its author, Nick Antonizick, under CC0 1.0 Universal
+(https://creativecommons.org/publicdomain/zero/1.0/). It is NOT under the Apache
+License, Version 2.0. Forks and redistributions may keep it. CC0 covers copyright
+only: it grants no trademark rights, and no right to use the likeness of a person
+shown in it (for example to suggest endorsement).

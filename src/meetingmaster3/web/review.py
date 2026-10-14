@@ -43,6 +43,7 @@ from meetingmaster3.markdown.sections import (
     scan_sections,
     section_inner,
 )
+from meetingmaster3.review import retention_view
 from meetingmaster3.review.rename import plan_rename
 from meetingmaster3.review.save import (
     SaveConflict,
@@ -237,6 +238,37 @@ def _draft_context(ws: Workspace, store: ReviewStore) -> dict[str, Any] | None:
     }
 
 
+def _retention_view(runner: Any, job_id: str | None) -> retention_view.RetentionView | None:
+    if job_id is None:
+        return None
+    job = runner.jobs.get(job_id)
+    return retention_view.for_job(job, runner.retention_status(job), runner.settings.privacy)
+
+
+class KeepBody(NoteRef):
+    keep: bool
+
+
+@router.post("/ui/review/{mm3_id}/keep")
+async def keep_recording(request: Request, mm3_id: str) -> dict[str, Any]:
+    """Keep the meeting's recording forever (the job's pin), or allow its deletion again."""
+    body = await _body(request, KeepBody)
+    _locate(request, mm3_id, body.path)
+    runner = get_runner(request)
+    job_id = find_job(runner, check_mm3_id(mm3_id), None)
+    if job_id is None:
+        raise MM3Error(
+            "E_AUDIO_MISSING",
+            "No recording is linked to this note.",
+            "It was processed elsewhere, or its job was deleted.",
+            status_code=404,
+        )
+    runner.set_pinned(job_id, body.keep)
+    view = _retention_view(runner, job_id)
+    html = _fragment(request, "partials/retention.html", {"retention": view})
+    return {"html": html, "pinned": body.keep}
+
+
 @router.get("/meetings/{mm3_id}", response_class=HTMLResponse)
 async def workspace_page(request: Request, mm3_id: str, path: str | None = None) -> HTMLResponse:
     runner = get_runner(request)
@@ -286,9 +318,10 @@ async def workspace_page(request: Request, mm3_id: str, path: str | None = None)
             "ws": ws,
             "meta": meta,
             "title": meta.title if meta else note.stem,
-            "rendered": render_markdown(ws.text, timestamps=True) if ws.readonly else None,
+            "rendered": render_markdown(ws.text, timestamps=True),
             "data": data,
             "audio_url": f"/api/jobs/{ws.job_id}/audio" if ws.audio == "ok" else None,
+            "retention": _retention_view(runner, ws.job_id) if ws.audio == "ok" else None,
             "obsidian_link": views.obsidian_link(str(note)),
             "templates_list": [e.to_dict() for e in library.listing() if e.valid],
             "backends": _backends(request),

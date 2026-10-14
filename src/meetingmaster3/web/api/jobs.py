@@ -281,12 +281,16 @@ async def delete_job(request: Request, job_id: str, force: bool = False) -> dict
 
 @router.post("/{job_id}/pin")
 async def pin_job(request: Request, job_id: str) -> dict[str, Any]:
-    return get_runner(request).set_pinned(check_job_id(job_id), True).to_dict()
+    runner = get_runner(request)
+    runner.set_pinned(check_job_id(job_id), True)
+    return runner.describe(job_id)
 
 
 @router.post("/{job_id}/unpin")
 async def unpin_job(request: Request, job_id: str) -> dict[str, Any]:
-    return get_runner(request).set_pinned(check_job_id(job_id), False).to_dict()
+    runner = get_runner(request)
+    runner.set_pinned(check_job_id(job_id), False)
+    return runner.describe(job_id)
 
 
 _MEDIA_TYPES = {".opus": "audio/ogg", ".wav": "audio/wav", ".mp3": "audio/mpeg"}
