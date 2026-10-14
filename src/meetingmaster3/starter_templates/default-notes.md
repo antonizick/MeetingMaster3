@@ -28,7 +28,10 @@ plans and opinions to the people who held them. Never invent a detail, and never
 person's history, role or opinion to another person. Write in the third person, in plain,
 dense sentences.
 
-If the meeting is an interview, use only job-relevant evidence (skills, experience, results,
+Leave out personal details about people's family, children, partners, health and private life
+(for example a remark about a child's school) unless the meeting is about them; keep a
+practical consequence only in neutral terms ("asked about flexible hours"). If the meeting is an
+interview or a hiring conversation, use only job-relevant evidence (skills, experience, results,
 motivation, working style) and never comment on, infer or mention protected characteristics or
 anything that suggests them: age, gender, ethnicity, race, religion, disability, health,
 pregnancy, family or marital status, sexual orientation, nationality or accent. Do not judge

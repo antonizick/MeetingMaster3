@@ -969,7 +969,15 @@ shared with another session's test server, so times are high):
 | v5 | structured `exchanges` in the high-detail map step; Q&A uses them and never re-pairs; advice is not a task, Unassigned only for agreed work | 6 / 971 / 66 % | 6 / 857 / 70 % | 6 / 871 / 70 %; answers now match their questions, but Q&A listed each exchange under both people and the tasks picked up small talk ("I'll …" remarks) |
 | v6 | Q&A: one group per asker, third person; personal plans and small talk are not tasks (prompt only) | 5 / 729 / 65 %; tasks still listed small talk | 5 / 763 / 70 % | not run |
 | v7 | `task_candidates: relevant`, first form: advisory wording; Q&A grew past its limit | 5 / 913 / 60 %; tasks still small talk | 6 / 867 / 70 %; 12 conversational tasks | not run |
-| v8 | candidates filtered to follow-up work (prompt and map step); "after the meeting" task test; Q&A at most 12 questions | RESULTS_V8_0813 | RESULTS_V8_0922 | RESULTS_V8_0818 |
+| v8 | candidates filtered to follow-up work (prompt and map step); "after the meeting" task test; Q&A at most 12 questions | 5 / 897 / 65 %; tasks: exactly the two real follow-ups | 6 / 914 / 70 %; tasks: the one real follow-up | 5 / 786 / 68 %; tasks: the three real ones and one small-talk leftover the map step extracted itself |
+
+Final (v8), for comparison with the samples: about 800-900 topic words in 5-6 topics where the samples have
+about 1 000 in 5-9; 65-70 % of the samples' specifics that were said in the meeting appear; Summary Succinct 26-41
+words; every action item has an owner. Spot checks against the transcripts found no invented facts in the topics;
+the remaining errors are of the kind the samples also make (one figure attached to the wrong group in a Q&A answer,
+an ambiguous word read in its everyday sense). **The owner read the 59-minute call's note beside its sample and
+judged it "Plaud-like"** (2026-10-14, v6; v7-v8 changed only the action items and the Q&A length). Times: see
+`docs/PERFORMANCE.md` (about 2.5-3 times Executive Summary).
 
 Lessons: word targets alone do not lengthen an 8B model's answer; counts of topics, bullets and sentences, with a
 placeholder example of the same length, do. Map-reduce detail was the main limit on long meetings. Interviews need

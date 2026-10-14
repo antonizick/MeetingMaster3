@@ -88,17 +88,25 @@ _FOLLOW_UP_RE = re.compile(
     r"approve|order|buy|fix|deploy|test|investigate|organi[sz]e|arrange|invite|introduce|"
     r"connect|put together|pull together|compile|get (?:you|him|her|them|it|that) |"
     r"let (?:you|him|her|them) know|keep (?:you|him|her|them) (?:posted|updated|"
-    r"informed|in the loop))\b",
+    r"informed|in the loop)|finish|complete|deliver|ship|release|migrate|run|tell|ask|"
+    r"measure|negotiate|renegotiate|renew|cancel|sign|pay|hire|train|document|plan|"
+    r"handle|own|pick (?:it|that|this) up|sort out|figure out|work on|clean up|escalate|"
+    r"raise|file|contact|talk to|speak to|brief|present|demo|estimate|budget|price|quote)\b",
     re.I,
 )
 
 
 def follow_up_cues(cues: Sequence[Cue]) -> list[Cue]:
-    """The candidates that name follow-up work (send, schedule, review...), for templates whose
-    meetings are informal conversations (``params.task_candidates: relevant``, ADR-0039): there,
-    most "I'll ..." sentences are conversation ("I'll put it that way") and only these are
-    worth showing to the model."""
+    """The candidates that name follow-up work (send, schedule, finish, tell, review...)."""
     return [c for c in cues if _FOLLOW_UP_RE.search(c.sentence)]
+
+
+def split_follow_up(cues: Sequence[Cue]) -> tuple[list[Cue], list[Cue]]:
+    """(candidates naming follow-up work, the others), for templates whose meetings are often
+    informal conversations (``params.task_candidates: relevant``, ADR-0039), where many "I'll ..."
+    sentences are conversation ("I'll put it that way")."""
+    likely = follow_up_cues(cues)
+    return likely, [c for c in cues if c not in likely]
 
 
 # -- owner guard ------------------------------------------------------------------------------

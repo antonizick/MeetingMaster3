@@ -120,21 +120,28 @@ def test_regeneration_prompt_parts() -> None:
 
 
 def test_task_candidates_policy() -> None:
-    """ADR-0039: with ``params.task_candidates: relevant`` (Default Notes) only the candidates
-    that name follow-up work are shown, as hints; every other template keeps the full list and
-    the strict wording."""
+    """ADR-0039: with ``params.task_candidates: relevant`` (Default Notes) the candidates are split
+    into those naming follow-up work (likely tasks) and the rest (maybe only conversation);
+    every other template keeps one list and the strict wording."""
     cues = assembler.task_cues([
         Turn("Ann", "I'll send the plan on Friday.", 5.0),
         Turn("Ben", "I'll put it that way.", 9.0),
-        Turn("Ann", "I'll put together a short brief.", 12.0),
+        Turn("Ann", "I'll finish the migration script.", 12.0),
     ])  # fmt: skip
     library = load_library()
-    for template_id, strict in (("action-focused", True), ("default-notes", False)):
-        template = library.get(template_id)
-        section = template.section("action-items")
-        assert section is not None
-        prompt = assembler.section_prompt(template, section, "ctx", cues=cues)
-        assert "send the plan" in prompt and "short brief" in prompt
-        assert ("put it that way" in prompt) is strict
-        assert ("must appear once, however small" in prompt) is strict
-        assert ("work to be done after the meeting" in prompt) is not strict
+    strict = library.get("action-focused")
+    section = strict.section("action-items")
+    assert section is not None
+    prompt = assembler.section_prompt(strict, section, "ctx", cues=cues)
+    assert "must appear once, however small" in prompt and "<maybe>" not in prompt
+    assert "send the plan" in prompt and "put it that way" in prompt
+
+    relevant = library.get("default-notes")
+    section = relevant.section("action-items")
+    assert section is not None
+    prompt = assembler.section_prompt(relevant, section, "ctx", cues=cues)
+    likely = prompt.split("<candidates>")[1].split("</candidates>")[0]
+    maybe = prompt.split("<maybe>")[1].split("</maybe>")[0]
+    assert "send the plan" in likely and "migration script" in likely
+    assert "put it that way" in maybe and "put it that way" not in likely
+    assert "must appear once" not in prompt and "work to be done after the meeting" in prompt
