@@ -19,7 +19,12 @@ from meetingmaster3.markdown.diff import diff_stats, side_by_side, unified_diff
 from meetingmaster3.markdown.note_parser import ParsedNote, parse_note
 from meetingmaster3.markdown.sections import SectionMarkerError, scan_sections
 from meetingmaster3.markdown.transcript_format import ParsedTranscript, parse_transcript
-from meetingmaster3.templates.generator import regenerate_section
+from meetingmaster3.templates.generator import (
+    ContextFn,
+    ProgressFn,
+    _noop_progress,
+    regenerate_section,
+)
 from meetingmaster3.templates.loader import TemplateLibrary
 from meetingmaster3.templates.schema import Template, TemplateParams
 from meetingmaster3.vault.io import read_text
@@ -203,6 +208,8 @@ async def regenerate_text(
     model: str | None = None,
     cloud_consent: bool = False,
     append: bool = False,
+    progress: ProgressFn | None = None,
+    on_context: ContextFn | None = None,
 ) -> RegenerationPreview:
     """Like :func:`preview_regeneration`, for the note ``text`` of the vault file ``path`` (the
     review workspace passes the editor's copy). With ``append=True`` the section need not exist
@@ -221,6 +228,8 @@ async def regenerate_text(
     name, chosen = choose_model(settings, meta.backend, meta.model, backend, model)
     cfg = settings.llm.backends.get(name)
     llm = backend_lookup(name)
+    if on_context is not None:
+        on_context(transcript.duration, bool(llm.is_local))
     if section is None:  # appending a fresh copy of a damaged or missing section
         known = template.section(section_id)
         title = known.title if known else section_id.replace("-", " ").capitalize()
@@ -237,6 +246,7 @@ async def regenerate_text(
         consent_remembered=bool(cfg and cfg.consent_remembered),
         max_context=settings.generation.max_context,
         think=settings.generation.think,
+        progress=progress or _noop_progress,
     )
     rows = side_by_side(section.body_markdown, new_body)
     stats = diff_stats(rows)

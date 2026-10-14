@@ -25,9 +25,9 @@
       {% if not ws.readonly %}
       <span id="save-status" class="save-status" role="status" aria-live="polite">Saved</span>
       <button type="button" class="primary" id="btn-save">Save to vault</button>
-      <div class="mode-switch" role="group" aria-label="Note view">
-        <button type="button" id="btn-preview" aria-pressed="true">Preview</button>
-        <button type="button" id="btn-edit" aria-pressed="false">Edit</button>
+      <div class="mode-switch">
+        <button type="button" id="btn-mode" data-mode="preview">Edit note</button>
+        <span id="mode-label" class="muted mode-label" role="status">Viewing</span>
       </div>
       <button type="button" id="btn-switch"{% if not ws.can_regenerate %} disabled title="Needs the companion transcript"{% endif %}>Switch template…</button>
       <button type="button" id="btn-rename"{% if not ws.can_regenerate or not ws.transcript or not ws.transcript.speakers %} disabled title="Needs a transcript with separate speakers"{% endif %}>Rename speakers…</button>
@@ -42,6 +42,7 @@
           <li><a href="/api/export/meeting?note={{ export_note }}&amp;kind=txt" download>The transcript as plain text (.txt)</a></li>
           {% endif %}
           <li><a href="/api/export/meeting?note={{ export_note }}&amp;kind=zip" download>Everything in one zip</a></li>
+          {% if recording %}<li><a href="{{ recording.download_url }}" download="{{ recording.name }}">The recording ({{ recording.suffix }}, {{ recording.size }})</a></li>{% endif %}
         </ul>
       </details>
     </div>
@@ -83,6 +84,12 @@
       <div class="player" id="player">
         {% if audio_url %}
         <audio id="audio" preload="metadata" src="{{ audio_url }}"></audio>
+        {% if recording %}
+        <p class="rec-info muted" id="rec-info">
+          <span class="rec-size" title="Size of the stored recording. Keep forever stops its automatic deletion.">Recording: <strong>{{ recording.size }}</strong> ({{ recording.format }})</span>
+          · <a href="{{ recording.download_url }}" download="{{ recording.name }}" id="rec-download" aria-label="Download the recording ({{ recording.format }}, {{ recording.size }})"><span aria-hidden="true">⤓</span> Download</a>
+        </p>
+        {% endif %}
         <div class="player-controls">
           <button type="button" id="pl-back" title="Back 5 seconds (J)">−5 s</button>
           <button type="button" id="pl-play" class="primary" aria-label="Play" title="Play or pause (Space or K)">▶</button>

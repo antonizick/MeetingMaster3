@@ -236,6 +236,15 @@ class JobRepository:
         params += [limit, offset]
         return [JobRecord.from_row(r) for r in self.db.fetchall(sql, params)]
 
+    def count_jobs(self, statuses: set[JobStatus] | None = None) -> int:
+        sql = "SELECT COUNT(*) AS n FROM jobs"
+        params: list[Any] = []
+        if statuses:
+            sql += f" WHERE status IN ({','.join('?' * len(statuses))})"
+            params.extend(s.value for s in statuses)
+        row = self.db.fetchone(sql, params)
+        return int(row["n"]) if row else 0
+
     def set_status(
         self,
         job_id: str,
@@ -409,11 +418,16 @@ class RecentMeetingsRepository:
             raise KeyError(note_path)
         return self._from_row(row)
 
-    def recent(self, limit: int = 50) -> list[RecentMeeting]:
+    def recent(self, limit: int = 50, offset: int = 0) -> list[RecentMeeting]:
         rows = self.db.fetchall(
-            "SELECT * FROM recent_meetings ORDER BY last_opened DESC LIMIT ?", (limit,)
+            "SELECT * FROM recent_meetings ORDER BY last_opened DESC, note_path LIMIT ? OFFSET ?",
+            (limit, offset),
         )
         return [self._from_row(r) for r in rows]
+
+    def count(self) -> int:
+        row = self.db.fetchone("SELECT COUNT(*) AS n FROM recent_meetings")
+        return int(row["n"]) if row else 0
 
     def for_meeting(self, mm3_id: str) -> list[RecentMeeting]:
         """Entries for one meeting id, most recently opened first."""

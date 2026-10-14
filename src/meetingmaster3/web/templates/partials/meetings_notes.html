@@ -1,0 +1,34 @@
+{% from "partials/pager.html" import pager %}
+<section id="sec-notes" aria-labelledby="h-notes" class="card">
+  <h2 id="h-notes" tabindex="-1">Notes in your vault</h2>
+  {% if notes %}
+  {% if orphans %}
+  <div class="alert warn" role="status">
+    <p>{{ orphans }} {{ 'entry points' if orphans == 1 else 'entries point' }} to a note that is missing or outside your vault.</p>
+    <button hx-post="/ui/recent/prune{{ notes_qs }}" hx-target="#sec-notes" hx-swap="outerHTML"
+            hx-confirm="Remove the entries marked as missing or outside your vault from this list? No files are deleted.">Remove {{ 'it' if orphans == 1 else 'them' }} from the list</button>
+  </div>
+  {% endif %}
+  <ul class="plain">
+    {% for n in notes %}
+    <li>
+      {% if n.orphan %}
+      <span>{{ n.title or n.note_path }}</span>
+      <span class="muted">{{ n.date or '' }}</span>
+      <span class="badge status-failed">{{ n.orphan }}</span>
+      <span class="muted note-path">{{ n.note_path }}</span> ·
+      {% else %}
+      <a href="{{ n.preview_link }}">{{ n.title or n.note_path }}</a>
+      <span class="muted">{{ n.date or '' }}</span> ·
+      <a href="{{ n.obsidian_link }}">Open in Obsidian</a> ·
+      {% endif %}
+      <button class="link" hx-post="/ui/recent/remove{{ notes_qs }}" hx-vals='{{ {"path": n.note_path}|tojson }}'
+              hx-target="#sec-notes" hx-swap="outerHTML"
+              hx-confirm="Remove this entry from the list? The note file itself is not touched."
+              aria-label="Remove {{ n.title or n.note_path }} from the list">Remove from list</button>
+    </li>
+    {% endfor %}
+  </ul>
+  {{ pager(notes_pager, "#sec-notes", "h-notes") }}
+  {% else %}<p class="muted">Notes you write appear here.</p>{% endif %}
+</section>

@@ -58,6 +58,14 @@
     toast("error", "Cannot reach MeetingMaster3.", "Is the server still running?");
   });
 
+  // -- Paged sections (Meetings): after a page swap, put focus back on the section heading -------
+  document.body.addEventListener("htmx:afterSwap", (evt) => {
+    const elt = evt.detail && evt.detail.requestConfig ? evt.detail.requestConfig.elt : null;
+    const id = elt && elt.dataset ? elt.dataset.focus : "";
+    const heading = id ? document.getElementById(id) : null;
+    if (heading) heading.focus({ preventScroll: false });
+  });
+
   // -- Job page: the SSE stream says "something changed", the server renders the panel ---------
   function setupJobPanel() {
     const panel = document.getElementById("job-panel");

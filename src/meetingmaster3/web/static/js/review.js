@@ -167,8 +167,10 @@
   // -- Preview / Edit ------------------------------------------------------------------------
   // The page opens on the server-rendered note (Preview). Edit shows the textareas; going back to
   // Preview renders the current, possibly unsaved, edits.
-  const previewBtn = $("#btn-preview");
-  const editBtn = $("#btn-edit");
+  // One toggle named after what clicking it does: "Edit note" in Preview, "Show preview" in Edit,
+  // with a muted "Viewing" / "Editing" label for the current state.
+  const modeBtn = $("#btn-mode");
+  const modeLabel = $("#mode-label");
   const preview = $("#preview");
   const MODE_KEY = "mm3.review.mode";
   let previewStale = false; // true once the textareas differ from what the preview shows
@@ -178,8 +180,9 @@
     const edit = mode === "edit";
     editor.hidden = !edit;
     preview.hidden = edit;
-    previewBtn.setAttribute("aria-pressed", String(!edit));
-    editBtn.setAttribute("aria-pressed", String(edit));
+    modeBtn.dataset.mode = mode;
+    modeBtn.textContent = edit ? "Show preview" : "Edit note";
+    modeLabel.textContent = edit ? "Editing" : "Viewing";
     if (edit) parts().forEach(autosize);
   }
   const showEdit = () => { showMode("edit"); remember("edit"); };
@@ -192,8 +195,14 @@
     showMode("preview");
     remember("preview");
   }
-  previewBtn.addEventListener("click", () => busy(previewBtn, showPreview));
-  editBtn.addEventListener("click", showEdit);
+  modeBtn.addEventListener("click", async () => {
+    if (modeBtn.dataset.mode !== "edit") { showEdit(); return; }
+    // Rendering unsaved edits takes a request; the label is set by showMode, so don't restore it.
+    modeBtn.disabled = true;
+    modeBtn.setAttribute("aria-busy", "true");
+    try { await showPreview(); } catch (err) { fail(err); }
+    finally { modeBtn.disabled = false; modeBtn.removeAttribute("aria-busy"); }
+  });
   editor.addEventListener("input", () => { previewStale = true; });
   try { if (localStorage.getItem(MODE_KEY) === "edit") showMode("edit"); } catch (e) { /* default: Preview */ }
 
