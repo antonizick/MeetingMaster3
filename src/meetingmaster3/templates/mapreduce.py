@@ -67,7 +67,7 @@ HIGH_DETAIL_SCHEMA = """\
     {"asked_by": "Name", "question": "the question in a few words",
      "answered_by": "Name", "answer": "the answer with its specifics", "time": "mm:ss"}]
 }"""
-"""``params.detail: high`` (ADR-0038): points carry a topic label and keep their specifics, there
+"""``params.detail: high`` (ADR-0039): points carry a topic label and keep their specifics, there
 are up to :data:`HIGH_DETAIL_POINTS` of them per part, and answered questions are kept as
 ``exchanges`` with who asked and who answered."""
 

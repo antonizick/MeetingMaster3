@@ -259,7 +259,7 @@ def test_runner_down_without_lifespan() -> None:
 def test_template_chosen_on_new_meeting_becomes_the_default(
     api: TestClient, tone: Path, settings: Settings
 ) -> None:
-    """ADR-0038: the New meeting page sends ``remember_template``; the page pre-selects the
+    """ADR-0039: the New meeting page sends ``remember_template``; the page pre-selects the
     saved default (test_pages) and Settings shows it."""
     assert settings.generation.default_template == "default-notes"  # first-run default
     r = upload(api, tone, {"template": "action-focused", "remember_template": True})

@@ -420,7 +420,7 @@ async def test_cut_off_extraction_asks_for_a_shorter_answer() -> None:
 
 
 async def test_high_detail_template_keeps_more_points_with_topics() -> None:
-    """ADR-0038: ``params.detail: high`` (Default Notes) asks the map step for up to 30 points
+    """ADR-0039: ``params.detail: high`` (Default Notes) asks the map step for up to 30 points
     with their specifics and a topic label, gives it more output room, and shows the topics to
     the reduce step. Too small a window falls back to standard notes."""
     point = {"topic": "Order database", "text": "Oracle 12c moves to PostgreSQL 16 by March",

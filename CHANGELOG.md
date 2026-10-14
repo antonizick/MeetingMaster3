@@ -9,7 +9,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 - **Default Notes** (`default-notes`), the 23rd built-in template and the new default (Phase 15e, R29,
-  ADR-0038): a briefing for someone who missed the meeting. A one-line Summary Succinct, Summary Detailed,
+  ADR-0039): a briefing for someone who missed the meeting. A one-line Summary Succinct, Summary Detailed,
   Meeting Context, **Discussion by Topic** (numbered topics with bold-labelled, timestamped paragraphs that
   keep the figures, names, dates and who said what), Questions & Answers when much of the meeting was
   questions, a Conclusion, Action Items by owner and AI Recommendations. It keeps every MeetingMaster3

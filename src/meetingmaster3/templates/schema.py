@@ -64,7 +64,7 @@ class TemplateParams(_Model):
     max_tokens_per_section: int = Field(default=800, ge=64, le=32_000)
     ai_recommendations: bool = True
     detail: Literal["standard", "high"] = "standard"
-    """How much of a long meeting the map-reduce notes keep (ADR-0038). ``high`` keeps about three
+    """How much of a long meeting the map-reduce notes keep (ADR-0039). ``high`` keeps about three
     times as many points per part, with their figures and names and a topic label, for
     templates that write dense, topic-by-topic notes; it costs a longer map step."""
 

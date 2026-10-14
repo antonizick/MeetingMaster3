@@ -40,7 +40,7 @@ HEARTBEAT_SECONDS = 15.0
 MAX_OPTIONS_BYTES = 64 * 1024
 UPLOAD_SLACK_BYTES = 1024 * 1024  # multipart framing and the options field
 REMEMBER_TEMPLATE = "remember_template"
-"""Option sent by the New meeting page: the chosen template becomes the default (ADR-0038)."""
+"""Option sent by the New meeting page: the chosen template becomes the default (ADR-0039)."""
 
 
 def get_runner(request: Request) -> JobRunner:

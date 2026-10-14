@@ -122,7 +122,7 @@ def test_new_meeting_page_lists_templates_and_backends(ui: TestClient, vault: Pa
     r = ui.get("/")
     assert r.status_code == 200
     assert 'value="executive-summary"' in r.text
-    assert re.search(r'value="default-notes"[^>]*\bselected\b', r.text)  # the default (ADR-0038)
+    assert re.search(r'value="default-notes"[^>]*\bselected\b', r.text)  # the default (ADR-0039)
     assert "Executive Summary" in r.text
     assert 'value="openrouter"' in r.text and 'data-consent="yes"' in r.text
     assert 'data-badge="local"' in r.text and "cloud: openrouter" in r.text

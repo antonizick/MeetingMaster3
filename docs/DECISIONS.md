@@ -41,7 +41,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0035 | 2026-10-14 | Logo and hero picture released under CC0 1.0 | Accepted; implemented in 15b | 15b |
 | ADR-0036 | 2026-10-14 | Review opens in Preview; one retention rule shared by the pruner and the countdown; Keep forever wording | Accepted | 15b |
 | ADR-0037 | 2026-10-14 | Tuning round 3 split into 15c/15d/15e; meeting rename updates backlinks after a backup; the Plaud-style template is topic-based and named neutrally | Accepted | 15c, 15d, 15e |
-| ADR-0038 | 2026-10-14 | Default Notes: topic-based template and new default; template choice on New meeting sticks; `params.detail: high` for richer map-reduce notes | Accepted | 15e |
+| ADR-0039 | 2026-10-14 | Default Notes: topic-based template and new default; template choice on New meeting sticks; `params.detail: high` for richer map-reduce notes | Accepted | 15e |
 
 ---
 
@@ -885,7 +885,7 @@ per section (25 in Browse the vault).
 **Consequences.** The built-in library grows to 23 templates (spec A3 amended in 15e). MM3 gains its first write
 path into notes it did not create (15d), which goes into the threat model.
 
-## ADR-0038: Default Notes, a topic-based template that is also the default; sticky template choice; high-detail map-reduce (Phase 15e, R29)
+## ADR-0039: Default Notes, a topic-based template that is also the default; sticky template choice; high-detail map-reduce (Phase 15e, R29)
 **Context.** ADR-0037 asked for a built-in template that writes notes like those a commercial AI recorder produced
 from three of the owner's meetings, under a neutral name. During the phase the owner chose the name **Default
 Notes** (`default-notes`) instead of "Topic Briefing", asked for it to be the default on a first run, and asked that

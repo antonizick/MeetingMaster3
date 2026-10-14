@@ -109,7 +109,7 @@ better answer is kept and the job gets a warning; nothing is padded.
 | `temperature` | number 0–2 or `null` | `null` | Overrides the per-kind default for every section without its own `temperature`. |
 | `max_tokens_per_section` | integer ≥ 64 | `800` | Default output limit. |
 | `ai_recommendations` | boolean | `true` | When `true`, the template **must** have an `ai-recommendations` section and it **must be last** (spec §8, Appendix A). When `false` (e.g. formal board minutes), it must not have one. |
-| `detail` | `standard` \| `high` | `standard` | How much of a long meeting the map-reduce notes keep (§9, ADR-0038). `high` is for templates that write dense, topic-by-topic notes (`default-notes`): each part keeps up to 30 points with their specifics and a topic label, and the questions that were answered, at the cost of a longer map step. |
+| `detail` | `standard` \| `high` | `standard` | How much of a long meeting the map-reduce notes keep (§9, ADR-0039). `high` is for templates that write dense, topic-by-topic notes (`default-notes`): each part keeps up to 30 points with their specifics and a topic label, and the questions that were answered, at the cost of a longer map step. |
 
 ## 4. Temperatures (R6)
 `section.temperature` → `params.temperature` → the kind default: **0.2** for `extraction`

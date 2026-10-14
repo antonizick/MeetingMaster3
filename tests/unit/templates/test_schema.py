@@ -119,7 +119,7 @@ def test_sensitive_templates_keep_their_guardrails() -> None:
     assert board is not None
     assert board.params.ai_recommendations is False
     assert "never infer" in board.system_prompt.casefold()
-    # Default Notes is used for interviews too (ADR-0038): same rules, no hiring decision.
+    # Default Notes is used for interviews too (ADR-0039): same rules, no hiring decision.
     default = parse_template_file(
         next(p for p in builtin_files() if p.stem == "default-notes")
     ).template
