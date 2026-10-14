@@ -626,7 +626,7 @@ async def meetings_notes_partial(request: Request) -> HTMLResponse:
 
 
 def _orphan_reason(note_path: str, vault_relative: str | None) -> str | None:
-    """Why a Recent entry no longer leads anywhere (``None`` if it still does)."""
+    """Why a Meetings entry no longer leads anywhere (``None`` if it still does)."""
     if not Path(note_path).is_file():
         return "File not found"
     if vault_relative is None:

@@ -8,6 +8,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Pre-operational tuning, round 3 (Phase 15c, R27, ADR-0038):
+  - **Switch template** and **Regenerate** run in the background with a moving progress bar, the current step,
+    elapsed time and time left (estimate from your hardware profile, then the run's measured rate), a motion cue
+    (off with reduced motion), **Cancel**, and **Hide and keep running**; a reloaded page reattaches.
+    New endpoints under `/ui/review/{id}/task`; `POST …/switch/preview` and `POST …/regenerate` return a task.
+  - The review page shows the **size and format of the stored recording** and offers it for **download**
+    (`GET /api/jobs/{id}/audio?download=1`), also in the header Download menu.
+  - The Preview/Edit control is one button named after its action ("Edit note" / "Show preview").
+  - **Meetings** (was Recent) is the one place for jobs, notes and **Browse the vault**; each section pages
+    (10, 10, 25 rows) with bookmarkable `jobs_page`, `notes_page`, `browse_page` links. `/open` redirects to it.
+  - `MM3_FAKE_LLM_SECONDS` slows the fake model for browser tests.
 - Pre-operational tuning, round 2 (Phase 15b, R26, ADR-0036):
   - The review screen opens the note in **Preview** (rendered on the server); **Edit** is one click away, and
     the last mode is remembered.

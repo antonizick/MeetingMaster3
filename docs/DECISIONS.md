@@ -41,6 +41,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0035 | 2026-10-14 | Logo and hero picture released under CC0 1.0 | Accepted; implemented in 15b | 15b |
 | ADR-0036 | 2026-10-14 | Review opens in Preview; one retention rule shared by the pruner and the countdown; Keep forever wording | Accepted | 15b |
 | ADR-0037 | 2026-10-14 | Tuning round 3 split into 15c/15d/15e; meeting rename updates backlinks after a backup; the Plaud-style template is topic-based and named neutrally | Accepted | 15c, 15d, 15e |
+| ADR-0038 | 2026-10-14 | Long review actions are polled background tasks with a smoothed ETA; recording download route; Open a note merged into a paged Meetings page | Accepted | 15c |
 
 ---
 
@@ -883,3 +884,45 @@ per section (25 in Browse the vault).
 **Status.** Accepted (2026-10-14); to be implemented in Phases 15c, 15d and 15e.
 **Consequences.** The built-in library grows to 23 templates (spec A3 amended in 15e). MM3 gains its first write
 path into notes it did not create (15d), which goes into the threat model.
+
+## ADR-0038: Long review actions are polled background tasks; recording download; Meetings page and paging (Phase 15c, R27)
+**Context.** A template switch was one blocking POST that could take minutes with a local model; the only feedback
+was a disabled button. Nick also asked for the recording's size and a download on the review page, a Preview/Edit
+control that says what it does, and "Recent" merged with "Open a note" into a paged "Meetings" page.
+**Options considered and decisions.**
+
+1. **Transport for progress.**
+
+   | Option | Pros | Cons |
+   |---|---|---|
+   | Poll `GET …/task/{id}` once a second (chosen) | No stream lifecycle (reconnects, heartbeats, proxies); reattaching after a reload is the same call; trivial to test; one reader | A second of latency on the bar |
+   | SSE like job progress | Push updates | A stream per note to manage, the job `ProgressBus` is built around job ids and stages; more moving parts for a figure that changes every few seconds |
+
+   The elapsed clock ticks in the browser between polls, so the page never looks frozen.
+2. **Task model.** `review/progress.py`: an in-memory `LongTask` per note (`TaskRegistry`), one running task per
+   note (a second start gets `E_TASK_RUNNING`, 409), the last finished one kept for an hour so a reloaded page can
+   still fetch its result. The task runs as an `asyncio.Task` so **Cancel** interrupts the model call at once; the
+   result (diff, apply token) is rendered by the result route, not by the task. Nothing is persisted: a server
+   restart ends the task and the page says it is gone. `POST …/switch/preview` and `POST …/regenerate` now start a
+   task; the apply, token, archive and `E_NOTE_CHANGED` checks are unchanged.
+3. **Time left.** Until 5 % of the work is done: the hardware profile's `notes_rtf` midpoint for the transcript's
+   duration, local backends only (else "estimating…"). After that: elapsed / fraction, smoothed (new = 0.6 old +
+   0.4 measured) at each progress report. Past the estimate: "taking longer than expected", never 0:00. The
+   generator reports a fraction at the *start* of each section and of each map chunk, so on a long meeting the bar
+   can stand still for a minute or two; the step line ("Reading part 1 of 2"), the moving stripes and the clock
+   cover that.
+4. **Download.** `?download=1&name=<note stem>` on the existing audio route: `Content-Disposition: attachment` with
+   RFC 5987 encoding (Starlette's `filename=`), the name from `sanitize_title` plus the file's own suffix. `name` only
+   shapes the suggested file name; the path still comes from the job, so no client value reaches the filesystem.
+5. **Meetings.** `GET /open` redirects (303) to `/meetings` (keeping `?dir=`); `/open/note`, `/ui/open/browse` and
+   all links keep working; the Open page's "Recent notes" is dropped (Notes in your vault shows the same rows).
+   Paging is server-side with one query parameter per section, HTMX swaps just the section from
+   `/ui/meetings/{jobs,notes}` (and `/ui/open/browse` for the picker), links work without JavaScript, focus returns
+   to the section heading, and removing or deleting a row re-renders its section (so an emptied last page falls
+   back to the previous one). 10 rows for Jobs and Notes in your vault, 25 for Browse the vault.
+6. **Preview/Edit.** One toggle labelled with its action plus a status label, instead of two `aria-pressed`
+   buttons, which said nothing about what a click would do.
+
+**Consequences.** The regenerate response shape changed (`{task}` first, then the old payload from the result
+route). The progress widget is a shared module (`static/js/progress.js`) for later long actions. Two things to
+watch: a task is lost on restart, and the fraction is coarse on map-reduce meetings.

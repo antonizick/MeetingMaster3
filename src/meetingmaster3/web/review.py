@@ -169,7 +169,7 @@ async def open_browse(request: Request, dir: str = "") -> HTMLResponse:
 
 @router.get("/open/note")
 async def open_note(request: Request, path: str) -> Response:
-    """Open a vault note by its relative path: MM3 notes go to the workspace (and the Recent
+    """Open a vault note by its relative path: MM3 notes go to the workspace (and the Meetings
     list), anything else to the read-only preview."""
     root = _root(request)
     note = confine(root, path)

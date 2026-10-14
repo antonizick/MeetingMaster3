@@ -53,7 +53,9 @@ disclosure, **D**enial of service, **E**levation of privilege.
 | T-READ | A website reads data cross-origin (I) | Same-origin policy plus `Cross-Origin-Resource-Policy: same-origin`, `X-Content-Type-Options: nosniff`, no JSONP, no CORS | `web/security.py` | `tests/unit/test_web.py::test_security_headers` |
 | T-XSS | Transcript text, model output or a vault note injects script into the UI (T, I, E) | markdown-it with `html: False`, images off, links limited to http(s)/mailto/relative; Jinja autoescape everywhere else; CSP `script-src 'self'` with no inline script, no `eval` (Alpine CSP build, HTMX `allowEval: false`); `[mm:ss]` buttons built from escaped text | `web/render.py`, `web/security.py` (CSP), `templates/*.html` | `tests/unit/test_fuzz.py::test_rendered_markdown_never_contains_live_markup` (Hypothesis), `tests/unit/web/test_pages.py::test_preview_is_sanitised_and_confined_to_the_vault`, `::test_panel_escapes_untrusted_text`, `::test_vendored_assets_and_csp` |
 | T-CLICK | Clickjacking (T) | `frame-ancestors 'none'`, `X-Frame-Options: DENY` | `web/security.py` | `tests/unit/test_web.py::test_security_headers` |
-| T-GETSIDE | A cross-site GET changes state (T) | State changes are POST/DELETE only. Residual: `GET /open/note?path=` adds an existing MM3 note to the Recent list (harmless) | routers in `web/` | `tests/unit/web/test_settings_ui.py` (settings cannot be edited by GET) |
+| T-GETSIDE | A cross-site GET changes state (T) | State changes are POST/DELETE only. Residual: `GET /open/note?path=` adds an existing MM3 note to the Meetings list (harmless) | routers in `web/` | `tests/unit/web/test_settings_ui.py` (settings cannot be edited by GET) |
+| T-DLNAME | A crafted `name` on the recording download injects a header or picks a file (T, E) | `name` is only a suggested file name: `sanitize_title` strips separators and control characters, the suffix comes from the stored file, the header is RFC 5987-encoded by Starlette; the file always comes from the validated job id (Phase 15c) | `web/views.py` `audio_download_name`, `web/api/jobs.py` | `tests/unit/web/test_review.py::test_recording_size_and_download` |
+| T-TASK | Another page or site reads or cancels a running switch/regenerate task (I, T) | Task ids are random (64 bits) and bound to the note's id; reads need the localhost Host/Origin checks; cancel is a POST with the CSRF token; results hold only note text the page already shows (Phase 15c) | `web/review.py` `_task_of`, `review/progress.py` | `tests/unit/web/test_review.py::test_switch_task_lifecycle` |
 
 ### B2 Server ↔ filesystem (vault, app data, config)
 | ID | Threat | Mitigation | Code | Test |
@@ -118,7 +120,7 @@ person): threshold 0.6 and margin 0.1 were measured on two recordings in Phase 0
 | Prompt injection changes note text | No tools or actions; user reviews every note | If agentic features (tool use) are ever added |
 | A stage stuck in native code cannot be killed | Stages run in threads; cancel is cooperative. A hung job needs an app restart | If it is seen in practice |
 | IPv6 loopback bind (`::1`) is unusable | Starlette's Host check cannot parse `[::1]`; requests are refused (fails closed). Use `127.0.0.1` | Low priority |
-| GET side effect on `/open/note` (adds to Recent) | Only for existing MM3 notes in the vault; no content is exposed cross-origin | Low priority |
+| GET side effect on `/open/note` (adds to Meetings) | Only for existing MM3 notes in the vault; no content is exposed cross-origin | Low priority |
 
 ## 6. How to keep this current
 - New HTTP route: decide GET vs POST (state changes are never GET); add it to the CSRF test of its
