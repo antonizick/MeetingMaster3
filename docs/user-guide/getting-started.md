@@ -42,7 +42,7 @@ Then choose:
 
 ## 3. Progress
 The job page lists every stage with a bar, message, time spent and an ETA, and updates by itself. **You can leave
-the page or close the browser: processing continues on this computer, and you come back any time from Recent.** It
+the page or close the browser: processing continues on this computer, and you come back any time from Meetings.** It
 stops only if MeetingMaster3 stops or the computer shuts down, and can then be resumed from the last finished
 step (a quiet line under the title says so, and the browser tab shows the progress, for example
 `42% · Transcribing`, then `✓ Notes ready`). *Cancel* stops the job (finished stages are kept and
@@ -91,12 +91,15 @@ Three files are written next to each other:
 ![Done](../assets/05-done.png)
 
 ## Other pages
-- **Recent** lists every job (resume interrupted ones, delete old ones) and the notes you wrote. A note that
+- **Meetings** (the top menu's second item) is the one place to find a meeting. **Jobs** lists every job (resume
+  interrupted ones, delete old ones), **Notes in your vault** lists the notes you wrote, and **Browse the vault** at
+  the bottom opens any note MeetingMaster3 wrote. Each section shows 10 rows at a time (25 in Browse the vault),
+  with *‹ Newer · Page 2 of 5 · Older ›* controls; the page address remembers where you were. A note that
   was deleted or moved, or that lies outside the vault you now use, is marked *File not found* or *Not in your
   vault*; **Remove from list** forgets one entry and the box above the list removes all such entries at once.
   Only the list entry goes: the app never deletes a note file from here, and an entry comes back when you open
   that note again.
-- **Update older notes** (on Recent, when there is something to do): notes written before the current format
+- **Update older notes** (on Meetings, when there is something to do): notes written before the current format
   can gain **Summary Detailed** (written by your default model from each note's companion transcript), have a
   "Summary" heading renamed to "Summary Succinct" (a heading you changed is kept) and get a readable transcript.
   The card lists what would change, the model and an estimate; *Preview* writes one note's new section without
@@ -110,4 +113,4 @@ Three files are written next to each other:
 - *"The vault folder does not exist"*: mount the drive or fix the path on the setup page (`/setup`).
 - *Upload rejected*: the limit is `audio.max_upload_mb` (default 2048).
 - *The page does not update*: reload; if the server stopped, restart `mm3 serve` and resume the interrupted job
-  from **Recent**.
+  from **Meetings**.

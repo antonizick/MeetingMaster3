@@ -73,7 +73,7 @@ file-only protocol whitelist. Measured speed and memory on the 8 GB reference GP
 | `audio/ingest.py`, `audio/stage.py` | Streamed upload save with size limit, ffprobe validation, 16 kHz mono WAV normalisation, Opus re-encode; the `ingest` stage. |
 | `jobs/models.py`, `stage.py`, `pipeline.py` | Job/stage states and transitions, `JobOptions`, `ProgressEvent`; the `Stage` protocol, `StageContext`, `InputRequired`; the canonical meeting pipeline and `register_stage`. |
 | `jobs/runner.py`, `progress.py`, `retention.py`, `files.py`, `fakes.py` | `JobRunner` (dispatcher, GPU semaphore, resume, cancel, input pauses, retry hooks); `ProgressBus` with ETA; R8 retention and pruning; job folders and path confinement; fake stages (`MM3_FAKE_PIPELINE=1`). |
-| `web/api/jobs.py` | `/api/jobs` routes: streamed multipart upload, list, get, cancel, resume, input, delete, pin/unpin, audio (HTTP Range), SSE events. |
+| `web/api/jobs.py` | `/api/jobs` routes: streamed multipart upload, list, get, cancel, resume, input, delete, pin/unpin, audio (HTTP Range; `?download=1` for an attachment), SSE events. |
 | `web/api/speakers.py` | `GET/POST /api/jobs/{id}/speakers` (confirmation), `/api/voiceprints` (list, delete one, two-step wipe). |
 | `speakers/embeddings.py` | Overlap-free segment selection, snippets, `SpeakerProfile`, `PyannoteEmbedder` (WeSpeaker from the cached diarization snapshot; lazy imports). |
 | `speakers/match.py`, `vectors.py` | Max-cosine scoring, Hungarian one-to-one assignment, threshold and margin; pure-Python vector helpers and float32 BLOBs. |
@@ -109,11 +109,12 @@ file-only protocol whitelist. Measured speed and memory on the 8 GB reference GP
 | `vault/picker.py` | Vault browser for re-opening notes (folders and `mm3-id` notes only, archives and transcripts skipped, confined); `find_companions` searches the vault for a moved transcript. `read_identity` classifies a file (`is_note`, `is_transcript`, `is_readable` by `mm3-kind`). |
 | `vault/readable.py` | Write/refresh the readable transcript next to a note; never replaces a file that is not this meeting's (`(Transcript 2)`…); `refresh_readable` after a rename or link-transcript (Phase 15a). |
 | `review/retention_view.py` | The review screen's recording line ("deleted in 23 days", "kept forever") built from `jobs.retention.audio_retention_status`, the rule the pruner uses (Phase 15b, R26). |
+| `review/progress.py` | Long review actions (switch, regenerate) as in-memory background tasks: `LongTask`, `TaskRegistry` (one running per note, cancel, prune), the time-left model (`eta`, `smooth_total`) (Phase 15c, R27, ADR-0038). |
 | `review/store.py` | Per-meeting working files in app data: base snapshots by SHA-256, the autosaved draft, a pending template switch. |
-| `review/workspace.py` | Locate a note by `mm3-id` (Recent list or a vault path), load it with its companion transcript, job and audio state; transcript view model; degradation modes. |
+| `review/workspace.py` | Locate a note by `mm3-id` (Meetings list or a vault path), load it with its companion transcript, job and audio state; transcript view model; degradation modes. |
 | `review/upgrade.py` | "Update older notes" (Phase 15a): dry-run planner per note, applier (generate missing summaries with `NoteGenerator.write_sections`, `sections.insert_section`, `rename_heading`, readable transcript, archive, SHA + `mm3-id` re-check, atomic write), model choice, the background `UpgradeRun`. Used by `web/upgrade_ui.py` (card on Recent) and `mm3 notes upgrade`. |
 | `review/save.py`, `rename.py`, `switch.py` | Save with the hash check and conflict (ADR-0025); speaker renaming through the Phase 07 cascade; whole-note template switch with "Preserved notes". |
-| `web/review.py` | `/open`, `/open/note`, `/ui/open/browse`, `/meetings/{mm3_id}` and the workspace's JSON actions under `/ui/review/{mm3_id}/` (including `keep`, the per-meeting Keep forever pin). The note opens server-rendered in Preview. |
+| `web/review.py` | `/open` (redirects to Meetings), `/open/note`, `/ui/open/browse`, `/meetings/{mm3_id}` and the workspace's JSON actions under `/ui/review/{mm3_id}/` (including `keep`, the per-meeting Keep forever pin, and `task/…`, the polled switch/regenerate tasks). `web/paging.py` pages the Meetings sections. The note opens server-rendered in Preview. |
 | `config/editing.py` | UI settings edits: validate a dotted-path patch per section, apply it only if all of it is valid, write `config.yaml` (Phase 12). |
 | `web/settings_ui.py`, `settings_fields.py`, `model_downloads.py` | The tabbed Settings screen (`/settings/<tab>`): declarative field list and form parsing, write-only secrets, backend add/edit/test, retention preview, voiceprint management with the two-step wipe, diagnostics, background model downloads. `transcription/hf_check.py` tests the Hugging Face token. |
 | `templates/manage.py`, `web/templates_ui.py` | Template library management (favourite = one frontmatter line, duplicate, create, validated save, delete with archive, reset built-in); the `/templates` screens. |
@@ -211,12 +212,12 @@ browser ── GET pages (Jinja, server-rendered) ──────────
 ```
 The page is always rendered from `JobRunner.describe`, so a reload or reconnect shows the true state;
 SSE only decides *when* to re-render. Pages: `/setup`, `/` (new meeting), `/jobs/{id}`,
-`/jobs/{id}/speakers`, `/meetings`, `/preview`, `/templates`, `/settings` (read-only until Phase 12).
+`/jobs/{id}/speakers`, `/meetings` (paged; `/open` redirects to it), `/preview`, `/templates`, `/settings` (read-only until Phase 12).
 Decision record: ADR-0019.
 
 ### Review workspace (Phase 11)
 ```
-/open ── picker (vault/picker.py) + Recent ──▶ /open/note?path= ──▶ /meetings/{mm3_id}?path=
+/meetings ── jobs, notes, picker (vault/picker.py) ──▶ /open/note?path= ──▶ /meetings/{mm3_id}?path=
                                                                        │ review/workspace.py: note, companion,
                                                                        │ job + audio; base snapshot (review/store.py)
 browser: transcript.js (player, binary-search sync, search, splitter, shortcuts)

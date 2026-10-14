@@ -119,12 +119,21 @@ def context_error(model: str, window: int, model_window: int | None) -> MM3Error
 
 
 ProgressFn = Callable[[float, str], None]
+ContextFn = Callable[[float | None, bool], None]
+"""``(transcript duration in seconds, backend is local)``, called once the model is chosen, so a
+caller can estimate the run time before the first call."""
+StepFn = Callable[[int, int, str], None]
+"""``(position, total, title)`` as the generator starts section ``position`` of ``total``."""
 CancelFn = Callable[[], None]
 WarnFn = Callable[[str], None]
 SectionFn = Callable[[Section], None]
 
 
 def _noop_progress(fraction: float, message: str) -> None:
+    pass
+
+
+def _noop_step(position: int, total: int, title: str) -> None:
     pass
 
 
@@ -171,6 +180,7 @@ class NoteGenerator:
     """Reasoning mode for models that support it (see ``generation.think``)."""
     today: dt.date | None = None
     progress: ProgressFn = _noop_progress
+    step: StepFn = _noop_step
     check_cancelled: CancelFn = _noop
     warn: WarnFn = _noop_warn
     calls: int = 0
@@ -484,6 +494,7 @@ class NoteGenerator:
             if prepared is None:  # pragma: no cover - todo is non-empty here
                 raise RuntimeError("context was not prepared")
             self.progress(base + (1 - base) * i / len(sections), f"Writing {s.title}")
+            self.step(i + 1, len(sections), s.title)
             body = await self._section(prepared, s)
             section = Section(id=s.id, title=s.title, body_markdown=body)
             out.append(section)
@@ -529,7 +540,10 @@ class NoteGenerator:
         if title and title != section.title:
             section = section.model_copy(update={"title": title})
         prepared = await self.prepare(meta, transcript, [section], map_progress=(0.0, 0.8))
-        return await self._section(prepared, section, previous=previous, feedback=feedback)
+        self.progress(0.8, f"Writing {section.title}")
+        body = await self._section(prepared, section, previous=previous, feedback=feedback)
+        self.progress(1.0, "Section written")
+        return body
 
 
 def _range(chunk: Chunk, hours: bool) -> str:
@@ -552,6 +566,7 @@ async def regenerate_section(
     consent_remembered: bool = False,
     max_context: int | None = None,
     think: bool = False,
+    progress: ProgressFn = _noop_progress,
 ) -> str:
     """Regenerate ``section_id`` of ``note`` and return the new body only. ``transcript`` is
     the named transcript (from the companion file). Compare old and new bodies with
@@ -565,6 +580,7 @@ async def regenerate_section(
         consent_remembered=consent_remembered,
         max_context=max_context,
         think=think,
+        progress=progress,
     )
     return await generator.regenerate_section(
         note.meta,

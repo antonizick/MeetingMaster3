@@ -11,7 +11,7 @@ from urllib.parse import quote
 
 from meetingmaster3.errors import MM3Error
 from meetingmaster3.jobs.models import JobStatus
-from meetingmaster3.vault.naming import note_stem
+from meetingmaster3.vault.naming import note_stem, sanitize_title
 from meetingmaster3.vault.paths import confine, expand_folder_template, resolve_vault_root
 
 DEFAULT_OUTPUT_SUBFOLDER = "Meetings/{yyyy}/"
@@ -91,6 +91,34 @@ def format_duration(seconds: float | None) -> str:
     if minutes:
         return f"{minutes}m {secs:02d}s"
     return f"{secs}s"
+
+
+def format_size(size: int) -> str:
+    """A file size in decimal units with one decimal place: ``512 B``, ``41.2 MB``."""
+    if size < 1000:
+        return f"{max(size, 0)} B"
+    value = float(size)
+    for unit in ("kB", "MB", "GB", "TB"):
+        value /= 1000
+        if value < 1000 or unit == "TB":
+            return f"{value:.1f} {unit}"
+    raise AssertionError("unreachable")  # pragma: no cover
+
+
+AUDIO_FORMATS = {".opus": "Opus", ".wav": "WAV", ".mp3": "MP3", ".m4a": "M4A", ".flac": "FLAC"}
+
+
+def audio_format(path: Path) -> str:
+    """A short name for a recording's format (``Opus``, ``WAV``, … or the upper-cased suffix)."""
+    return AUDIO_FORMATS.get(path.suffix.lower(), path.suffix.lstrip(".").upper() or "audio")
+
+
+def audio_download_name(stem: str, suffix: str) -> str:
+    """The file name offered for a recording: the note's stem, made file-name safe, plus the
+    recording's own suffix. Non-ASCII survives (the header carries it RFC 5987-encoded)."""
+    safe = sanitize_title(stem)
+    clean_suffix = suffix if suffix.startswith(".") and suffix[1:].isalnum() else ""
+    return f"{safe}{clean_suffix}"
 
 
 def obsidian_link(path: str) -> str:

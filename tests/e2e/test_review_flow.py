@@ -100,9 +100,14 @@ def test_review_regenerate_archive_save(server: tuple[str, Path], tmp_path: Path
         page.wait_for_selector("#preview:not([hidden]) h2")  # opens on the rendered note
         assert page.locator("#editor").is_hidden()
         shot(page, "review-workspace")
-        page.click("#btn-edit")
+        assert (
+            page.inner_text("#btn-mode") == "Edit note"
+            and page.inner_text("#mode-label") == "Viewing"
+        )
+        page.click("#btn-mode")
         page.wait_for_selector("#editor textarea.sec")
-        assert page.get_attribute("#btn-edit", "aria-pressed") == "true"
+        assert page.inner_text("#btn-mode") == "Show preview"
+        assert page.inner_text("#mode-label") == "Editing"
 
         # Clicking a timestamp in the transcript seeks the audio.
         stamp = page.locator(".transcript .ts").nth(2)
@@ -133,8 +138,9 @@ def test_review_regenerate_archive_save(server: tuple[str, Path], tmp_path: Path
         page.wait_for_selector("#save-status:has-text('Saved to vault')")
 
         # The rendered preview turns [mm:ss] references into seek buttons.
-        page.click("#btn-preview")
+        page.click("#btn-mode")
         page.wait_for_selector("#preview:not([hidden]) h2")
+        assert page.inner_text("#btn-mode") == "Edit note"
         shot(page, "review-preview")
         browser.close()
 
@@ -168,14 +174,14 @@ def test_preview_first_edit_then_keep_forever(server: tuple[str, Path], tmp_path
         page = browser.new_page(viewport={"width": 1400, "height": 900})
         page.goto(url)
         page.wait_for_selector("#preview:not([hidden]) h2")
-        assert page.get_attribute("#btn-preview", "aria-pressed") == "true"
+        assert page.inner_text("#btn-mode") == "Edit note"
         assert page.locator("#editor").is_hidden()
         shot(page, "review-preview-retention")
 
         # Edit, type, Preview shows the unsaved edit, then Save.
-        page.click("#btn-edit")
+        page.click("#btn-mode")
         page.locator('textarea[data-kind="text"]').nth(1).fill("Typed in the editor.")
-        page.click("#btn-preview")
+        page.click("#btn-mode")
         page.wait_for_selector("#preview:not([hidden]):has-text('Typed in the editor.')")
         page.click("#btn-save")
         page.wait_for_selector("#save-status:has-text('Saved to vault')")

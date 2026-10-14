@@ -42,7 +42,7 @@ def not_found(detail: str = "") -> MM3Error:
     return MM3Error(
         E_NOTE_NOT_FOUND,
         "This meeting's note was not found in the vault" + (f" ({detail})." if detail else "."),
-        "It may have been moved or renamed. Use 'Open a note' to pick it from the vault.",
+        "It may have been moved or renamed. Use 'Browse the vault' on the Meetings page.",
         status_code=404,
     )
 
@@ -67,7 +67,7 @@ def locate_note(
     root: Path, recents: RecentMeetingsRepository, mm3_id: str, hint: str | None = None
 ) -> tuple[Path, RecentMeeting | None]:
     """The vault file of meeting ``mm3_id``: ``hint`` (vault-relative) if given and correct,
-    else the most recent entry of the Recent list that still holds that meeting."""
+    else the most recent entry of the Meetings list that still holds that meeting."""
     if hint:
         path = confine(root, hint)
         if _matches(root, path, mm3_id):

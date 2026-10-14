@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import time
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -21,6 +22,7 @@ from meetingmaster3.markdown.note_parser import parse_note
 from meetingmaster3.markdown.sections import scan_sections
 from meetingmaster3.review.store import text_sha
 from meetingmaster3.vault.io import read_text
+from meetingmaster3.web import views
 from tests.unit.jobs.helpers import make_tone, requires_ffmpeg
 from tests.unit.jobs.test_jobs_api import upload, wait
 
@@ -87,6 +89,20 @@ class Workspace:
         return self.client.post(
             f"/ui/review/{self.mm3_id}/{action}", json={"path": self.path, **body}, headers=JSON
         )
+
+    def task(self, action: str, **body: Any) -> Any:
+        """Start a long action (switch, regenerate) and follow it to its result, like the page
+        does: the start response when it is refused, else the result response."""
+        started = self.post(action, **body)
+        if started.status_code != 200:
+            return started
+        tid = started.json()["task"]["id"]
+        base = f"/ui/review/{self.mm3_id}/task/{tid}"
+        for _ in range(200):
+            if self.client.get(base, headers=JSON).json()["task"]["state"] != "running":
+                break
+            time.sleep(0.05)
+        return self.client.get(base + "/result", headers=JSON)
 
 
 def open_url(client: TestClient, rel: str) -> str:
@@ -273,7 +289,7 @@ def test_regenerate_accept_with_archive_then_save(ui: TestClient, tone: Path, va
     summary = doc.section("summary")
     assert summary is not None
     edited_inner = summary.inner.replace("Simulated summary", "Hand-edited summary")
-    r = ws.post(
+    r = ws.task(
         "regenerate",
         base_sha=ws.sha,
         section_id="summary",
@@ -305,11 +321,11 @@ def test_regenerate_accept_with_archive_then_save(ui: TestClient, tone: Path, va
 
 def test_regenerate_errors_and_consent(ui: TestClient, fixture_note: Path) -> None:
     ws = Workspace(ui, open_url(ui, f"Meetings/2026/{NOTE}"))
-    r = ws.post(
+    r = ws.task(
         "regenerate", base_sha=ws.sha, section_id="summary", backend="openrouter", model="x/y"
     )
     assert r.status_code == 403 and r.json()["code"] == "E_CONSENT_REQUIRED"
-    r = ws.post(
+    r = ws.task(
         "regenerate",
         base_sha=ws.sha,
         section_id="summary",
@@ -319,10 +335,10 @@ def test_regenerate_errors_and_consent(ui: TestClient, fixture_note: Path) -> No
     )
     assert r.status_code == 200 and r.json()["backend"] == "openrouter"
     assert (
-        ws.post("regenerate", base_sha="0" * 64, section_id="summary").json()["code"]
+        ws.task("regenerate", base_sha="0" * 64, section_id="summary").json()["code"]
         == "E_BASE_GONE"
     )
-    r = ws.post("regenerate", base_sha=ws.sha, section_id="nope", inner="x")
+    r = ws.task("regenerate", base_sha=ws.sha, section_id="nope", inner="x")
     assert r.status_code == 409 and r.json()["code"] == "section_markers_invalid"
 
 
@@ -336,10 +352,10 @@ def test_damaged_markers_offer_append_as_new_section(ui: TestClient, fixture_not
     )
     assert "decisions" not in [s.id for s in split_document(damaged).sections]
     # R11: regenerating the damaged section in place is refused...
-    r = ws.post("regenerate", base_sha=ws.sha, section_id="decisions", inner="## X\n")
+    r = ws.task("regenerate", base_sha=ws.sha, section_id="decisions", inner="## X\n")
     assert r.status_code == 409 and r.json()["code"] == "section_markers_invalid"
     # ...appending a fresh copy works, and the damaged text is left where it was.
-    r = ws.post("regenerate", base_sha=ws.sha, section_id="decisions", append=True)
+    r = ws.task("regenerate", base_sha=ws.sha, section_id="decisions", append=True)
     assert r.status_code == 200 and r.json()["new_inner"].startswith("## Decisions Made\n")
     r = ws.post(
         "append-section", base_sha=ws.sha, section_id="decisions", inner=r.json()["new_inner"]
@@ -363,7 +379,7 @@ def test_missing_companion_is_note_only_and_can_be_relinked(
     ws = Workspace(ui, open_url(ui, f"Meetings/2026/{NOTE}"))
     assert not ws.data["can_regenerate"] and "Transcript not found" in ws.html
     assert 'class="regen-btn" data-section-id="summary" data-title="Summary" disabled' in ws.html
-    r = ws.post("regenerate", base_sha=ws.sha, section_id="summary")
+    r = ws.task("regenerate", base_sha=ws.sha, section_id="summary")
     assert r.status_code == 409 and r.json()["code"] == "E_TRANSCRIPT_MISSING"
 
     found = ui.get(f"/ui/review/{FIXTURE_ID}/locate?path={quote(ws.path)}").text
@@ -399,7 +415,7 @@ def test_switch_template_archives_and_preserves_user_text(
     text = text.replace("- **Participants:**", link + "- **Participants:**", 1)
     fixture_note.write_text(text, encoding="utf-8")
     ws = Workspace(ui, open_url(ui, f"Meetings/2026/{NOTE}"))
-    r = ws.post("switch/preview", base_sha=ws.sha, template="action-focused")
+    r = ws.task("switch/preview", base_sha=ws.sha, template="action-focused")
     assert r.status_code == 200, r.text
     assert "Preserved notes" in r.json()["html"] and read_text(fixture_note) == text
     r = ws.post("switch/apply", token=r.json()["token"])
@@ -416,7 +432,7 @@ def test_switch_template_archives_and_preserves_user_text(
 
 def test_switch_apply_refuses_if_the_note_changed(ui: TestClient, fixture_note: Path) -> None:
     ws = Workspace(ui, open_url(ui, f"Meetings/2026/{NOTE}"))
-    token = ws.post("switch/preview", base_sha=ws.sha, template="decision-log").json()["token"]
+    token = ws.task("switch/preview", base_sha=ws.sha, template="decision-log").json()["token"]
     fixture_note.write_text(read_text(fixture_note) + "\nlater edit\n", encoding="utf-8")
     r = ws.post("switch/apply", token=token)
     assert r.status_code == 409 and r.json()["code"] == "E_NOTE_CHANGED"
@@ -556,8 +572,10 @@ def test_note_opens_rendered_with_the_editor_hidden(ui: TestClient, fixture_note
     assert re.search(r'<div id="editor" class="editor" hidden>', ws.html)
     preview = re.search(r'<div id="preview" class="note">(.*?)</div>\s*</section>', ws.html, re.S)
     assert preview and "<h" in preview.group(1) and "mm3:section" not in preview.group(1)
-    assert 'id="btn-preview" aria-pressed="true"' in ws.html
-    assert 'id="btn-edit" aria-pressed="false"' in ws.html
+    assert re.search(
+        r'<button[^>]*id="btn-mode"[^>]*data-mode="preview"[^>]*>Edit note</button>', ws.html
+    )
+    assert ">Viewing</span>" in ws.html and "btn-preview" not in ws.html
     assert 'data-kind="section"' in ws.html  # the editor is still in the page, just hidden
 
 
@@ -569,7 +587,7 @@ def test_read_only_note_shows_the_preview_without_a_mode_switch(
     )
     ws = Workspace(ui, open_url(ui, "bare.md"))
     assert '<article class="note">' in ws.html and "Just text." in ws.html
-    assert "btn-edit" not in ws.html and 'id="editor"' not in ws.html
+    assert "btn-mode" not in ws.html and 'id="editor"' not in ws.html
 
 
 def _runner(ui: TestClient) -> Any:
@@ -643,6 +661,116 @@ def test_keep_refuses_pruned_audio_and_unlinked_notes(
     # A note with no linked job has nothing to keep.
     other = Workspace(ui, open_url(ui, f"Meetings/2026/{NOTE}"))
     assert other.post("keep", keep=True).status_code == 404
+
+
+@requires_ffmpeg
+def test_recording_size_and_download(ui: TestClient, tone: Path, vault: Path) -> None:
+    url, note = processed(ui, tone, vault)
+    ws = Workspace(ui, url)
+    jid = re.search(r"/api/jobs/([0-9a-f-]+)/audio", ws.html).group(1)  # type: ignore[union-attr]
+    size = _runner(ui).audio_file(jid).stat().st_size
+    assert f"<strong>{views.format_size(size)}</strong>" in ws.html and 'id="rec-info"' in ws.html
+    stem = quote(note.stem, safe="")
+    assert f"/api/jobs/{jid}/audio?download=1&amp;name={stem}" in ws.html
+    assert ws.html.count('id="rec-download"') == 1
+    assert f"The recording (.opus, {views.format_size(size)})" in ws.html  # the Download menu
+
+    r = ui.get(f"/api/jobs/{jid}/audio?download=1&name={stem}")
+    disposition = r.headers["content-disposition"]
+    assert r.status_code == 200 and disposition.startswith("attachment;")
+    assert disposition.endswith(quote(f"{note.stem}.opus"))  # RFC 5987 (filename*=)
+    inline = ui.get(f"/api/jobs/{jid}/audio")  # the player's own request is unchanged
+    assert "attachment" not in inline.headers.get("content-disposition", "")
+    assert ui.get(f"/api/jobs/{jid}/audio", headers={"Range": "bytes=0-9"}).status_code == 206
+    # A hostile name only shapes the suggestion; it never picks a file.
+    odd = ui.get(f"/api/jobs/{jid}/audio?download=1&name={quote('../../etc/passwd')}")
+    assert odd.status_code == 200 and "/" not in odd.headers["content-disposition"].split("=", 1)[1]
+    nonascii = ui.get(f"/api/jobs/{jid}/audio?download=1&name={quote('Café ☕')}")
+    assert "filename*=utf-8''" in nonascii.headers["content-disposition"]
+    assert ui.get("/api/jobs/not-a-job/audio?download=1").status_code == 404
+
+    runner = _runner(ui)  # expired audio: no size, no download, the usual error
+    runner.audio_file(jid).unlink()
+    runner.jobs.update(jid, audio_path=None, audio_pruned_at=runner.jobs.get(jid).updated_at)
+    again = Workspace(ui, url).html
+    assert 'id="rec-info"' not in again and "rec-download" not in again
+    gone = ui.get(f"/api/jobs/{jid}/audio?download=1", headers=JSON)
+    assert gone.status_code == 410 and gone.json()["code"] == "E_AUDIO_EXPIRED"
+
+
+def test_a_note_without_a_recording_shows_neither_size_nor_download(
+    ui: TestClient, fixture_note: Path
+) -> None:
+    html = Workspace(ui, open_url(ui, f"Meetings/2026/{NOTE}")).html
+    assert "rec-info" not in html and "The recording (" not in html
+
+
+def test_switch_task_lifecycle(
+    ui: TestClient, fixture_note: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import asyncio
+
+    from meetingmaster3.review.switch import SwitchResult
+
+    async def slow(*_args: Any, progress: Any, step: Any, on_context: Any, **_kw: Any) -> Any:
+        on_context(1800.0, True)
+        step(1, 2, "Summary Succinct")
+        progress(0.0, "Writing Summary Succinct")
+        await asyncio.sleep(30)  # cancelled by the test
+        return SwitchResult("x", "t", "b", "m", False, ())
+
+    monkeypatch.setattr("meetingmaster3.web.review.switch_template", slow)
+    ws = Workspace(ui, open_url(ui, f"Meetings/2026/{NOTE}"))
+    base = f"/ui/review/{ws.mm3_id}"
+    started = ws.post("switch/preview", base_sha=ws.sha, template="decision-log")
+    assert started.status_code == 200
+    task = started.json()["task"]
+    assert task["state"] == "running" and task["kind"] == "switch"
+
+    for _ in range(100):  # the task reports its step and the hardware estimate
+        snap = ui.get(f"{base}/task/{task['id']}", headers=JSON).json()["task"]
+        if snap["step"]:
+            break
+        time.sleep(0.02)
+    assert (snap["step"], snap["steps"], snap["step_title"]) == (1, 2, "Summary Succinct")
+    assert snap["state"] == "running" and snap["eta"] in ("estimate", "none")
+
+    # A reloaded page finds it again; a second start is refused; the result is not ready.
+    assert ui.get(f"{base}/task", headers=JSON).json()["task"]["id"] == task["id"]
+    refused = ws.post("switch/preview", base_sha=ws.sha, template="decision-log")
+    assert refused.status_code == 409 and refused.json()["code"] == "E_TASK_RUNNING"
+    early = ui.get(f"{base}/task/{task['id']}/result", headers=JSON)
+    assert early.status_code == 409 and early.json()["code"] == "E_TASK_RUNNING"
+
+    no_token = ui.post(f"{base}/task/{task['id']}/cancel", headers={"X-CSRF-Token": ""})
+    assert no_token.status_code == 403
+    cancelled = ui.post(f"{base}/task/{task['id']}/cancel", headers=JSON)
+    assert cancelled.json()["task"]["state"] == "cancelled"
+    gone = ui.get(f"{base}/task/{task['id']}/result", headers=JSON)
+    assert gone.status_code == 409 and gone.json()["code"] == "E_TASK_CANCELLED"
+    assert read_text(fixture_note) == read_text(fixture_note)  # nothing was written or archived
+    assert not (fixture_note.parent / "Archive").exists()
+
+    assert ui.get(f"{base}/task/{'0' * 16}", headers=JSON).status_code == 404
+    other = f"/ui/review/{'1' * 8}-1111-4111-8111-{'1' * 12}"
+    assert ui.get(f"{other}/task/{task['id']}", headers=JSON).status_code == 404  # not this note's
+    assert ui.get(f"{other}/task", headers=JSON).json() == {"task": None}
+
+
+def test_a_failed_task_reports_its_error_through_the_result(
+    ui: TestClient, fixture_note: Path
+) -> None:
+    ws = Workspace(ui, open_url(ui, f"Meetings/2026/{NOTE}"))
+    r = ws.task(
+        "switch/preview",
+        base_sha=ws.sha,
+        template="decision-log",
+        backend="openrouter",
+        model="x/y",
+    )
+    assert r.status_code == 403 and r.json()["code"] == "E_CONSENT_REQUIRED"
+    snap = ui.get(f"/ui/review/{ws.mm3_id}/task", headers=JSON).json()["task"]
+    assert snap["state"] == "failed" and snap["error"]["code"] == "E_CONSENT_REQUIRED"
 
 
 def test_privacy_hint_names_the_real_place(ui: TestClient) -> None:

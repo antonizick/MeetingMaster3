@@ -23,7 +23,7 @@ from meetingmaster3.markdown.note_writer import (
     render_note,
     with_transcript_link,
 )
-from meetingmaster3.templates.generator import NoteGenerator
+from meetingmaster3.templates.generator import ContextFn, NoteGenerator, ProgressFn, StepFn
 from meetingmaster3.templates.loader import TemplateLibrary
 from meetingmaster3.templates.regenerate import choose_model, companion_transcript
 
@@ -86,6 +86,9 @@ async def switch_template(
     model: str | None = None,
     cloud_consent: bool = False,
     now: dt.datetime | None = None,
+    progress: ProgressFn | None = None,
+    step: StepFn | None = None,
+    on_context: ContextFn | None = None,
 ) -> SwitchResult:
     """Generate the note again with ``template_id`` and return the new text (nothing is
     written). Needs the companion transcript (``E_TRANSCRIPT_MISSING`` otherwise)."""
@@ -104,6 +107,12 @@ async def switch_template(
         max_context=settings.generation.max_context,
         think=settings.generation.think,
     )
+    if progress is not None:
+        generator.progress = progress
+    if step is not None:
+        generator.step = step
+    if on_context is not None:
+        on_context(transcript.duration, bool(generator.backend.is_local))
     result = await generator.generate(meta, transcript)
     new_meta = meta.model_copy(
         update={

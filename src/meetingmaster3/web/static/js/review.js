@@ -167,8 +167,10 @@
   // -- Preview / Edit ------------------------------------------------------------------------
   // The page opens on the server-rendered note (Preview). Edit shows the textareas; going back to
   // Preview renders the current, possibly unsaved, edits.
-  const previewBtn = $("#btn-preview");
-  const editBtn = $("#btn-edit");
+  // One toggle named after what clicking it does: "Edit note" in Preview, "Show preview" in Edit,
+  // with a muted "Viewing" / "Editing" label for the current state.
+  const modeBtn = $("#btn-mode");
+  const modeLabel = $("#mode-label");
   const preview = $("#preview");
   const MODE_KEY = "mm3.review.mode";
   let previewStale = false; // true once the textareas differ from what the preview shows
@@ -178,8 +180,9 @@
     const edit = mode === "edit";
     editor.hidden = !edit;
     preview.hidden = edit;
-    previewBtn.setAttribute("aria-pressed", String(!edit));
-    editBtn.setAttribute("aria-pressed", String(edit));
+    modeBtn.dataset.mode = mode;
+    modeBtn.textContent = edit ? "Show preview" : "Edit note";
+    modeLabel.textContent = edit ? "Editing" : "Viewing";
     if (edit) parts().forEach(autosize);
   }
   const showEdit = () => { showMode("edit"); remember("edit"); };
@@ -192,8 +195,14 @@
     showMode("preview");
     remember("preview");
   }
-  previewBtn.addEventListener("click", () => busy(previewBtn, showPreview));
-  editBtn.addEventListener("click", showEdit);
+  modeBtn.addEventListener("click", async () => {
+    if (modeBtn.dataset.mode !== "edit") { showEdit(); return; }
+    // Rendering unsaved edits takes a request; the label is set by showMode, so don't restore it.
+    modeBtn.disabled = true;
+    modeBtn.setAttribute("aria-busy", "true");
+    try { await showPreview(); } catch (err) { fail(err); }
+    finally { modeBtn.disabled = false; modeBtn.removeAttribute("aria-busy"); }
+  });
   editor.addEventListener("input", () => { previewStale = true; });
   try { if (localStorage.getItem(MODE_KEY) === "edit") showMode("edit"); } catch (e) { /* default: Preview */ }
 
@@ -258,27 +267,31 @@
     });
   }
 
-  regenForm.addEventListener("submit", async (evt) => {
-    evt.preventDefault();
-    const target = regenTarget;
-    regenDialog.close();
+  // Follow a background task with the shared progress widget (progress.js), then fetch its result.
+  // Resolves with the result, or null if the task was cancelled or lost; throws if it failed.
+  async function followTask(container, snapshot, opts) {
+    const id = snapshot.id;
+    const final = await window.mm3Progress.run(container, Object.assign({
+      snapshot, csrf, taskUrl: base + "/task/" + id, cancelUrl: base + "/task/" + id + "/cancel",
+    }, opts));
+    if (final.state === "failed") {
+      const err = new Error((final.error && final.error.message) || "The action failed.");
+      err.data = final.error || {};
+      throw err;
+    }
+    if (final.state !== "done") return null;
+    return call("/task/" + id + "/result", undefined, "GET");
+  }
+
+  async function followRegen(area, target, snapshot) {
     const ta = target.append ? null : $('textarea[data-kind="section"][data-id="' + CSS.escape(target.sectionId) + '"]', editor);
-    const area = target.append ? $("#append-result") : $('.regen-result[data-section-id="' + CSS.escape(target.sectionId) + '"]', editor);
-    area.innerHTML = "";
-    const wait = document.createElement("p");
-    wait.className = "alert info";
-    wait.setAttribute("role", "status");
-    wait.textContent = "Regenerating “" + target.title + "”…";
-    area.append(wait);
     try {
-      const out = await call("/regenerate", Object.assign({
-        path: data.path,
-        base_sha: data.base_sha,
-        section_id: target.sectionId,
-        inner: ta ? ta.value : null,
-        instructions: $("#regen-instructions").value.trim() || null,
-        append: target.append,
-      }, modelOptions(regenForm)));
+      const out = await followTask(area, snapshot, {
+        title: "Regenerating " + target.title,
+        cancelLabel: "Cancel",
+        note: "The current text stays until you accept.",
+      });
+      if (!out) { area.innerHTML = ""; toast("info", "Regeneration cancelled.", "The note was not changed."); return; }
       area.innerHTML = out.html; // server-rendered diff, escaped
       area.mm3 = { newInner: out.new_inner, sectionId: target.sectionId, ta };
       const first = area.querySelector("[data-regen]");
@@ -287,6 +300,28 @@
       area.innerHTML = "";
       fail(err);
     }
+  }
+  const regenArea = (target) => (target.append ? $("#append-result") : $('.regen-result[data-section-id="' + CSS.escape(target.sectionId) + '"]', editor));
+
+  regenForm.addEventListener("submit", async (evt) => {
+    evt.preventDefault();
+    const target = regenTarget;
+    regenDialog.close();
+    const ta = target.append ? null : $('textarea[data-kind="section"][data-id="' + CSS.escape(target.sectionId) + '"]', editor);
+    const area = regenArea(target);
+    area.innerHTML = "";
+    let started;
+    try {
+      started = await call("/regenerate", Object.assign({
+        path: data.path,
+        base_sha: data.base_sha,
+        section_id: target.sectionId,
+        inner: ta ? ta.value : null,
+        instructions: $("#regen-instructions").value.trim() || null,
+        append: target.append,
+      }, modelOptions(regenForm)));
+    } catch (err) { fail(err); return; }
+    followRegen(area, target, started.task);
   });
 
   document.addEventListener("click", async (evt) => {
@@ -326,24 +361,104 @@
   // -- switch template -----------------------------------------------------------------------
   const switchDialog = $("#dlg-switch");
   const switchForm = $("#form-switch");
+  const switchResult = $("#switch-result");
   let switchToken = null;
   $("#btn-switch").addEventListener("click", () => {
+    if (switchRunning) { switchDialog.showModal(); return; }
     if (!requireClean("Switching the template")) return;
-    $("#switch-result").innerHTML = "";
+    switchResult.innerHTML = "";
     switchDialog.showModal();
   });
+  const switchBg = $("#btn-switch-bg");
+  let switchRunning = false;
+
+  // The switch runs as a background task: show its progress in the dialog, then the preview.
+  async function followSwitch(snapshot) {
+    switchRunning = true;
+    switchForm.hidden = true;
+    const asking = $("#switch-ask");
+    if (asking) asking.hidden = true;
+    switchBg.hidden = true;
+    let out = null;
+    try {
+      out = await followTask(switchResult, snapshot, {
+        title: "Switching template",
+        cancelLabel: "Cancel the switch",
+        onHide: () => {
+          switchBg.textContent = "Template switch running: show progress";
+          switchBg.hidden = false;
+          switchDialog.close();
+        },
+      });
+    } catch (err) { fail(err); }
+    switchRunning = false;
+    switchForm.hidden = false;
+    if (!out) {
+      switchResult.innerHTML = "";
+      switchBg.hidden = true;
+      return;
+    }
+    switchToken = out.token;
+    switchResult.innerHTML = out.html;
+    if (!switchDialog.open) {
+      switchBg.textContent = "Template switch finished: review it";
+      switchBg.hidden = false;
+      toast("info", "The template switch is ready to review.", "Use the button next to Switch template.");
+    } else {
+      switchBg.hidden = true;
+    }
+  }
+  switchBg.addEventListener("click", () => { switchBg.hidden = true; switchDialog.showModal(); });
+  // Esc (or any close request) while a switch runs asks what to do instead of losing track of it.
+  switchDialog.addEventListener("cancel", (evt) => {
+    if (!switchRunning) return;
+    evt.preventDefault();
+    $("#switch-ask").hidden = false;
+    $("#switch-keep").focus();
+  });
+  $("#switch-keep").addEventListener("click", () => {
+    $("#switch-ask").hidden = true;
+    switchBg.textContent = "Template switch running: show progress";
+    switchBg.hidden = false;
+    switchDialog.close();
+  });
+  $("#switch-stop").addEventListener("click", async () => {
+    $("#switch-ask").hidden = true;
+    const cancel = switchResult.querySelector(".progress-widget button.danger");
+    if (cancel) cancel.click();
+  });
+  $("#switch-back").addEventListener("click", () => { $("#switch-ask").hidden = true; });
+
   switchForm.addEventListener("submit", async (evt) => {
     evt.preventDefault();
     const button = switchForm.querySelector('button[type="submit"]');
-    const result = $("#switch-result");
-    result.innerHTML = '<p class="alert info" role="status">Writing the whole note again. This can take a few minutes…</p>';
-    const out = await busy(button, () => call("/switch/preview", Object.assign({
+    switchResult.innerHTML = "";
+    const started = await busy(button, () => call("/switch/preview", Object.assign({
       path: data.path, base_sha: data.base_sha, template: new FormData(switchForm).get("template"),
     }, modelOptions(switchForm))));
-    if (!out) { result.innerHTML = ""; return; }
-    switchToken = out.token;
-    result.innerHTML = out.html;
+    if (!started) return;
+    followSwitch(started.task);
   });
+
+  // A page reloaded while an action runs (or finished) picks it up again.
+  (async function reattach() {
+    let current;
+    try { current = (await call("/task", undefined, "GET")).task; } catch (e) { return; }
+    if (!current) return;
+    if (current.kind === "switch") {
+      if (current.state === "running" || current.state === "done") {
+        switchBg.textContent = current.state === "running" ? "Template switch running: show progress" : "Template switch finished: review it";
+        switchBg.hidden = false;
+        followSwitch(current);
+      }
+    } else if (current.kind === "regenerate" && current.info) {
+      const target = { sectionId: current.info.section_id, append: !!current.info.append };
+      const btn = target.append ? null : $('.regen-btn[data-section-id="' + CSS.escape(target.sectionId) + '"]');
+      target.title = btn ? btn.dataset.title : target.sectionId;
+      const area = regenArea(target);
+      if (area && (current.state === "running" || current.state === "done")) followRegen(area, target, current);
+    }
+  })();
   switchDialog.addEventListener("click", async (evt) => {
     const apply = evt.target.closest("#switch-apply");
     if (!apply) return;
