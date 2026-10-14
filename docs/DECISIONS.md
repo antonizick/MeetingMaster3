@@ -976,7 +976,11 @@ shared with another session's test server, so times are high):
 | v8 | candidates filtered to follow-up work (prompt and map step); "after the meeting" task test; Q&A at most 12 questions | 5 / 897 / 65 %; tasks: exactly the two real follow-ups | 6 / 914 / 70 %; tasks: the one real follow-up | 5 / 786 / 68 %; tasks: the three real ones and one small-talk leftover the map step extracted itself |
 
 v9 (shipped) splits the candidates instead of filtering them (see 5) and adds a general privacy paragraph to
-`_system`; it changes only the task and privacy rules, so the v8 topic numbers stand.
+`_system`; it changes only the task and privacy rules, so the v8 topic numbers stand. Its action items on the
+owner's meetings: 31 min, the one real follow-up (2 runs out of 2); 59 min, only real follow-ups (one restated
+twice); 113 min, the three real follow-ups plus four steps from the candidate's answers to hypothetical interview
+questions and one small-talk remark. Task extraction from informal, interview-style conversations stays the
+weakest part with an 8B model and varies from run to run; the owner can edit or regenerate the section.
 
 **Known limitation (owner's decision, 2026-10-14: document it).** On the synthetic introductory call, where the
 candidate volunteers a family reason for asking about flexible hours, qwen3:8b keeps that remark in Discussion by
