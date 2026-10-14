@@ -684,6 +684,13 @@ def test_navigation_pages_show_the_logo(ui: TestClient, url: str) -> None:
     assert LOGO in html and 'alt=""' in html and "brand/logo@2x.webp 2x" in html
 
 
+def test_new_meeting_page_shows_the_big_logo_above_the_heading(ui: TestClient) -> None:
+    html = ui.get("/").text
+    assert 'class="hero-logo"' in html and "brand/hero@2x.webp 2x" in html
+    assert html.index('class="hero"') < html.index("<h1>New meeting</h1>")
+    assert "hero" not in ui.get("/meetings").text
+
+
 def test_setup_and_error_pages_show_the_logo(client: TestClient, ui: TestClient) -> None:
     assert LOGO in client.get("/setup").text
     missing = ui.get("/jobs/00000000-0000-0000-0000-000000000000", headers={"Accept": "text/html"})
@@ -702,7 +709,10 @@ def test_logo_files_carry_no_metadata() -> None:
 
     brand = Path(__file__).parents[3] / "src" / "meetingmaster3" / "web" / "static" / "brand"
     names = sorted(p.name for p in brand.iterdir())
-    assert names == ["logo.png", "logo.webp", "logo@2x.png", "logo@2x.webp"]
+    assert names == [
+        "hero.png", "hero.webp", "hero@2x.png", "hero@2x.webp",
+        "logo.png", "logo.webp", "logo@2x.png", "logo@2x.webp",
+    ]  # fmt: skip
     for p in brand.iterdir():
         data = p.read_bytes()
         for marker in (b"Exif", b"GIMP", b"iCCP", b"ICCP", b"tEXt", b"XMP"):

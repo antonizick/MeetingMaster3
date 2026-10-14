@@ -7,6 +7,6 @@ MeetingMaster3 builds on open-source software and uses, but never bundles,
 third-party model weights. See THIRD_PARTY_NOTICES.md for the component and
 model licence inventory.
 
-The MeetingMaster3 logo (src/meetingmaster3/web/static/brand/logo*) is
+The MeetingMaster3 logo (src/meetingmaster3/web/static/brand/logo* and hero*) is
 Copyright 2026 Nick Antonizick, all rights reserved. It is NOT licensed under
 the Apache License, Version 2.0; forks and redistributions must replace it.

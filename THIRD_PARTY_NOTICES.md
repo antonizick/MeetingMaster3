@@ -218,7 +218,7 @@ not in the wheel or the Docker images.
 ## Project logo (Phase 15a)
 
 `src/meetingmaster3/web/static/brand/logo*.{webp,png}` is a crop of a photo-composite of the
-author. **It is not covered by the Apache-2.0 licence: © 2026 Nick Antonizick, all rights
+author, and `hero*.{webp,png}` (the New meeting page) is the whole composite, resized. **It is not covered by the Apache-2.0 licence: © 2026 Nick Antonizick, all rights
 reserved** (see `NOTICE`, ADR-0032). Forks and redistributions must replace it. The original image
 is not in the repository; `scripts/make_logo.py` rebuilds the logo from a source passed as an
 argument.

@@ -84,10 +84,22 @@ def test_logo_on_navigation_pages_only(server: tuple[str, Path], tmp_path: Path)
             assert page.evaluate("() => document.querySelector('img.brand-logo').naturalWidth") > 0
             box = logo.bounding_box()
             assert box is not None and round(box["height"]) == 40
+        page.goto(base + "/")
+        hero = page.locator("img.hero-logo")
+        assert (
+            hero.is_visible()
+            and page.evaluate("() => document.querySelector('img.hero-logo').naturalWidth") > 0
+        )
+        box = hero.bounding_box()
+        h1 = page.locator("h1").bounding_box()
+        assert box is not None and h1 is not None and round(box["width"]) == 320
+        assert round(box["height"]) == 230 and box["y"] + box["height"] <= h1["y"]
         page.set_viewport_size({"width": 380, "height": 800})
         page.goto(base + "/")
         box = page.locator("img.brand-logo").bounding_box()
         assert box is not None and round(box["height"]) == 32  # phone width
+        hero_box = page.locator("img.hero-logo").bounding_box()
+        assert hero_box is not None and hero_box["width"] <= 380 - 32
         assert page.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth")
         page.set_viewport_size({"width": 1280, "height": 900})
         brand.clear()

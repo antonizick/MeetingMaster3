@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}New meeting · MeetingMaster3{% endblock %}
 {% block content %}
+<picture class="hero"><source type="image/webp" srcset="{{ url_for('static', path='brand/hero.webp') }} 1x, {{ url_for('static', path='brand/hero@2x.webp') }} 2x"><img class="hero-logo" src="{{ url_for('static', path='brand/hero.png') }}" srcset="{{ url_for('static', path='brand/hero@2x.png') }} 2x" alt="MeetingMaster3 logo: a wizard with a crystal ball at a boardroom table" width="320" height="230"></picture>
 <h1>New meeting</h1>
 <form id="upload-form" class="stack" x-data="uploader" x-on:submit.prevent="submit" novalidate
       data-max-mb="{{ max_upload_mb }}">

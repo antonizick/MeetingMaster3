@@ -733,3 +733,18 @@ a `brand_logo` block left of "MeetingMaster3", `alt=""` (the link has text), siz
 image is not even requested there. The CSP is unchanged (served from `/static`). `favicon.svg` is kept.
 **Status.** Accepted (2026-10-12).
 **Consequences.** Forks and redistributions must replace the logo; Phase 16 screenshots show it.
+
+## ADR-0033: A large logo picture above "New meeting" (after Phase 15a)
+**Context.** After 15a closed, Nick found the 32×40 header logo too small to make out. He asked to keep it
+as it is and to add a rectangular picture with slightly rounded corners from `wiz.jpg` above the "New
+meeting" heading. Asked which crop (2026-10-13), he chose the whole scene, knowing it includes the people
+at the table, which ADR-0032 had kept out of the small crop.
+**Decision.** `scripts/make_logo.py` also writes `hero.webp`, `hero@2x.webp`, `hero.png` and `hero@2x.png`:
+the whole image, uncropped, resized to 320×230 and 640×460, corners rounded (12 px), all metadata stripped.
+`new.html` shows it in a `<picture>` above the `<h1>`, with descriptive alt text, 320 px wide and
+`max-width: 100%` so it fits a phone. Only the New meeting page requests it. It is covered by the same
+all-rights-reserved notice (`NOTICE`, `THIRD_PARTY_NOTICES.md`). The full-resolution original is still
+never committed.
+**Status.** Accepted (2026-10-13).
+**Consequences.** About 40 KB of WebP on the New meeting page (PNG only for browsers without WebP). Forks
+must replace these files too.
