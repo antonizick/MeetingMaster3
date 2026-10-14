@@ -40,6 +40,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0034 | 2026-10-14 | Inserting phases anywhere with `/phase-add` | Accepted | process |
 | ADR-0035 | 2026-10-14 | Logo and hero picture released under CC0 1.0 | Accepted; implemented in 15b | 15b |
 | ADR-0036 | 2026-10-14 | Review opens in Preview; one retention rule shared by the pruner and the countdown; Keep forever wording | Accepted | 15b |
+| ADR-0037 | 2026-10-14 | Tuning round 3 split into 15c/15d/15e; meeting rename updates backlinks after a backup; the Plaud-style template is topic-based and named neutrally | Accepted | 15c, 15d, 15e |
 
 ---
 
@@ -841,3 +842,44 @@ the wording, and the JS would need the retention settings). Replaying the editor
 toggle (what existed).
 **Consequences.** No change to retention defaults or the pruner's behaviour. Per-meeting custom retention periods
 and a "kept forever" marker on Recent are ideas, not done.
+
+---
+
+## ADR-0037: Tuning round 3 is split into three phases; rename updates backlinks; a neutral, topic-based template (planning, 15c/15d/15e)
+**Context.** On 2026-10-14 Nick asked for one more round before publication: progress feedback during a template
+switch, renaming and re-dating an imported meeting with every link kept working, a "Plaud Clone" template modelled
+on three Plaud notes of his own meetings, audio download and size on the review page, a Preview/Edit label that
+follows the mode, and "Recent" renamed to "Meetings" with "Browse the vault" moved there and pagination. He also
+asked for GitHub setup instructions (written as a vault note, not a phase).
+**Options considered and decisions.**
+
+1. **Phasing.** One large 15c (about three sessions of work; risk of a long, skimped session) or two phases, versus
+   **three phases (chosen)**: 15c UI polish (Sonnet 5.5), 15d rename (Opus 5.5: multi-file state, links, no data
+   loss), 15e template (Opus 5.5: prompt engineering). 15e touches only the template library and runs in parallel;
+   15d follows 15c because both change the review toolbar and the Meetings page. Phase 16 depends on all three.
+2. **Links in other vault notes when a meeting is renamed.**
+
+   | Option | Pros | Cons |
+   |---|---|---|
+   | Update them after a backup (chosen) | Same result as renaming in Obsidian; nothing left broken | MM3 writes to files it did not create (until now it never did) |
+   | Only MM3's own files, list the rest | MM3 never edits user files | The user must fix every link by hand |
+   | Checkbox each time | Explicit | One more decision per rename for little gain |
+
+   Each changed note is copied to app data first (`rename-backups/`, with a manifest), only the link target is
+   rewritten, writes are atomic and SHA-checked, and the operation is journaled so an interruption can be completed
+   or rolled back. Phase 15d records the detailed design in its own ADR.
+3. **Template name.** "Plaud" is another company's product name, and built-in templates become public in Phase 16.
+   The built-in gets a **neutral name** (default "Topic Briefing", id `topic-briefing`), with the style described in
+   plain words. Nick may keep a personal vault copy called "Plaud Clone", which is never committed. Rejected: "Plaud
+   Clone" as the built-in name (implies affiliation), or keeping it private only (forks would not get it).
+4. **Template shape.** The three samples use three layouts. **Topic-based for every meeting (chosen)**: succinct and
+   detailed summaries, meeting context, numbered topics dense with specifics, Q&A only when the meeting is mostly
+   questions and answers, conclusion, action items in MM3's owner format. Rejected: adapting to interviews (fixed
+   sections would sit empty on other meetings) and two templates (twice the maintenance).
+
+**Also decided as defaults (the phase may change them with a reason in its ADR):** "Open a note" leaves the nav and
+`/open` redirects to Meetings; the Preview/Edit toggle is one button labelled by its action; pagination is 10 rows
+per section (25 in Browse the vault).
+**Status.** Accepted (2026-10-14); to be implemented in Phases 15c, 15d and 15e.
+**Consequences.** The built-in library grows to 23 templates (spec A3 amended in 15e). MM3 gains its first write
+path into notes it did not create (15d), which goes into the threat model.
