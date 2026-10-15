@@ -8,6 +8,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **AWS keys for Bedrock in Settings** (Settings → Language models): write-only fields for the access key ID and
+  secret access key of an IAM user, saved as a pair, removed from logs; the `MM3_SECRETS__AWS_*` variables still
+  win and the page says when they are set (Phase 15g, ADR-0041).
+- **Step-by-step setup guides** for AWS Bedrock (region, model access and the Anthropic use-case form, a
+  least-privilege IAM user with the policy JSON, access key, where to put it, testing, rotating and revoking, the
+  profile/SSO alternative) and OpenRouter (credit, key with a credit limit) in `docs/user-guide/llm-backends.md`,
+  linked from Settings, the Docker guide and `.env.example`. `docker/compose.yaml` documents passing cloud keys in
+  `.env` and an optional read-only `~/.aws` mount.
+- **Bedrock context windows by model family** (`llm/bedrock_models.yaml`, ADR-0044): Claude, Nova, Llama, Mistral
+  and others are planned with their real window instead of 8,192 tokens, inference-profile IDs (`us.…`,
+  `global.…`) included; **Test** says when a model's window is unknown.
+- Eval: `--cloud` (consent for a cloud backend), token counts per note, `--price-in/--price-out` for cost per note,
+  `--long-tokens`. Live checks for cloud backends: `MM3_LIVE_BEDROCK=1` / `MM3_LIVE_OPENROUTER=1 uv run pytest -m
+  network tests/integration/test_live_cloud.py`.
 - **Ollama settings for small GPUs** in the hardware guide: flash attention (`OLLAMA_FLASH_ATTENTION=1`) and an 8-bit
   context cache (`OLLAMA_KV_CACHE_TYPE=q8_0`) keep more of an 8B model on an 8 GB GPU, which roughly halved note
   times on the reference laptop. How to set them for a systemd service, by hand and in Docker, and how to check the
@@ -186,6 +200,18 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   makes no network calls (verified with a socket audit).
 
 ### Fixed
+- **Claude 5.x models on Bedrock can write notes** (Phase 15g, ADR-0045): they reject `temperature`, which the app
+  sent on every call, so every note failed. The Bedrock backend now repeats a rejected call as the model's error
+  advises (no temperature; thinking switched off the way that model accepts) and remembers it per model.
+- Bedrock honours **Let reasoning models think** (off by default) for Claude models; Haiku 5.5 had spent whole
+  sections on hidden reasoning.
+- A cloud model that returns **no text** because it hit its length limit (often on hidden reasoning) or a content
+  filter now fails with a clear `E_LLM_BAD_RESPONSE` instead of writing an empty section (Bedrock and
+  OpenAI-compatible, streaming too).
+- Bedrock setup mistakes give clear errors (`E_LLM_CONFIG`): a model that needs its inference-profile ID, a
+  Provisioned-only model, an unknown model ID. Bedrock lists every inference profile (the list is paged).
+- Settings → Language models → **Edit** a backend no longer collapses: the model list replaced the whole form.
+- Eval checker: a bold owner heading above a group of tasks is not a malformed task line.
 - Long meetings asked a local Ollama for more context than any call used (the output reserve was counted twice):
   Default Notes now asks for 13 312 tokens instead of 15 360 on the default 16 384 window. Each note's context is
   the size of its largest real call plus a measured 10 % margin, still one value per note (Phase 15f, ADR-0043).

@@ -199,6 +199,19 @@ families (`src/meetingmaster3/llm/bedrock_models.yaml`: Claude 200k, Nova 128k-3
 backend only for a model the table does not know: the connection test says so ("context window of
 … is not known"), and long meetings are then planned for 8,192 tokens.
 
+**Reasoning ("thinking").** Current Claude models think before they answer unless told not to, which costs
+time and output tokens and can use up a section's length limit. With *Settings → Notes → Let reasoning models
+think* off (the default), the app asks Claude models on Bedrock not to think, in whichever way the model accepts
+(Haiku 5.5 and Claude 4.x: `thinking: disabled`; Sonnet 5.5: `between_tools`; Opus 5.5: low effort). Other
+providers' models are left as they are. To choose yourself, set the backend's `params` (sent to Bedrock as
+`additionalModelRequestFields`), for example `params: {output_config: {effort: high}}`; the app then leaves
+thinking alone. Newer models also refuse a `temperature`; the app notices and stops sending it to them.
+
+**Which model IDs work.** "Load models" lists every text model and inference profile in the region (188 in our
+test account). Use the inference profile ID (`us.…` or `global.…`) when the model card shows one: many current
+models cannot be called by their plain ID, and the app says so if you try. Provisioned-throughput-only models and a
+few older models without system-prompt support (Mistral 7B, Mixtral) cannot be used.
+
 ```yaml
 llm:
   backends:

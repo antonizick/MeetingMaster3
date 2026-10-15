@@ -47,6 +47,8 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0041 | 2026-10-15 | Live cloud backend verification: IAM user access keys, synthetic plus one real meeting, Bedrock required and OpenRouter if keyed, about USD 5 per provider | Accepted (planning) | 15g |
 | ADR-0042 | 2026-10-15 | Cloud model picker: capable-model filter, live OpenRouter prices and a dated Bedrock price table, Best value / Best quality recommendations; split from 15g | Accepted (planning) | 15h |
 | ADR-0043 | 2026-10-15 | `num_ctx` is the note's largest real call plus a measured 10 % margin (no double-counted reserve); map chunks count timestamps; reduce notes counted at 1.15× density; Ollama flash attention + q8_0 cache recommended | Accepted | 15f |
+| ADR-0044 | 2026-10-15 | Bedrock context windows from a dated, family-level table (`bedrock_models.yaml`, longest prefix, geo profile ids stripped, Claude capped at 200k); unknown models keep 8192 with a visible hint | Accepted | 15g |
+| ADR-0045 | 2026-10-15 | Bedrock follows a model's own ValidationException advice once (drop `temperature`; thinking off as `disabled`/`between_tools`/effort `low`) and remembers it; an empty answer cut off by length or a filter is an `E_LLM_BAD_RESPONSE`; real Bedrock validation texts map to `E_LLM_CONFIG` | Accepted | 15g |
 
 ---
 
@@ -1225,3 +1227,54 @@ baseline do so with the old code too (host settings), and the baseline was updat
 English than qwen3 (more than about 1.1 tokens per 4 characters on transcripts) would need a larger margin; the
 measurement script's method is described here so it can be repeated. Default Notes' long meetings hold about
 150 MB less KV cache, which on 8 GB keeps more of the model on the GPU.
+
+## ADR-0044: Bedrock context windows from a dated family table (Phase 15g)
+**Context.** Bedrock's API reports no context window, so every Bedrock model was planned with the 8 192-token
+fallback unless the user set `context_window`: a 200k Claude split a one-hour meeting into many small map-reduce
+parts. Model cards list windows, but there is no API for them.
+
+| Option | Pros | Cons |
+|---|---|---|
+| A. A small data file of model-family prefixes, smallest window per family, dated | Works offline; one place to update; 15h can extend it | Goes stale; new families are unknown until added |
+| B. Per-model exact table | Exact | Hundreds of ids (188 listed in one account), constant upkeep |
+| C. Probe the window with a test call | Always current | Costs money and time; Bedrock gives no clean signal |
+
+**Decision.** **A.** `llm/bedrock_models.yaml` maps id prefixes (`anthropic.claude`, `amazon.nova-pro`, `meta.llama3`
+…) to the family's smallest window, checked against the AWS model cards on 2026-10-15; the longest prefix wins, and
+a cross-Region profile's geography (`us.`, `eu.`, `apac.`, `global.`…) is ignored. Claude is capped at 200 000 even
+where cards say 1M, so prompts stay out of the long-context price tiers (Haiku 5.5 bills prompts over 100k at 5×).
+A configured `context_window` still wins. An unknown model keeps 8 192 and **Test** says so with a hint. The model
+list carries the window too (`ModelInfo.context_window`) for 15h.
+**Status.** Accepted (2026-10-15). Verified live: a 151 778-token meeting on `us.anthropic.claude-haiku-5-5` ran
+through map-reduce in 2 parts (the 8 192 fallback would have needed about 25).
+**Consequences.** Unknown families seen in one account (GLM, Gemma, Nemotron, OpenAI GPT-5.x/6 on Bedrock) need a
+row or a manual window; 15h may add them.
+
+## ADR-0045: Bedrock adapts to what a model rejects; empty answers are errors (Phase 15g)
+**Context.** The first live calls failed in ways the Stubber tests could not show. Claude 5.x on Bedrock rejects
+`temperature` (HTTP 400, "`temperature` is deprecated for this model"), as do OpenAI GPT-5.x/6 ("doesn't support the
+temperature field"), and the app sends one on every call. Haiku 5.5 thinks by default, ignored
+`generation.think: false`, and spent a whole section's `max_tokens` on hidden reasoning: an empty section. How to
+turn thinking off differs by model: Haiku 5.5 and Claude 4.x take `thinking: {type: disabled}`, Sonnet 5.5 asks for
+`between_tools`, Opus 5.5 for `output_config.effort`; non-Claude models reject the unknown key.
+
+| Option | Pros | Cons |
+|---|---|---|
+| A. Per-model capability table (no temperature; thinking switch) | Explicit, no failed calls | Breaks on every new model; dozens of rows |
+| B. Repeat a rejected call as the model's error advises, once, and remember per model | Survives new models; a 400 is not billed | One extra (free) round trip per model per run; depends on AWS wording |
+| C. Never send temperature or thinking fields | Simplest | Loses temperature where it works (Llama, Mistral, Claude 4.x) and leaves thinking on, which empties sections |
+
+**Decision.** **B**, limited to fields the app itself adds: when a `ValidationException` names `temperature`, the
+call is repeated without it; when it names thinking, the switch moves to `between_tools` (if the message says so),
+then `output_config: {effort: low}` (if it names effort), then nothing. The choice is remembered for the model, and at
+most three attempts are made. Thinking fields in the backend's `params` are never touched, and `generation.think:
+true` sends none. Separately, `check_answer` (all cloud backends, streaming too) turns an **empty answer that ended
+on `length` or a content filter into `E_LLM_BAD_RESPONSE`** with a hint, instead of an empty section; a cut-off
+answer that has text is returned and the generator still warns. Bedrock's `stopReason` is normalised to `stop` /
+`length`. The real validation texts (base id of a profile-only model, Provisioned-only model, unknown id, other
+model complaints) map to `E_LLM_CONFIG` with a remedy.
+**Status.** Accepted (2026-10-15). Verified live on Haiku 5.5, Sonnet 5.5 and Opus 5.5 (9/9 live checks each) and in
+the eval.
+**Consequences.** If AWS rewords these messages, the adaptation stops and the clear `E_LLM_CONFIG` error appears
+instead (no silent failure). Each recorded message has a unit test.
+

@@ -38,6 +38,10 @@ leave your machine. Final inventory as of Phase 15 (2026-10-12); the threat mode
   or another OpenAI-compatible endpoint). The UI badges the backend as "local" or "cloud: <provider>"
   and asks for confirmation on first use per job (which you can remember per backend): the job
   pauses before anything is sent, and declining stops it with nothing sent. A remote Ollama on another machine counts as cloud. Only the transcript text and prompt are sent; audio never leaves the machine.
+  With **AWS Bedrock** the text goes to your own AWS account in the region you chose; a model ID that starts
+  with a geography (`us.`, `eu.`, `apac.`) may be processed in another region of that geography, and one that
+  starts with `global.` in any AWS region. Pick an in-region or geographic ID if data residency matters
+  ([llm-backends.md](user-guide/llm-backends.md#aws-bedrock)).
 - **Your vault**, if you sync it (Obsidian Sync, cloud drives). That is outside this app's control.
   If you enable the optional "copy audio to vault" setting, the audio syncs too.
 
