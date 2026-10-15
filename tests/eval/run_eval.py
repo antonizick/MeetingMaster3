@@ -36,7 +36,7 @@ from meetingmaster3.llm.base import (
     LLMBackend,
     ModelInfo,
 )
-from meetingmaster3.llm.budget import estimate_tokens
+from meetingmaster3.llm.budget import estimate_tokens, window_for
 from meetingmaster3.llm.registry import BackendRegistry
 from meetingmaster3.markdown.note_writer import build_note, render_note
 from meetingmaster3.templates.assembler import format_turns, transcript_turns
@@ -271,8 +271,10 @@ async def main(argv: list[str] | None = None) -> int:
             args.long_tokens or 3 * args.long_window,
         )
         tokens = estimate_tokens(format_turns(transcript_turns(meeting.named())))
-        print(f"Long meeting: {tokens} estimated tokens, window {args.long_window} "
-              f"({tokens / args.long_window:.1f}x)")  # fmt: skip
+        # A local backend is capped at --long-window; a cloud one plans with its own window.
+        window = args.long_window if backend.is_local else await window_for(backend, args.model)
+        print(f"Long meeting: {tokens} estimated tokens, window {window} "
+              f"({tokens / window:.1f}x)")  # fmt: skip
         jobs = [(t, meeting, args.long_window) for t in templates[:1]]
     else:
         jobs = [
