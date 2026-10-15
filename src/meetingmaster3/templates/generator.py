@@ -72,8 +72,11 @@ MIN_CHUNK_TOKENS = 512
 MIN_NUM_CTX = 4096
 CONTEXT_MARGIN = 0.10
 """Safety margin inside every ``num_ctx``, over the largest call's estimated size: Ollama silently
-drops the start of a prompt that does not fit. Measured 2026-10-15 on qwen3 (ADR-0043): its
-tokenizer needs 0.94-0.98 tokens per estimated token on meeting text, so 10% is ample."""
+drops the start of a prompt that does not fit. Measured 2026-10-15 on qwen3 (ADR-0043): calls of
+6 000+ estimated tokens (transcripts) need at most 1.011 real tokens per estimated token."""
+NOTES_DENSITY = 1.15
+"""Merged map-reduce notes (timestamps, names, short lines) need up to 1.115 real tokens per
+estimated token (ADR-0043), so the reduce room is counted at this density."""
 REPAIR_ECHO_CHARS = 4000
 """Most of a failed map reply repeated back when asking for a repair."""
 REPAIR_ECHO_TOKENS = 250
@@ -400,7 +403,9 @@ class NoteGenerator:
             - estimate_tokens(system)
             - section_need
         )
-        notes_text, truncated = render_notes(merged, max(room, MIN_CHUNK_TOKENS))
+        notes_text, truncated = render_notes(
+            merged, max(int(room / NOTES_DENSITY), MIN_CHUNK_TOKENS)
+        )
         if truncated:
             self._warn(
                 "The meeting is very long: some minor points were left out so the notes fit the "

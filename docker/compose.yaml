@@ -59,6 +59,12 @@ services:
   ollama:
     profiles: [ollama]
     image: ollama/ollama:latest
+    environment:
+      # Flash attention + an 8-bit context cache: about 1 GB less VRAM for a 12-16k context, so
+      # more of an 8B model stays on an 8 GB GPU (measured 1.5-1.8x faster; docs/user-guide/hardware.md).
+      # Where flash attention is unsupported (some CPUs and old GPUs) Ollama keeps the f16 cache.
+      OLLAMA_FLASH_ATTENTION: ${OLLAMA_FLASH_ATTENTION:-1}
+      OLLAMA_KV_CACHE_TYPE: ${OLLAMA_KV_CACHE_TYPE:-q8_0}
     volumes:
       - mm3-ollama:/root/.ollama
     ports:

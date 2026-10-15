@@ -190,6 +190,8 @@ transcript.named.json + template (vault override > built-in) + MeetingMeta (job 
            yes ─▶ context = "[mm:ss] Name: text" transcript
            no  ─▶ map: chunk on speaker turns ─▶ JSON extraction per chunk (repair, 1 retry)
                   merge + dedupe ─▶ context = merged notes                       (ADR-0016)
+         num_ctx = largest real call (map prompt + output + repair, or section
+                   prompt + output + retry) × 1.1, reduce notes cut to fit       (ADR-0043)
        per section (same system + context prefix, one num_ctx):
          tail = section prompt [+ tagged task candidates] [+ instructions / previous + feedback]
          LLM (temperature by kind, think off) ─▶ clean-up ─▶ due dates ─▶ owner guard (ADR-0017)

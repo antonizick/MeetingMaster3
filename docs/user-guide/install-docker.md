@@ -80,6 +80,11 @@ Ollama listens on `127.0.0.1:11434` by default, which a bridge-network container
 `host.docker.internal` is treated as local for consent and for the "unload Ollama before
 transcribing" step.
 
+On an 8 GB GPU, turn on Ollama's flash attention and 8-bit context cache (`OLLAMA_FLASH_ATTENTION=1`,
+`OLLAMA_KV_CACHE_TYPE=q8_0`): notes are written about twice as fast because more of the model stays
+on the GPU. The bundled `ollama` service sets both; for a host Ollama see
+[hardware.md → Ollama settings for small GPUs](hardware.md#ollama-settings-for-small-gpus-recommended-on-8-gb).
+
 ## Single container (without Compose)
 ```bash
 docker build -f docker/Dockerfile --target runtime-gpu -t meetingmaster3:gpu .

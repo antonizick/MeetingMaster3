@@ -56,6 +56,52 @@ a warning, because out-of-memory failures are likely.
 unloads the transcription models before the note-writing step (and asks Ollama to unload before
 transcription starts), so the LLM step begins after transcription ends.
 
+### Ollama settings for small GPUs (recommended on 8 GB)
+Ollama never runs out of GPU memory: it fills the free VRAM and **silently runs the rest of the
+model on the CPU**, which is several times slower. On an 8 GB laptop the desktop itself holds 1-1.5
+GB, and `qwen3:8b`'s weights are about 5.2 GB, so with Ollama's defaults a quarter or more of the
+model ends up on the CPU at the context sizes the app uses (12-13k tokens). Two Ollama server
+settings shrink the context memory (the KV cache) and fix most of that:
+
+| Variable | Value | What it does |
+|---|---|---|
+| `OLLAMA_FLASH_ATTENTION` | `1` | A faster attention kernel that also needs less memory. Required by the next one. |
+| `OLLAMA_KV_CACHE_TYPE` | `q8_0` | Stores the context cache in 8 bits instead of 16: about half the memory, with a very small loss of precision (Ollama's FAQ recommends it over `q4_0`). |
+
+Measured on the reference laptop (RTX 2070 Max-Q 8 GB, Ollama 0.33.3, `qwen3:8b`, 12k context):
+**the share of the model on the CPU fell from 25 % to 16 %, GPU memory by about 0.8 GB, and writing
+went from 6.8 to 10-17 tokens per second**. Whole notes became about twice as fast (see
+[`../PERFORMANCE.md`](../PERFORMANCE.md)). Recent Ollama versions turn flash attention on by
+themselves where the GPU supports it; setting it explicitly does no harm. Where it is not supported
+(some older GPUs, some CPUs), Ollama keeps the normal 16-bit cache.
+
+**MeetingMaster3 never changes your Ollama settings.** They are set on the Ollama *server*:
+
+- **Linux, systemd service** (the standard install): `sudo systemctl edit ollama.service`, add
+  ```ini
+  [Service]
+  Environment="OLLAMA_FLASH_ATTENTION=1"
+  Environment="OLLAMA_KV_CACHE_TYPE=q8_0"
+  ```
+  then `sudo systemctl daemon-reload && sudo systemctl restart ollama`. This creates a drop-in file
+  (`/etc/systemd/system/ollama.service.d/override.conf`) that package updates leave alone; delete it
+  and restart to undo. For a per-user service use `systemctl --user edit <unit>`.
+- **Started by hand:** `OLLAMA_FLASH_ATTENTION=1 OLLAMA_KV_CACHE_TYPE=q8_0 ollama serve`.
+- **Docker:** the bundled `ollama` service in `docker/compose.yaml` already sets both (override them
+  in `.env` if needed); for your own container add `-e OLLAMA_FLASH_ATTENTION=1 -e
+  OLLAMA_KV_CACHE_TYPE=q8_0` to `docker run`.
+- **macOS app / Windows:** set them as environment variables for Ollama (Ollama FAQ, "How do I
+  configure Ollama server?") and restart it.
+
+**Check it:** while a note is being written, run `ollama ps`. `PROCESSOR` shows the split (for
+example `16%/84% CPU/GPU`; `100% GPU` is ideal) and `CONTEXT` the context the app asked for. If the
+CPU share is high, close GPU-heavy programs (browsers with hardware acceleration use some), or pick a
+smaller model.
+
+The app itself asks for only the context a note needs: the largest single call plus a 10 % safety
+margin, the same for every call of a note (ADR-0043). With the default `generation.max_context`
+(16 384) that is about 13k tokens for a long meeting, and less for short ones.
+
 ## Warnings
 Each warning has a severity (`info`, `warning`, `critical`). Examples: `large-v3` with `float16` on
 8 GB (critical, likely out of memory), a 14B model on 8 GB (critical, spills to the CPU), another

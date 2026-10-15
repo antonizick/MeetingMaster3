@@ -179,6 +179,13 @@ For each section, one chat request (see `templates/assembler.py`):
   and the user's feedback; and the output rules.
 * One request per section, with the section's temperature and `max_tokens`, one `num_ctx` for the
   whole note, and `think: false` for reasoning models unless `generation.think` is set.
+* **`num_ctx`** (ADR-0043) is the estimated size of the note's **largest real call** plus a 10 %
+  margin (Ollama silently drops the start of a prompt that does not fit), rounded up to 1 024 and
+  capped by the window. A section call counts its prompt and `max_tokens` (Summary Detailed also
+  its paragraph retry; a regeneration its previous body and feedback); in map-reduce the map calls
+  are built first and count their prompt, output room and a repair turn, and the reduce notes are
+  then cut to fit. Estimates use 4 characters per token; qwen3 measured 0.95-1.03 real tokens per
+  estimated token.
 
 Because the system message and the transcript are identical for every section of a note, a local
 Ollama reuses its prompt cache and only processes the short section-specific tail (ADR-0017).
@@ -198,7 +205,7 @@ Lessons from the Phase 09 eval (`tests/eval/`, small local models):
 If the system message, the transcript, the longest section prompt and the output reserve exceed
 70 % of the model's context window, MM3 switches to map-reduce:
 1. **Map:** the transcript is cut into chunks on speaker-turn boundaries
-   (`llm.budget.chunk_transcript`), and each chunk is turned into a JSON extraction: a summary plus
+   (`llm.budget.chunk_transcript`, counting each turn's `[mm:ss]` stamp), and each chunk is turned into a JSON extraction: a summary plus
    decisions, actions, questions and (last, at most 10) key points, each with a `[mm:ss]`
    timestamp and a speaker. With `params.detail: high` each chunk keeps up to 30 points of up to
    40 words, with their figures and names and a `topic` label, plus up to 10 answered questions
