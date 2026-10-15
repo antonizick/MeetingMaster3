@@ -501,3 +501,15 @@ def test_aws_keys_never_reach_the_log(ui: TestClient) -> None:
     )
     RedactionFilter().filter(record)
     assert AWS_ID not in record.msg and AWS_SECRET not in record.msg
+
+
+def test_model_list_swaps_into_its_slot_not_the_form(ui: TestClient) -> None:
+    """15g: the model slot sits inside a form with hx-target="#backend-form" (outerHTML); without
+    its own hx-target it inherited that and replaced the whole Edit form with the model list."""
+    ui.post(
+        "/settings/llm/save",
+        data={"orig_name": "", "name": "aws", "kind": "bedrock", "region": "us-east-1"},
+    )
+    html = ui.get("/settings/llm/aws/edit").text
+    slot = html[html.index('id="model-slot"') :].split(">", 1)[0]
+    assert 'hx-target="this"' in slot and 'hx-swap="innerHTML"' in slot
