@@ -19,6 +19,7 @@ from meetingmaster3.llm.base import (
     GenerateResult,
     ModelInfo,
     Usage,
+    check_answer,
     connection_failure,
     is_local_url,
     llm_error,
@@ -98,11 +99,13 @@ class OpenAICompatBackend:
                 E_LLM_BAD_RESPONSE, f"Unexpected response from {self._provider}."
             ) from exc
         usage = data.get("usage") or {}
+        finish = choice.get("finish_reason")
+        check_answer(self._provider, text, finish)
         return GenerateResult(
             text=text,
             model=data.get("model", req.model),
             usage=Usage(usage.get("prompt_tokens"), usage.get("completion_tokens")),
-            finish_reason=choice.get("finish_reason"),
+            finish_reason=finish,
             latency_ms=int((time.monotonic() - started) * 1000),
         )
 
@@ -112,13 +115,15 @@ class OpenAICompatBackend:
                 "POST", "/chat/completions", json=self._payload(req, True)
             )
             resp = await send(client, request, self._provider, stream=True)
+            streamed = False
+            finish: str | None = None
             try:
                 async for line in resp.aiter_lines():
                     if not line.startswith("data:"):
                         continue  # blank separators and ": keep-alive" comments
                     payload = line[5:].strip()
                     if payload == "[DONE]":
-                        return
+                        break
                     try:
                         event = json.loads(payload)
                     except ValueError as exc:
@@ -128,8 +133,11 @@ class OpenAICompatBackend:
                             E_LLM_BAD_RESPONSE, f"{self._provider} reported an error mid-stream."
                         )
                     for choice in event.get("choices", []):
+                        finish = choice.get("finish_reason") or finish
                         if piece := (choice.get("delta") or {}).get("content"):
+                            streamed = streamed or bool(piece.strip())
                             yield piece
+                check_answer(self._provider, "x" if streamed else "", finish)
             except httpx.HTTPError as exc:
                 raise error_from_exception(self._provider, exc) from exc
             finally:

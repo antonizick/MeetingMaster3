@@ -154,6 +154,33 @@ class LLMBackend(Protocol):
         ...
 
 
+EMPTY_FINISHES = frozenset({"length", "content_filter", "content_filtered", "guardrail_intervened"})
+
+
+def check_answer(provider: str, text: str, finish: str | None) -> None:
+    """An empty answer that the provider cut off is an error, not an empty section (ADR-0045).
+
+    A reasoning model can spend a call's whole ``max_tokens`` on hidden reasoning and return no
+    text with finish ``length``; a safety filter can return nothing too. A cut-off answer that has
+    text is returned as usual (the generator warns that the section may be cut off), and an empty
+    answer that ended normally is left to the generator's retry."""
+    if text.strip() or finish not in EMPTY_FINISHES:
+        return
+    if finish == "length":
+        raise llm_error(
+            E_LLM_BAD_RESPONSE,
+            f"{provider} returned no text: the model used its whole output allowance (often on "
+            "hidden reasoning) before writing an answer.",
+            "Turn reasoning off for this model in the backend's parameters, or choose a model "
+            "without reasoning.",
+        )
+    raise llm_error(
+        E_LLM_BAD_RESPONSE,
+        f"{provider} returned no text: its content filter stopped the answer ({finish}).",
+        "Try again, or use another model.",
+    )
+
+
 def connection_failure(exc: MM3Error, latency_ms: int | None = None) -> ConnectionStatus:
     return ConnectionStatus(
         ok=False, message=exc.message, latency_ms=latency_ms, code=exc.code, hint=exc.hint

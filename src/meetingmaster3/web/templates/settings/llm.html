@@ -1,4 +1,4 @@
-{% from "settings/_macros.html" import status %}
+{% from "settings/_macros.html" import field, status %}
 <section class="card stack" aria-labelledby="h-backends">
   <h2 id="h-backends">Language-model backends</h2>
   <p class="hint">Backends write the notes. Local ones keep everything on this computer; cloud ones ask for your consent before a transcript is sent.</p>
@@ -33,6 +33,13 @@
   <div><button hx-get="/settings/llm/new" hx-target="#backend-slot" hx-swap="innerHTML">Add a backend</button></div>
 </section>
 <div id="backend-slot"></div>
+<form class="card stack" id="aws-keys" aria-labelledby="h-aws" hx-post="/settings/llm/aws-keys" hx-target="#tab-body" hx-swap="innerHTML" autocomplete="off">
+  <h2 id="h-aws">AWS keys for Bedrock</h2>
+  <p class="hint">Bedrock backends sign in to AWS with this access key pair. Create it for a separate IAM user that may only call Bedrock; the step-by-step guide is “Setting up AWS Bedrock, step by step” in <code>docs/user-guide/llm-backends.md</code>. Leave both empty to use an AWS profile (the backend's “AWS profile” field) or the standard AWS environment variables instead.</p>
+  {% for v in views %}{{ field(v) }}{% endfor %}
+  <p class="hint">Write-only: stored in <code>config.yaml</code> (readable only by you) and never shown again. Removing either key removes both. Environment variables <code>MM3_SECRETS__AWS_ACCESS_KEY_ID</code> and <code>MM3_SECRETS__AWS_SECRET_ACCESS_KEY</code> outrank what is saved here.</p>
+  <div><button type="submit" class="primary">Save AWS keys</button></div>
+</form>
 <section class="card stack" aria-labelledby="h-rec">
   <h2 id="h-rec">Recommendations for this computer</h2>
   {% set local = recommendations.local %}

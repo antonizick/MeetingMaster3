@@ -421,3 +421,83 @@ def test_every_documented_setting_is_in_the_ui() -> None:
         "speakers.match_margin", "speakers.max_embeddings_per_person", "secrets.hf_token",
     }  # fmt: skip
     assert expected <= shown
+
+
+# -- AWS keys for Bedrock (15g) ----------
+
+AWS_ID = "AKIAABCDEFGHIJKLMNOP"
+AWS_SECRET = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY1"
+
+
+def test_aws_keys_are_write_only_and_reach_bedrock(ui: TestClient) -> None:
+    ui.post(
+        "/settings/llm/save",
+        data={"orig_name": "", "name": "aws", "kind": "bedrock", "region": "us-east-1"},
+    )
+    ui.app.state.llm_registry.get("aws")  # type: ignore[attr-defined]  # cache a keyless backend
+    r = ui.post(
+        "/settings/llm/aws-keys",
+        data={"secrets.aws_access_key_id": AWS_ID, "secrets.aws_secret_access_key": AWS_SECRET},
+    )
+    assert r.status_code == 200 and "✓ Saved." in r.text
+    s = reloaded(ui).secrets
+    assert s.aws_access_key_id.get_secret_value() == AWS_ID  # type: ignore[union-attr]
+    assert s.aws_secret_access_key.get_secret_value() == AWS_SECRET  # type: ignore[union-attr]
+    assert (config_file(ui).stat().st_mode & 0o777) == 0o600
+    page = ui.get("/settings/llm").text
+    assert AWS_ID not in page and AWS_SECRET not in page
+    assert page.count("Saved. Type a new value") == 2
+    backend = ui.app.state.llm_registry.get("aws")  # type: ignore[attr-defined]
+    assert backend._keys == (AWS_ID, AWS_SECRET)  # the registry was rebuilt with the keys
+
+
+def test_aws_keys_need_both_halves_and_clear_removes_both(ui: TestClient) -> None:
+    r = ui.post("/settings/llm/aws-keys", data={"secrets.aws_access_key_id": AWS_ID})
+    assert "Enter both keys" in r.text and reloaded(ui).secrets.aws_access_key_id is None
+    ui.post(
+        "/settings/llm/aws-keys",
+        data={"secrets.aws_access_key_id": AWS_ID, "secrets.aws_secret_access_key": AWS_SECRET},
+    )
+    # replacing only the ID keeps the saved secret (empty = unchanged)
+    new_id = "AKIAZZZZZZZZZZZZZZZZ"
+    ui.post("/settings/llm/aws-keys", data={"secrets.aws_access_key_id": new_id})
+    s = reloaded(ui).secrets
+    assert s.aws_access_key_id.get_secret_value() == new_id  # type: ignore[union-attr]
+    assert s.aws_secret_access_key.get_secret_value() == AWS_SECRET  # type: ignore[union-attr]
+    ui.post("/settings/llm/aws-keys", data={"clear:secrets.aws_secret_access_key": "1"})
+    s = reloaded(ui).secrets
+    assert s.aws_access_key_id is None and s.aws_secret_access_key is None
+    assert AWS_SECRET not in config_file(ui).read_text()
+
+
+def test_aws_env_override_is_flagged(ui: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MM3_SECRETS__AWS_ACCESS_KEY_ID", AWS_ID)
+    page = ui.get("/settings/llm").text
+    assert "MM3_SECRETS__AWS_ACCESS_KEY_ID</code> is set and outranks" in page
+    assert AWS_ID not in page.replace("MM3_SECRETS__AWS_ACCESS_KEY_ID", "")
+
+
+def test_aws_env_keys_outrank_the_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text(
+        "secrets:\n  aws_access_key_id: AKIAFILEFILEFILEFILE\n  aws_secret_access_key: f\n"
+    )
+    monkeypatch.setenv("MM3_SECRETS__AWS_ACCESS_KEY_ID", AWS_ID)
+    s = load_settings(cfg).secrets
+    assert s.aws_access_key_id.get_secret_value() == AWS_ID  # type: ignore[union-attr]
+
+
+def test_aws_keys_never_reach_the_log(ui: TestClient) -> None:
+    import logging
+
+    from meetingmaster3.logging import RedactionFilter
+
+    ui.post(
+        "/settings/llm/aws-keys",
+        data={"secrets.aws_access_key_id": AWS_ID, "secrets.aws_secret_access_key": AWS_SECRET},
+    )
+    record = logging.LogRecord(
+        "x", logging.ERROR, "", 0, "boto said %s / %s", (AWS_ID, AWS_SECRET), None
+    )
+    RedactionFilter().filter(record)
+    assert AWS_ID not in record.msg and AWS_SECRET not in record.msg

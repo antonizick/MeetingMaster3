@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import logging
 import threading
 import time
 from collections.abc import AsyncIterator, Mapping
+from pathlib import Path
 from typing import Any
+
+import yaml
 
 from meetingmaster3.errors import MM3Error
 from meetingmaster3.llm._http import looks_like_context_error
@@ -24,9 +28,11 @@ from meetingmaster3.llm.base import (
     GenerateResult,
     ModelInfo,
     Usage,
+    check_answer,
     connection_failure,
     llm_error,
 )
+from meetingmaster3.llm.budget import DEFAULT_CONTEXT_WINDOW
 from meetingmaster3.logging import redact
 
 log = logging.getLogger(__name__)
@@ -41,6 +47,41 @@ AUTH_CODES = {
     "UnauthorizedException",
 }
 _DONE = object()
+MODELS_FILE = Path(__file__).with_name("bedrock_models.yaml")
+GEO_PREFIXES = frozenset({"us", "eu", "apac", "global", "jp", "au", "ca", "us-gov", "apne"})
+"""First segments of cross-Region inference profile ids (``us.anthropic.claude-...``)."""
+FINISH_REASONS = {
+    "end_turn": "stop",
+    "stop_sequence": "stop",
+    "max_tokens": "length",
+    "model_context_window_exceeded": "length",
+}
+"""Bedrock ``stopReason`` values in the OpenAI-style words the generator checks."""
+
+
+@functools.cache
+def _context_table(path: Path = MODELS_FILE) -> dict[str, int]:
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return {str(k): int(v) for k, v in (data.get("context_windows") or {}).items()}
+
+
+def base_model_id(model: str) -> str:
+    """``us.anthropic.claude-x`` -> ``anthropic.claude-x``; other ids unchanged."""
+    head, sep, rest = model.partition(".")
+    return rest if sep and head.lower() in GEO_PREFIXES else model
+
+
+def known_context_window(model: str, table: Mapping[str, int] | None = None) -> int | None:
+    """The context window of ``model``'s family from ``bedrock_models.yaml`` (longest prefix
+    wins), or None for a model the table does not know (ADR-0044)."""
+    table = _context_table() if table is None else table
+    model_id = base_model_id(model).lower()
+    matches = [prefix for prefix in table if model_id.startswith(prefix.lower())]
+    return table[max(matches, key=len)] if matches else None
+
+
+def finish_reason(stop: str | None) -> str | None:
+    return FINISH_REASONS.get(stop, stop) if stop else None
 
 
 def _import_boto() -> Any:
@@ -119,6 +160,11 @@ def map_boto_error(exc: Exception) -> MM3Error:
             )
         return llm_error(E_LLM_BAD_RESPONSE, f"Bedrock returned an error ({code or 'unknown'}).")
     return llm_error(E_LLM_BAD_RESPONSE, f"Unexpected Bedrock failure: {type(exc).__name__}.")
+
+
+class _Stop:
+    def __init__(self, reason: str | None) -> None:
+        self.reason = reason
 
 
 class BedrockBackend:
@@ -217,11 +263,13 @@ class BedrockBackend:
         except (KeyError, TypeError) as exc:
             raise llm_error(E_LLM_BAD_RESPONSE, "Unexpected response from Bedrock.") from exc
         usage = data.get("usage") or {}
+        finish = finish_reason(data.get("stopReason"))
+        check_answer(PROVIDER, text, finish)
         return GenerateResult(
             text=text,
             model=req.model,
             usage=Usage(usage.get("inputTokens"), usage.get("outputTokens")),
-            finish_reason=data.get("stopReason"),
+            finish_reason=finish,
             latency_ms=int((time.monotonic() - started) * 1000),
         )
 
@@ -243,12 +291,15 @@ class BedrockBackend:
                     delta = event.get("contentBlockDelta", {}).get("delta", {})
                     if "text" in delta:
                         put(delta["text"])
+                    if "messageStop" in event:
+                        put(_Stop(event["messageStop"].get("stopReason")))
             except Exception as exc:
                 put(exc)
             finally:
                 put(_DONE)
 
         task = loop.run_in_executor(None, pump)
+        streamed: list[str] = []
         try:
             while True:
                 item = await asyncio.wait_for(queue.get(), timeout=req.timeout)
@@ -256,6 +307,10 @@ class BedrockBackend:
                     return
                 if isinstance(item, Exception):
                     raise map_boto_error(item) from item
+                if isinstance(item, _Stop):
+                    check_answer(PROVIDER, "".join(streamed), finish_reason(item.reason))
+                    continue
+                streamed.append(str(item))
                 yield str(item)
         except TimeoutError as exc:
             raise llm_error(
@@ -273,20 +328,39 @@ class BedrockBackend:
         except Exception as exc:
             raise map_boto_error(exc) from exc
         models = [
-            ModelInfo(id=m["modelId"], name=m.get("modelName"))
+            ModelInfo(
+                id=m["modelId"],
+                name=m.get("modelName"),
+                context_window=known_context_window(m["modelId"]),
+            )
             for m in data.get("modelSummaries", [])
             if "TEXT" in m.get("outputModalities", [])
             and m.get("modelLifecycle", {}).get("status", "ACTIVE") == "ACTIVE"
         ]
         try:  # newer models are only callable through inference profiles (e.g. "us.<model>")
-            profiles = await asyncio.to_thread(self.control.list_inference_profiles)
             models += [
-                ModelInfo(id=p["inferenceProfileId"], name=p.get("inferenceProfileName"))
-                for p in profiles.get("inferenceProfileSummaries", [])
+                ModelInfo(
+                    id=p["inferenceProfileId"],
+                    name=p.get("inferenceProfileName"),
+                    context_window=known_context_window(p["inferenceProfileId"]),
+                )
+                for p in await asyncio.to_thread(self._inference_profiles)
             ]
         except Exception as exc:
             log.debug("Bedrock inference profiles unavailable: %s", type(exc).__name__)
         return sorted(models, key=lambda m: m.id)
+
+    def _inference_profiles(self) -> list[dict[str, Any]]:
+        """Every system inference profile; the API pages its answer (``nextToken``)."""
+        found: list[dict[str, Any]] = []
+        kwargs: dict[str, Any] = {}
+        for _ in range(50):  # bounded: a misbehaving endpoint cannot loop forever
+            page = self.control.list_inference_profiles(**kwargs)
+            found += page.get("inferenceProfileSummaries", [])
+            if not page.get("nextToken"):
+                break
+            kwargs = {"nextToken": page["nextToken"]}
+        return found
 
     async def test_connection(self) -> ConnectionStatus:
         started = time.monotonic()
@@ -302,6 +376,12 @@ class BedrockBackend:
             if not present:
                 message += f" Model {self.default_model!r} was not listed."
                 hint = "Enable model access in the Bedrock console, or check the id and region."
+            elif self.context_window(self.default_model) is None:
+                hint = (
+                    f"The context window of {self.default_model!r} is not known, so long "
+                    f"meetings are planned for {DEFAULT_CONTEXT_WINDOW} tokens. Set the "
+                    "backend's context window (see the model card) for better notes."
+                )
         return ConnectionStatus(
             ok=True,
             message=message,
@@ -313,7 +393,7 @@ class BedrockBackend:
         )
 
     def context_window(self, model: str) -> int | None:
-        return self._override_ctx
+        return self._override_ctx or known_context_window(model)
 
     async def warm(self, model: str) -> None:
         return None

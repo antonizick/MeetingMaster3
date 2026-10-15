@@ -144,11 +144,19 @@ PRIVACY_FIELDS = (
           advanced=True),
 )  # fmt: skip
 
+AWS_FIELDS = (
+    Field("secrets.aws_access_key_id", "AWS access key ID", "secret",
+          "Starts with AKIA. From the IAM user you created for MeetingMaster3, never your "
+          "root account.", placeholder="AKIA…"),
+    Field("secrets.aws_secret_access_key", "AWS secret access key", "secret",
+          "Shown once by AWS when you create the access key."),
+)  # fmt: skip
+
 TABS: dict[str, tuple[str, tuple[Field, ...]]] = {
     "vault": ("Vault", VAULT_FIELDS),
     "transcription": ("Transcription", TRANSCRIPTION_FIELDS),
     "notes": ("Notes & jobs", NOTES_FIELDS),
-    "llm": ("Language models", ()),
+    "llm": ("Language models", AWS_FIELDS),
     "privacy": ("Privacy", PRIVACY_FIELDS),
     "about": ("About & diagnostics", ()),
 }

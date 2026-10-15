@@ -19,7 +19,7 @@
   <div class="field"><label for="b-key">API key</label>
     <input id="b-key" name="api_key" type="password" autocomplete="new-password" spellcheck="false" placeholder="{{ 'Saved. Type a new key to replace it.' if key_set else 'Not set' }}">
     {% if key_set %}<label class="check"><input type="checkbox" name="clear_key" value="1"> Remove the saved key</label>{% endif %}
-    <p class="hint">Write-only: it is stored in <code>config.yaml</code> and never displayed again. Not needed for Ollama or Bedrock.</p></div>
+    <p class="hint">Write-only: it is stored in <code>config.yaml</code> and never displayed again. Not needed for Ollama. Bedrock uses the AWS keys below the backend list, or an AWS profile.</p></div>
   <div class="grid">
     <div class="field"><label for="b-region">Region (Bedrock)</label>
       <input id="b-region" name="region" type="text" value="{{ s.get('region', cfg.region or '') }}" placeholder="us-east-1"></div>

@@ -103,3 +103,40 @@ async def test_connection_failure_does_not_leak_key() -> None:
 def test_local_detection() -> None:
     assert OpenAICompatBackend("lm", "http://127.0.0.1:1234/v1").is_local
     assert not backend().is_local
+
+
+@respx.mock
+async def test_reasoning_that_uses_every_token_is_an_error() -> None:
+    """15g: a reasoning model that spends max_tokens on reasoning returns content null."""
+    respx.post(f"{BASE}/chat/completions").respond(
+        json={
+            "choices": [
+                {"message": {"content": None, "reasoning": "…"}, "finish_reason": "length"}
+            ],
+            "usage": {"prompt_tokens": 5, "completion_tokens": 9},
+        }
+    )
+    with pytest.raises(MM3Error) as exc:
+        await backend().generate(REQ)
+    assert exc.value.code == "E_LLM_BAD_RESPONSE" and "output allowance" in exc.value.message
+
+
+@respx.mock
+async def test_cut_off_answer_with_text_is_kept() -> None:
+    respx.post(f"{BASE}/chat/completions").respond(
+        json={"choices": [{"message": {"content": "part"}, "finish_reason": "length"}]}
+    )
+    result = await backend().generate(REQ)
+    assert (result.text, result.finish_reason) == ("part", "length")
+
+
+@respx.mock
+async def test_stream_empty_at_length_is_an_error() -> None:
+    sse = (
+        'data: {"choices":[{"delta":{"reasoning":"hmm"}}]}\n\n'
+        'data: {"choices":[{"delta":{},"finish_reason":"length"}]}\n\n'
+        "data: [DONE]\n\n"
+    )
+    respx.post(f"{BASE}/chat/completions").respond(content=sse)
+    with pytest.raises(MM3Error):
+        [p async for p in backend().stream(REQ)]

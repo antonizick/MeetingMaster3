@@ -24,6 +24,7 @@ from pydantic import SecretStr
 
 from meetingmaster3 import __version__
 from meetingmaster3.config import editing
+from meetingmaster3.config.editing import get_path
 from meetingmaster3.config.settings import MODEL_NAME_PATTERN, BackendConfig, Settings
 from meetingmaster3.errors import MM3Error
 from meetingmaster3.hardware.detect import get_hardware
@@ -224,6 +225,31 @@ async def save_notes(request: Request) -> HTMLResponse:
             "Changing “Meetings processed at once” or the check interval needs a restart."
         )
     return await _show(request, "notes", state)
+
+
+def _secret_set(value: object) -> bool:
+    return isinstance(value, SecretStr) and bool(value.get_secret_value())
+
+
+@router.post("/settings/llm/aws-keys", response_class=HTMLResponse)
+async def save_aws_keys(request: Request) -> HTMLResponse:
+    """The AWS access key pair for Bedrock backends (15g). Both keys or neither: half a pair
+    would silently fall back to the AWS profile chain, so removing one removes both."""
+    form = await _form(request)
+    settings = _settings(request)
+    paths = [f.path for f in sf.AWS_FIELDS]
+    errors: dict[str, str] = {}
+    override: dict[str, Any] = {}
+    if any(form.get(f"clear:{p}") for p in paths):
+        override = dict.fromkeys(paths)
+    else:
+        saved = {p: _secret_set(get_path(settings, p)) for p in paths}
+        have = {p: bool((form.get(p) or "").strip()) or saved[p] for p in paths}
+        if any(have.values()) and not all(have.values()):
+            missing = next(p for p, ok in have.items() if not ok)
+            errors[missing] = "Enter both keys: the access key ID and its secret access key."
+    state, _ = await _save_fields(request, "llm", errors, override)
+    return await _show(request, "llm", state)
 
 
 @router.post("/settings/privacy", response_class=HTMLResponse)

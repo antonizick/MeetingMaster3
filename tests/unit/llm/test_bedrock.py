@@ -48,7 +48,7 @@ async def test_generate_via_converse() -> None:
             },
         )
         result = await backend(runtime, control).generate(REQ)
-    assert (result.text, result.finish_reason) == ("hello", "end_turn")
+    assert (result.text, result.finish_reason) == ("hello", "stop")
     assert result.usage.input_tokens == 4  # type: ignore[union-attr]
 
 
@@ -197,3 +197,141 @@ async def test_stream_cancellation_stops_worker() -> None:
 
 def test_bedrock_is_never_local() -> None:
     assert BedrockBackend("b").is_local is False
+
+
+# -- 15g: context windows, empty answers, paging (ADR-0044, ADR-0045) ---------------------------
+
+
+@pytest.mark.parametrize(
+    ("model", "window"),
+    [
+        ("anthropic.claude-haiku-5-5", 200_000),
+        ("us.anthropic.claude-sonnet-5-5", 200_000),  # geo inference profile
+        ("global.anthropic.claude-sonnet-5-5", 200_000),
+        ("apac.amazon.nova-pro-v1:0", 300_000),
+        ("amazon.nova-micro-v1:0", 128_000),
+        ("amazon.nova-2-lite-v1:0", 128_000),  # family fallback
+        ("meta.llama3-8b-instruct-v1:0", 8192),  # Llama 3.0 beats the Llama 3 family entry
+        ("us.meta.llama3-3-70b-instruct-v1:0", 128_000),
+        ("mistral.mistral-large-2407-v1:0", 128_000),
+        ("mistral.mixtral-8x7b-instruct-v0:1", 32_000),
+        ("vendor.unknown-model", None),
+        ("arn:aws:bedrock:us-east-1:123:application-inference-profile/x", None),
+    ],
+)
+def test_known_context_window_matches_longest_prefix(model: str, window: int | None) -> None:
+    from meetingmaster3.llm.bedrock import known_context_window
+
+    assert known_context_window(model) == window
+
+
+def test_configured_context_window_wins() -> None:
+    b = BedrockBackend("b", context_window=50_000)
+    assert b.context_window("anthropic.claude-haiku-5-5") == 50_000
+    assert BedrockBackend("b").context_window("us.anthropic.claude-haiku-5-5") == 200_000
+
+
+async def test_budget_uses_the_table_not_8192() -> None:
+    from meetingmaster3.llm.budget import window_for
+
+    assert await window_for(BedrockBackend("b"), "us.anthropic.claude-sonnet-5-5") == 200_000
+
+
+def _converse_reply(text: str | None, stop: str) -> dict[str, Any]:
+    content = [] if text is None else [{"text": text}]
+    return {
+        "output": {"message": {"role": "assistant", "content": content}},
+        "stopReason": stop,
+        "usage": {"inputTokens": 4, "outputTokens": 20, "totalTokens": 24},
+        "metrics": {"latencyMs": 5},
+    }
+
+
+async def test_empty_answer_at_max_tokens_is_an_error() -> None:
+    runtime, control = clients()
+    with Stubber(runtime) as stub:
+        stub.add_response("converse", _converse_reply(None, "max_tokens"))
+        with pytest.raises(MM3Error) as exc:
+            await backend(runtime, control).generate(REQ)
+    assert exc.value.code == "E_LLM_BAD_RESPONSE" and "output allowance" in exc.value.message
+
+
+async def test_cut_off_answer_with_text_is_returned_as_length() -> None:
+    runtime, control = clients()
+    with Stubber(runtime) as stub:
+        stub.add_response("converse", _converse_reply("partial", "max_tokens"))
+        result = await backend(runtime, control).generate(REQ)
+    assert (result.text, result.finish_reason) == ("partial", "length")
+
+
+async def test_filtered_empty_answer_is_an_error() -> None:
+    runtime, control = clients()
+    with Stubber(runtime) as stub:
+        stub.add_response("converse", _converse_reply("", "content_filtered"))
+        with pytest.raises(MM3Error) as exc:
+            await backend(runtime, control).generate(REQ)
+    assert "content filter" in exc.value.message
+
+
+async def test_stream_empty_at_max_tokens_is_an_error() -> None:
+    events = [{"messageStart": {}}, {"messageStop": {"stopReason": "max_tokens"}}]
+    b = BedrockBackend("bedrock", runtime_client=FakeStreamClient(events))
+    with pytest.raises(MM3Error) as exc:
+        [p async for p in b.stream(REQ)]
+    assert exc.value.code == "E_LLM_BAD_RESPONSE"
+
+
+async def test_stream_with_text_and_normal_stop_is_fine() -> None:
+    events = [
+        {"contentBlockDelta": {"delta": {"text": "A"}}},
+        {"messageStop": {"stopReason": "end_turn"}},
+    ]
+    b = BedrockBackend("bedrock", runtime_client=FakeStreamClient(events))
+    assert [p async for p in b.stream(REQ)] == ["A"]
+
+
+async def test_inference_profiles_are_paged() -> None:
+    runtime, control = clients()
+
+    def profile(pid: str) -> dict[str, Any]:
+        return {
+            "inferenceProfileName": pid,
+            "inferenceProfileArn": f"arn:aws:bedrock:::{pid}",
+            "inferenceProfileId": pid,
+            "status": "ACTIVE",
+            "type": "SYSTEM_DEFINED",
+            "models": [{"modelArn": "arn:b"}],
+        }
+
+    with Stubber(control) as stub:
+        stub.add_response("list_foundation_models", {"modelSummaries": []}, None)
+        stub.add_response(
+            "list_inference_profiles",
+            {"inferenceProfileSummaries": [profile("us.a")], "nextToken": "t1"},
+        )
+        stub.add_response(
+            "list_inference_profiles",
+            {"inferenceProfileSummaries": [profile("us.b")]},
+            {"nextToken": "t1"},
+        )
+        models = await backend(runtime, control).list_models()
+    assert [m.id for m in models] == ["us.a", "us.b"]
+
+
+async def test_connection_hints_an_unknown_context_window() -> None:
+    runtime, control = clients()
+    with Stubber(control) as stub:
+        stub.add_response(
+            "list_foundation_models",
+            {
+                "modelSummaries": [
+                    {"modelId": "vendor.x", "modelArn": "arn:x", "outputModalities": ["TEXT"]}
+                ]
+            },
+            None,
+        )
+        stub.add_response("list_inference_profiles", {"inferenceProfileSummaries": []})
+        status = await BedrockBackend(
+            "b", default_model="vendor.x", runtime_client=runtime, control_client=control
+        ).test_connection()
+    assert status.ok and "context window" in status.hint and "8192" in status.hint
