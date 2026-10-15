@@ -14,11 +14,15 @@ from meetingmaster3.domain.meeting import MeetingMeta
 from meetingmaster3.domain.transcript import Segment, SpeakerMap, Transcript
 from meetingmaster3.errors import MM3Error
 from meetingmaster3.llm.base import E_CONSENT_REQUIRED, GenerateRequest
-from meetingmaster3.llm.budget import estimate_tokens
+from meetingmaster3.llm.budget import estimate_tokens, usable_tokens
 from meetingmaster3.llm.fake import FakeLLMBackend
 from meetingmaster3.markdown.note_parser import parse_note
 from meetingmaster3.markdown.note_writer import build_note, render_note
-from meetingmaster3.templates.generator import NoteGenerator, regenerate_section
+from meetingmaster3.templates.generator import (
+    CONTEXT_MARGIN,
+    NoteGenerator,
+    regenerate_section,
+)
 from meetingmaster3.templates.loader import load_library
 from meetingmaster3.templates.mapreduce import (
     ChunkExtraction,
@@ -461,6 +465,110 @@ async def test_high_detail_template_keeps_more_points_with_topics() -> None:
                for c in plain.calls if c.json_mode)  # fmt: skip
     plain_notes = next(c for c in plain.calls if not c.json_mode).messages[0].content
     assert "Questions and answers:" in plain_notes  # a model may volunteer them; still rendered
+
+
+# -- context size (ADR-0017, ADR-0043) ---------------------------------------------------------
+
+
+def call_size(req: GenerateRequest) -> int:
+    """Estimated tokens of one call: everything sent plus its output room."""
+    sent = "\n".join([req.system or "", *(m.content for m in req.messages)])
+    return estimate_tokens(sent) + req.max_tokens
+
+
+def assert_every_call_fits(calls: list[GenerateRequest]) -> int:
+    """One ``num_ctx`` per note, and every call fits inside it with the safety margin."""
+    sizes = {c.num_ctx for c in calls}
+    assert len(sizes) == 1
+    num_ctx = sizes.pop()
+    assert num_ctx is not None
+    assert all(call_size(c) * (1 + CONTEXT_MARGIN) <= num_ctx for c in calls)
+    return num_ctx
+
+
+def point_responder(n_points: int, words: int = 12) -> Any:
+    def respond(req: GenerateRequest) -> str:
+        if not req.json_mode:
+            return "ok"
+        part = req.messages[0].content.split("This is part ", 1)[1].split(" ", 1)[0]
+        points = [{"text": " ".join(f"p{part}w{i}x{j}" for j in range(words)), "time": "00:10",
+                   "topic": "Topic"} for i in range(n_points)]  # fmt: skip
+        return json.dumps({"summary": f"Part {part}.", "points": points})
+
+    return respond
+
+
+@pytest.mark.parametrize(
+    ("template_id", "old", "new"),
+    [("executive-summary", 13312, 13312), ("default-notes", 15360, 13312)],
+)
+async def test_map_reduce_num_ctx_fits_the_largest_call_once(
+    template_id: str, old: int, new: int
+) -> None:
+    """The output reserve is no longer counted twice: map-reduce asks for the largest real call
+    plus the margin, under ``usable + reserve`` (``old``, rounded, before 15f), and every call
+    still fits. Executive Summary's small reserve rounds to the same size as before."""
+    template = load_library().get(template_id)
+    reserve = max(template.max_tokens(s) for s in template.sections)
+    assert old == -(-(usable_tokens(16384) + reserve) // 1024) * 1024
+    backend = FakeLLMBackend(window=16384, responder=point_responder(5))
+    result = await generator(backend, template_id).generate(meta(), transcript(repeat=400))
+    assert result.mode == "map-reduce"
+    num_ctx = assert_every_call_fits(backend.calls)
+    assert num_ctx == new
+    largest = max(call_size(c) for c in backend.calls if c.json_mode)
+    assert largest * (1 + CONTEXT_MARGIN) < usable_tokens(16384) + reserve
+    assert largest <= usable_tokens(16384)  # map prompts keep to their budget, stamps included
+    assert num_ctx - 1024 < largest * (1 + CONTEXT_MARGIN) + 400  # rounded up, not padded
+
+
+async def test_full_mode_num_ctx_covers_its_largest_section_with_the_margin() -> None:
+    backend = FakeLLMBackend(window=16384)
+    result = await generator(backend, "default-notes").generate(meta(), transcript(repeat=20))
+    assert result.mode == "full"
+    num_ctx = assert_every_call_fits(backend.calls)
+    assert num_ctx < 16384
+
+
+async def test_over_long_reduce_notes_never_exceed_num_ctx() -> None:
+    """Map replies far larger than the reduce room are cut to fit the chosen context."""
+    warnings: list[str] = []
+    backend = FakeLLMBackend(window=16384, responder=point_responder(25, words=40))
+    gen = generator(backend, "default-notes", warn=warnings.append)
+    result = await gen.generate(meta(), transcript(repeat=600))
+    assert result.mode == "map-reduce" and result.chunks >= 4
+    assert_every_call_fits(backend.calls)
+    assert any("some minor points were left out" in w for w in warnings)
+
+
+async def test_retries_repeat_only_what_fits_the_context() -> None:
+    """A huge broken map reply and a one-paragraph Summary Detailed are repeated back only as far
+    as the note's context allows."""
+
+    def respond(req: GenerateRequest) -> str:
+        if req.json_mode:
+            return "{broken " + "x" * 30000 if len(req.messages) == 1 else '{"summary": "s"}'
+        return "One paragraph only. " * 400
+
+    backend = FakeLLMBackend(window=16384, responder=respond)
+    await generator(backend, "default-notes").generate(meta(), transcript(repeat=400))
+    assert_every_call_fits(backend.calls)
+    repairs = [c for c in backend.calls if c.json_mode and len(c.messages) == 3]
+    floors = [c for c in backend.calls if not c.json_mode and len(c.messages) == 3]
+    assert repairs and floors
+    assert all(250 * 4 <= len(c.messages[1].content) <= 4000 for c in repairs)
+    assert all(c.messages[1].content for c in floors)
+
+
+async def test_regeneration_context_includes_the_previous_body() -> None:
+    backend = FakeLLMBackend(window=16384, responder=lambda r: "New text.")
+    gen = generator(backend, "default-notes")
+    previous = "An earlier, much longer version of this section. " * 300
+    await gen.regenerate_section(
+        meta(), transcript(repeat=20), "topics", previous=previous, feedback="More."
+    )
+    assert previous.strip() in backend.calls[0].messages[0].content
+    assert_every_call_fits(backend.calls)
 
 
 def test_render_notes_cuts_points_before_exchanges() -> None:

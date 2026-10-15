@@ -53,6 +53,15 @@ def test_chunks_cover_every_turn_once_within_budget(
     ]
 
 
+@given(turns_st, st.integers(min_value=20, max_value=300), st.integers(min_value=0, max_value=5))
+def test_per_turn_overhead_is_counted(turns: list[Turn], max_tokens: int, per_turn: int) -> None:
+    """ADR-0043: what the caller adds to each rendered turn (a timestamp) stays within budget."""
+    chunks = chunk_transcript(turns, max_tokens, per_turn=per_turn)
+    assert all(c.tokens + per_turn * len(c.turns) <= max_tokens for c in chunks)
+    rebuilt = "".join("".join(t.text.split()) for c in chunks for t in c.new_turns)
+    assert rebuilt == "".join("".join(t.text.split()) for t in turns)
+
+
 @given(turns_st, st.integers(min_value=20, max_value=300))
 def test_turns_within_budget_are_never_split(turns: list[Turn], max_tokens: int) -> None:
     chunks = chunk_transcript(turns, max_tokens)

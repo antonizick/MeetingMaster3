@@ -105,8 +105,11 @@ def _split_long(turn: Turn, max_tokens: int) -> list[Turn]:
     ]
 
 
-def chunk_transcript(turns: Sequence[Turn], max_tokens: int, overlap_turns: int = 1) -> list[Chunk]:
-    """Group turns into chunks of at most ``max_tokens`` estimated tokens.
+def chunk_transcript(
+    turns: Sequence[Turn], max_tokens: int, overlap_turns: int = 1, per_turn: int = 0
+) -> list[Chunk]:
+    """Group turns into chunks of at most ``max_tokens`` estimated tokens, counting ``per_turn``
+    more for each turn (what the caller adds when it renders one, such as a timestamp).
 
     Chunks break only between turns, so a turn is never cut in two unless it alone exceeds the
     budget (it is then split at sentence ends and the pieces are marked ``continued``). Each
@@ -116,16 +119,20 @@ def chunk_transcript(turns: Sequence[Turn], max_tokens: int, overlap_turns: int 
     """
     if max_tokens < 1:
         raise ValueError("max_tokens must be positive")
-    pieces = [p for t in turns for p in _split_long(t, max_tokens)]
+
+    def cost(group: Sequence[Turn]) -> int:
+        return sum(t.tokens + per_turn for t in group)
+
+    pieces = [p for t in turns for p in _split_long(t, max(1, max_tokens - per_turn))]
     chunks: list[Chunk] = []
     current: list[Turn] = []
     overlap = 0
     new_count = 0
     for piece in pieces:
-        if new_count and sum(t.tokens for t in current) + piece.tokens > max_tokens:
+        if new_count and cost(current) + cost([piece]) > max_tokens:
             chunks.append(Chunk(len(chunks), tuple(current), overlap))
             carry = current[-overlap_turns:] if overlap_turns > 0 else []
-            while carry and sum(t.tokens for t in carry) + piece.tokens > max_tokens:
+            while carry and cost(carry) + cost([piece]) > max_tokens:
                 carry = carry[1:]
             current, overlap, new_count = list(carry), len(carry), 0
         current.append(piece)

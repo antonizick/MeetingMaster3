@@ -26,6 +26,7 @@ from meetingmaster3.llm.base import (
     Message,
 )
 from meetingmaster3.llm.budget import (
+    CHARS_PER_TOKEN,
     Chunk,
     chunk_transcript,
     estimate_tokens,
@@ -69,7 +70,20 @@ usable window)."""
 EXTRACTION_TEMPERATURE = 0.1
 MIN_CHUNK_TOKENS = 512
 MIN_NUM_CTX = 4096
+CONTEXT_MARGIN = 0.10
+"""Safety margin inside every ``num_ctx``, over the largest call's estimated size: Ollama silently
+drops the start of a prompt that does not fit. Measured 2026-10-15 on qwen3 (ADR-0043): its
+tokenizer needs 0.94-0.98 tokens per estimated token on meeting text, so 10% is ample."""
+REPAIR_ECHO_CHARS = 4000
+"""Most of a failed map reply repeated back when asking for a repair."""
+REPAIR_ECHO_TOKENS = 250
+"""Room always kept for the repeated reply in a map call's ``num_ctx`` (the rest is used only
+when the note's context has space for it)."""
+FLOOR_ECHO_CHARS = 8000
+"""Most of a too-short Summary Detailed repeated back when asking for more paragraphs."""
 REQUEST_TIMEOUT_S = 900.0
+TURN_STAMP_TOKENS = 3
+"""Estimated tokens a map prompt adds to each turn: its ``[h:mm:ss]`` stamp and line break."""
 MAP_SHARE = 0.6
 """Share of the progress bar given to the map step in map-reduce mode."""
 
@@ -248,11 +262,47 @@ class NoteGenerator:
         reserve = max(self.template.max_tokens(s) for s in sections)
         return tail, reserve
 
+    def _section_need(
+        self,
+        sections: list[TemplateSection],
+        cues: tuple[Cue, ...] = (),
+        previous: str | None = None,
+        feedback: str | None = None,
+    ) -> int:
+        """Tokens of the largest section call, without the shared context: its prompt tail and
+        output, plus Summary Detailed's paragraph retry (its answer repeated back)."""
+
+        def need(s: TemplateSection) -> int:
+            tail = assembler.section_prompt(
+                self.template,
+                s,
+                "",
+                instructions=self.instructions,
+                previous=previous,
+                feedback=feedback,
+                cues=cues,
+            )
+            out = self.template.max_tokens(s)
+            retry = 0
+            if s.id == DETAILED_SUMMARY_ID:
+                echo = min(FLOOR_ECHO_CHARS // CHARS_PER_TOKEN, out)
+                retry = echo + estimate_tokens(FIRMER_PARAGRAPHS.format(n=1))
+            return estimate_tokens(tail) + out + retry
+
+        return max(need(s) for s in sections)
+
     @staticmethod
     def _num_ctx(window: int, need: int) -> int:
         """One context size for every call of a note, so a local Ollama never reloads the model
-        between sections."""
-        return min(window, max(MIN_NUM_CTX, math.ceil(need / 1024) * 1024))
+        between sections: the largest call's estimated size plus the margin, in steps of 1 024
+        (ADR-0017, ADR-0043)."""
+        wanted = math.ceil(need * (1 + CONTEXT_MARGIN) / 1024) * 1024
+        return min(window, max(MIN_NUM_CTX, wanted))
+
+    @staticmethod
+    def _capacity(num_ctx: int) -> int:
+        """Estimated tokens a call may use within ``num_ctx`` (the margin left out)."""
+        return int(num_ctx / (1 + CONTEXT_MARGIN))
 
     # -- context -----------------------------------------------------------------------
 
@@ -263,8 +313,12 @@ class NoteGenerator:
         sections: list[TemplateSection],
         *,
         map_progress: tuple[float, float] = (0.0, MAP_SHARE),
+        previous: str | None = None,
+        feedback: str | None = None,
     ) -> PreparedContext:
-        """Decide full vs map-reduce and build the shared system message and context."""
+        """Decide full vs map-reduce and build the shared system message and context.
+        ``previous`` and ``feedback`` are those of a section regeneration, so the context is
+        sized for that larger prompt."""
         enforce_consent(
             self.backend, cloud_consent=self.cloud_consent, remembered=self.consent_remembered
         )
@@ -280,14 +334,14 @@ class NoteGenerator:
         if can_generate(self.backend, self.model) is False:
             raise unsuitable_model_error(self.model)
         tail, reserve = self._sections_overhead(sections, cues)
-        prompt_tokens = estimate_tokens(system + "\n" + context) + tail
+        section_need = self._section_need(sections, cues, previous, feedback)
         if fits_window(window, system + "\n" + context, reserve + tail):
             return PreparedContext(
                 system,
                 context,
                 "full",
                 window,
-                self._num_ctx(window, prompt_tokens + reserve),
+                self._num_ctx(window, estimate_tokens(system + "\n" + context) + section_need),
                 meeting_day=day,
                 cues=cues,
             )
@@ -301,8 +355,23 @@ class NoteGenerator:
         budget = map_budget(window, detail)
         if budget < MIN_CHUNK_TOKENS:
             raise context_error(self.model, window, self.backend.context_window(self.model))
-        chunks = chunk_transcript(turns, budget)
-        num_ctx = self._num_ctx(window, usable_tokens(window) + reserve)
+        chunks = chunk_transcript(turns, budget, per_turn=TURN_STAMP_TOKENS)
+        prompts = [self._map_prompt(c, len(chunks), hours, cue_room, detail) for c in chunks]
+        # ADR-0043: size the context for the largest real call, known before the first one. The
+        # map calls (prompt, output and a repair's extra turn) are measured; the reduce notes
+        # are fitted into what is left, so no call is ever larger than ``num_ctx``.
+        repair = max(
+            estimate_tokens(repair_prompt("x" * 80, truncated=t, detail=detail))
+            for t in (False, True)
+        )
+        map_need = (
+            max(estimate_tokens(EXTRACTION_SYSTEM + "\n" + p) for p in prompts)
+            + extraction_max_tokens(detail)
+            + repair
+            + REPAIR_ECHO_TOKENS
+        )
+        reduce_need = estimate_tokens(system) + section_need + MIN_CHUNK_TOKENS
+        num_ctx = self._num_ctx(window, max(map_need, reduce_need))
         start, end = map_progress
         extractions: list[ChunkExtraction | None] = []
         ranges: list[str] = []
@@ -311,9 +380,7 @@ class NoteGenerator:
                 start + (end - start) * chunk.index / len(chunks),
                 f"Reading part {chunk.index + 1} of {len(chunks)}",
             )
-            extractions.append(
-                await self._extract(chunk, len(chunks), hours, num_ctx, cue_room, detail)
-            )
+            extractions.append(await self._extract(chunk, prompts[chunk.index], num_ctx, detail))
             ranges.append(_range(chunk, hours))
         merged = merge(extractions, ranges)
         for i in merged.skipped_chunks:
@@ -328,7 +395,11 @@ class NoteGenerator:
                 "Try a larger or more capable model.",
                 status_code=502,
             )
-        room = usable_tokens(window) - estimate_tokens(system) - tail - reserve
+        room = (
+            min(usable_tokens(window), self._capacity(num_ctx))
+            - estimate_tokens(system)
+            - section_need
+        )
         notes_text, truncated = render_notes(merged, max(room, MIN_CHUNK_TOKENS))
         if truncated:
             self._warn(
@@ -347,15 +418,14 @@ class NoteGenerator:
             cues=cues,
         )
 
-    async def _extract(
+    def _map_prompt(
         self,
         chunk: Chunk,
         parts: int,
         hours: bool,
-        num_ctx: int,
         cue_room: int = CUE_TOKENS,
         detail: DetailLevel = "standard",
-    ) -> ChunkExtraction | None:
+    ) -> str:
         cues: list[str] = []
         relevant = self.template.params.task_candidates == "relevant"
         found = assembler.task_cues(list(chunk.new_turns), hours=hours)
@@ -363,7 +433,7 @@ class NoteGenerator:
             if estimate_tokens("\n".join([*cues, cue.render()])) > cue_room:
                 break
             cues.append(cue.render())
-        prompt = extraction_prompt(
+        return extraction_prompt(
             chunk.index + 1,
             parts,
             assembler.format_turns(chunk.turns, hours=hours),
@@ -371,6 +441,14 @@ class NoteGenerator:
             detail=detail,
             relevant_tasks=relevant,
         )
+
+    async def _extract(
+        self,
+        chunk: Chunk,
+        prompt: str,
+        num_ctx: int,
+        detail: DetailLevel = "standard",
+    ) -> ChunkExtraction | None:
         max_tokens = extraction_max_tokens(detail)
         messages = [Message("user", prompt)]
         text, finish = await self._call(
@@ -385,12 +463,11 @@ class NoteGenerator:
             return parse_extraction(text)
         except ExtractionError as exc:
             log.info("Chunk %d: unusable extraction (%s); asking again", chunk.index, exc)
-            messages += [
-                Message("assistant", text[:4000]),
-                Message(
-                    "user", repair_prompt(str(exc), truncated=finish == "length", detail=detail)
-                ),
-            ]
+            repair = repair_prompt(str(exc), truncated=finish == "length", detail=detail)
+            left = self._capacity(num_ctx) - max_tokens
+            left -= estimate_tokens("\n".join([EXTRACTION_SYSTEM, prompt, "", repair]))
+            echo = text[: max(0, min(REPAIR_ECHO_CHARS, left * CHARS_PER_TOKEN))]
+            messages += [Message("assistant", echo), Message("user", repair)]
         text, _ = await self._call(
             EXTRACTION_SYSTEM,
             messages,
@@ -471,13 +548,13 @@ class NoteGenerator:
         if n >= MIN_PARAGRAPHS:
             return body, finish
         log.info('"%s" has %d paragraph(s); asking once more', section.title, n)
+        firmer = FIRMER_PARAGRAPHS.format(n=n)
+        left = self._capacity(prepared.num_ctx) - self.template.max_tokens(section)
+        left -= estimate_tokens("\n".join([prepared.system, prompt, "", firmer]))
+        echo = answer[: max(0, min(FLOOR_ECHO_CHARS, left * CHARS_PER_TOKEN))]
         text, retry_finish = await self._call(
             prepared.system,
-            [
-                Message("user", prompt),
-                Message("assistant", answer[:8000]),
-                Message("user", FIRMER_PARAGRAPHS.format(n=n)),
-            ],
+            [Message("user", prompt), Message("assistant", echo), Message("user", firmer)],
             temperature=self.template.temperature(section),
             max_tokens=self.template.max_tokens(section),
             num_ctx=prepared.num_ctx,
@@ -569,7 +646,14 @@ class NoteGenerator:
         )
         if title and title != section.title:
             section = section.model_copy(update={"title": title})
-        prepared = await self.prepare(meta, transcript, [section], map_progress=(0.0, 0.8))
+        prepared = await self.prepare(
+            meta,
+            transcript,
+            [section],
+            map_progress=(0.0, 0.8),
+            previous=previous,
+            feedback=feedback,
+        )
         self.progress(0.8, f"Writing {section.title}")
         body = await self._section(prepared, section, previous=previous, feedback=feedback)
         self.progress(1.0, "Section written")
