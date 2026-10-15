@@ -44,6 +44,8 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0038 | 2026-10-14 | Long review actions are polled background tasks with a smoothed ETA; recording download route; Open a note merged into a paged Meetings page | Accepted | 15c |
 | ADR-0039 | 2026-10-14 | Default Notes: topic-based template and new default; template choice on New meeting sticks; `params.detail: high` for richer map-reduce notes | Accepted | 15e |
 | ADR-0040 | 2026-10-14 | Renaming a meeting: pure plan, journal with a database commit point, Obsidian-style backlink matching, folder-move rule, backups in app data | Accepted | 15d |
+| ADR-0041 | 2026-10-15 | Live cloud backend verification: IAM user access keys, synthetic plus one real meeting, Bedrock required and OpenRouter if keyed, about USD 5 per provider | Accepted (planning) | 15g |
+| ADR-0042 | 2026-10-15 | Cloud model picker: capable-model filter, live OpenRouter prices and a dated Bedrock price table, Best value / Best quality recommendations; split from 15g | Accepted (planning) | 15h |
 
 ---
 
@@ -1105,3 +1107,57 @@ was there).
 **Consequences.** A new write path across the whole vault (threat model T-RENAME). Old names disappear from Obsidian's
 "recent files"; Obsidian follows the changes on its next index. Links to the meeting from inside archives point at the
 old names.
+
+## ADR-0041: Verifying the cloud backends live before release (planning, Phase 15g)
+**Context.** The MVP promises that Bedrock and OpenRouter work with the user's own keys, but Phase 08 tested them
+only with a botocore Stubber and respx, and Phase 15 deferred the live run because there were no keys. Nick asked for
+a live test before release ("AWS Bedrock at a minimum, And ideally … open router") and for plain-language guidance
+on how and where to set AWS credentials. Grounding found that AWS keys cannot be entered in Settings, and that
+Bedrock silently falls back to an 8192-token window.
+
+**Options considered (credentials).**
+
+| Option | Pros | Cons |
+|---|---|---|
+| A. Dedicated IAM user, access key + secret, least-privilege policy | What Nick has used before; no host install; works the same natively and in Docker (env or `.env`); easy for a newcomer to follow | Long-lived keys must be guarded, rotated and revoked |
+| B. AWS CLI profile / IAM Identity Center (SSO) | Short-lived credentials | Needs the AWS CLI on the host (an OS change) and more steps for a newcomer; awkward in Docker |
+| C. Bedrock API key (bearer token) | One value to paste | Newer mechanism the app does not support or document; Bedrock-specific |
+
+**Decision.** (1) **A** is the documented primary path, with a policy limited to invoking models and listing models
+and inference profiles (plus `GetFoundationModelAvailability` if boto3 has it). Keys can be entered in Settings
+(write-only, masked, `config.yaml` mode 0600) or the environment, which overrides the file. B keeps working through
+the existing `profile:` setting and is documented as the alternative; C is out of scope. (2) Test data: the synthetic
+eval meetings and the committed CC fixture, **plus one of Nick's real meetings**, which Nick allowed knowing its
+transcript is sent to AWS (and OpenRouter if tested). Its outputs stay in the private-eval folder and only numbers go
+into docs. (3) Bedrock is required; OpenRouter is tested if Nick provides a key, otherwise recorded as untested,
+without blocking the release. (4) Spend ceiling about USD 5 per provider, estimated before each run.
+
+**Status.** Accepted (2026-10-15, planning). Phase 15g appends the results: models, measurements, spend and quirks.
+**Consequences.** A new secret entry point in Settings (threat model update in 15g). Nick revokes or rotates the
+test keys after the phase.
+
+## ADR-0042: A filtered cloud model picker with prices and measured recommendations (planning, Phase 15h)
+**Context.** Nick wants each provider's model drop-down to list only models that can do MeetingMaster3's job, to show
+costs where practical, and to recommend both "the least expensive model with decent performance" and "the top
+performing model but it is expensive". Today the pickers list everything the provider returns, and
+`cloud_recommendations.yaml` deliberately has no prices (a Phase 08 choice recorded only in that file's comment;
+spec §6 asks for "clear cost/privacy notes").
+
+**Options considered (prices).**
+
+| Option | Pros | Cons |
+|---|---|---|
+| A. Live OpenRouter prices from `/models`; dated Bedrock price table in a data file | OpenRouter is always current; Bedrock needs no extra permission or API; a cost-per-meeting estimate works for both | Bedrock prices can go stale between releases (shown with an "as of" date and a pricing link) |
+| B. Live prices for both (AWS Price List API) | Always current | Extra IAM permission (`pricing:GetProducts`), brittle product filtering, slow |
+| C. Cost tiers only (today) | Never wrong | Does not give the guidance Nick asked for |
+
+**Decision.** (1) **A.** This supersedes the Phase 08 "no prices" rule. (2) Recommendations are stored as dated data
+taken from measured results (15g's eval quality and cost per note), at least **Best value** and **Best quality** per
+provider, never computed from price alone. A recommended id that is no longer listed is dropped. (3) One filter
+decides "capable" for every picker. (4) The work is split: 15g verifies and measures, 15h builds the picker, so the
+recommendations rest on numbers.
+
+**Status.** Accepted (2026-10-15, planning). Phase 15h appends the filter rules and data-file formats.
+**Consequences.** Someone must refresh the Bedrock price table (and the recommendations) before each release;
+Phase 16 checks the `as_of` date.
+
