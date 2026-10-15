@@ -1,6 +1,6 @@
 # Phase 16: Release v0.1.0 & GitHub Publication
 
-**Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 15, 15a, 15b, 15c, 15d, 15e, 15f (and any later inserted phase, ADR-0030, ADR-0034) · **Branch:** `phase-16-release`
+**Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 15, 15a, 15b, 15c, 15d, 15e, 15f, 15g, 15h (and any later inserted phase, ADR-0030, ADR-0034) · **Branch:** `phase-16-release`
 
 ## Read first
 `CLAUDE.md`, `prompts/_shared-instructions.md`, `IMPLEMENTATION_PLAN.md` (the MVP definition of done and all Phase Log entries), and `docs/SPECIFICATION.md` §1, §12 and §15.4. Open question Q3 (GitHub owner, name and visibility).
@@ -12,8 +12,12 @@
 history, `scripts/pip_audit_ml.sh`, trivy on both images, `uv run --extra ml --extra bedrock python
 scripts/gen_third_party.py --check`). **Publishing images (GHCR) carries GPL obligations** for the Debian packages in
 them, ffmpeg included (THIRD_PARTY_NOTICES "Docker images"); decide with Nick how sources are offered. Items only
-Nick can verify (MVP checklist): a live Bedrock and OpenRouter run with his keys, and a Firefox click-through (only
-Chromium is automated). The quality baseline is `tests/eval/baseline.json` (`tests/eval/baseline.py` flags
+Nick can verify (MVP checklist): a Firefox click-through (only Chromium is automated). **15g** ran Bedrock (and
+OpenRouter, if Nick gave a key) live and added the AWS setup guide and AWS key fields in Settings (ADR-0041); if it
+recorded OpenRouter as untested, keep that in the known limitations and the roadmap. Repeat
+`tests/integration/test_live_cloud.py` before tagging if Nick's keys are still active. **15h** added the filtered
+cloud model picker with prices and Best value / Best quality badges (ADR-0042): refresh the Bedrock price table's
+`as_of` date and the recommendations if they are older than about 90 days, and add a picker screenshot. The quality baseline is `tests/eval/baseline.json` (`tests/eval/baseline.py` flags
 regressions); measured numbers are in `docs/PERFORMANCE.md`; the README already has a "Known limitations" section.
 
 ## Goal
