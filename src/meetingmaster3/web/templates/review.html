@@ -201,7 +201,7 @@
         <label class="field">Date
           <input type="date" name="date" required value="{{ meta.date.strftime('%Y-%m-%d') if meta.date else '' }}">
         </label>
-        <label class="field">Time <span class="muted">(optional)</span>
+        <label class="field">Time (optional)
           <input type="time" name="time" value="{{ meta.date.strftime('%H:%M') if meta.date and (meta.date.hour or meta.date.minute) else '' }}">
         </label>
       </div>

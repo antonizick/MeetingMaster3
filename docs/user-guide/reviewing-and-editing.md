@@ -170,6 +170,46 @@ Your own text outside the sections is not changed. Renaming does not teach voice
 name: the voice samples of a meeting are deleted when its speakers are first confirmed (see
 [speakers](speakers.md)).
 
+## Changing the title or date
+
+If a meeting was imported with the wrong title or date, **Title & date…** (next to *Open in Obsidian*) fixes it
+everywhere. Type the new title, date and (optionally) time and choose **Preview the changes**. Nothing is
+written yet. The preview lists:
+
+- every file that is renamed: the note, its companion transcript, the readable transcript, archived versions
+  and the copy of the recording in the vault, if there is one. All of them take the new
+  `YYYY-MM-DD - Title` name. If the note is still in the folder for its old date (for example
+  `Meetings/2026/`) and the new date belongs in another one, the files move there. If you moved the note
+  somewhere yourself, it stays where it is;
+- what changes inside them: the `title` and `date` properties, the heading, the *Date & Time* line and the
+  links between the meeting's files;
+- **"N links in M other notes will be updated"**: every other note in your vault that links to the meeting.
+  MeetingMaster3 rewrites those links the way Obsidian would (keeping the alias, the `#heading` and `^block`
+  parts). It copies each of these notes to a backup folder before changing it;
+- warnings, for example sections that still mention the old title or date. Section text is never rewritten,
+  so edit or regenerate those sections yourself if you want them to match.
+
+**Rename the meeting** applies it, and the page reopens at the new name. Nothing else changes: the meeting id,
+the sections, the transcript, the speakers, your own text and every other property stay exactly as they were.
+The recording, its *Keep forever* setting and your ratings stay with the meeting.
+
+- It is refused when a file with one of the new names already exists. Choose another title.
+- You must save or discard your edits first, and wait for a running template switch or regeneration to finish.
+- If the note or a linking note changes after the preview (in Obsidian, or by sync), applying stops and asks
+  you to preview again.
+- **Backups:** the record of the rename (`manifest.json`, with every old and new name, every changed link and
+  the database rows before and after) and copies of every changed file are kept in MeetingMaster3's data
+  folder, under `rename-backups/<date-time>-<meeting id>/` (on Linux `~/.local/share/meetingmaster3/`). They
+  are not in your vault. Undoing a rename means renaming the meeting back. To undo it by hand, copy the files
+  from `files/` back into the vault.
+- If MeetingMaster3 stops in the middle of a rename (a crash or a power cut), the next start finishes the
+  rename or undoes it. The Meetings page says which.
+- Without a companion transcript, only the note and its archives are renamed. A note shown read-only can
+  still be renamed.
+- Headless: `mm3 meetings rename <meeting id or note path> --title "…" --date YYYY-MM-DD [--time HH:MM]`.
+  Add `--dry-run` to see the plan only, and `--yes` to skip the question. `--time none` clears the time, and
+  leaving `--time` out keeps it.
+
 ## When something is missing or damaged
 
 | Situation | What you see | What you can do |

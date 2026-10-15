@@ -8,6 +8,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Title & date…** on the review page, and `mm3 meetings rename`, change a meeting's title, date and time after
+  it was written (Phase 15d, R28, ADR-0040). One previewed operation renames the note, its companion and
+  readable transcripts, its archives and the vault copy of its recording (moving them to the new year's folder
+  when the note is in the old date's folder), updates their properties, heading and header lines, rewrites the
+  links to them in every other vault note (wikilinks and Markdown links, keeping aliases, headings and blocks;
+  each note backed up first), and updates the Meetings list, the job and its `written.json`. The meeting id,
+  the sections, the transcript, the speakers and your own text never change. Each rename is journalled with
+  backups in `<data>/rename-backups/`. An interrupted rename is completed or undone at the next start, and the
+  Meetings page says which.
 - **Default Notes** (`default-notes`), the 23rd built-in template and the new default (Phase 15e, R29,
   ADR-0039): a briefing for someone who missed the meeting. A one-line Summary Succinct, Summary Detailed,
   Meeting Context, **Discussion by Topic** (numbered topics with bold-labelled, timestamped paragraphs that

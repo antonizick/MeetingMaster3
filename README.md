@@ -21,6 +21,8 @@ The CI badge above is a placeholder until the repository is published (Phase 16)
   opening with a short and a detailed summary, written straight into your Obsidian vault with
   frontmatter, wikilinks, a readable colour-coded transcript and a full-fidelity companion transcript.
 - Side-by-side review with audio, per-section regeneration with diffs, and re-opening existing notes.
+- Fix a meeting's title or date after the fact: every file is renamed and the links to it in your other
+  notes follow (backed up first).
 - Local-first LLMs through Ollama; optional BYOK cloud backends (AWS Bedrock, OpenAI-compatible
   endpoints including OpenRouter).
 - Hardware-aware: designed to work on an 8 GB VRAM GPU.

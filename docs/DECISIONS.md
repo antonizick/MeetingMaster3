@@ -43,6 +43,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0037 | 2026-10-14 | Tuning round 3 split into 15c/15d/15e; meeting rename updates backlinks after a backup; the Plaud-style template is topic-based and named neutrally | Accepted | 15c, 15d, 15e |
 | ADR-0038 | 2026-10-14 | Long review actions are polled background tasks with a smoothed ETA; recording download route; Open a note merged into a paged Meetings page | Accepted | 15c |
 | ADR-0039 | 2026-10-14 | Default Notes: topic-based template and new default; template choice on New meeting sticks; `params.detail: high` for richer map-reduce notes | Accepted | 15e |
+| ADR-0040 | 2026-10-14 | Renaming a meeting: pure plan, journal with a database commit point, Obsidian-style backlink matching, folder-move rule, backups in app data | Accepted | 15d |
 
 ---
 
@@ -1050,3 +1051,57 @@ field is followed where a free-text convention ("Asked by …") is ignored.
 **Consequences.** 23 built-ins (spec A3, R29). Default Notes is the slowest built-in (more and longer sections;
 see `docs/PERFORMANCE.md`). Template schema version stays 1 (`detail` is an optional parameter; an older app would
 reject a template that sets it).
+
+## ADR-0040: Renaming and re-dating a meeting: plan, journal, backlinks, folder rule, backups (Phase 15d, R28)
+**Context.** A meeting's title and date are in its note's properties, H1 and header, in the companion and readable
+transcripts, in the names and link properties of every MM3 file (note, companion, readable, archives, vault audio
+copy), in links from the user's other notes, and in the database. ADR-0037 decided that a rename also updates the
+other notes' links after backing them up. Renaming touches up to a dozen files and a database, so it must not leave
+a half-renamed meeting.
+
+**Decision.**
+1. **Plan, then apply.** `review/retitle.py:plan_retitle` reads the vault and returns every file change (old and new
+   name, SHA of what it read, the new text, a list of visible changes), every linking note, the warnings and the
+   reasons it cannot be applied. It writes nothing. The UI and the CLI show it; the apply re-plans and compares a
+   digest of all inputs and outputs with the one previewed, then re-checks each file's SHA. Edits are line-level on
+   the raw text with the raw-chunk frontmatter renderer (ADR-0011), so unchanged bytes (unknown keys, comments, CRLF,
+   BOM) survive. The readable transcript is regenerated (it is a generated file, R25).
+2. **Journal with one commit point.** Before the first write, `<data>/rename-backups/<stamp>-<mm3-id>/` gets
+   `journal.json` (the files with old/new names and SHAs, the DB rows before and after), `manifest.json` and a copy of
+   every changed text file (`files/<vault path>`) and of the new texts (`new/`, removed at the end). Order: write every
+   new name (atomic, never over an existing file) → re-point the database and `written.json` in one transaction (the
+   commit point, recorded as `phase: committed`) → remove the old names (only if their SHA is still the one read).
+   Recovery is simple and idempotent: before the commit point, roll back (remove new files whose SHA is ours, restore
+   from `files/`, put the DB rows back); after it, finish (DB again, remove old names). An `Exception` during the apply
+   rolls back at once; a crash is handled at the next start (`create_app` lifespan, and before every CLI rename). A
+   second recovery is a no-op. The vault audio copy (large, binary) is hard-linked (copied where links are not
+   supported) rather than backed up.
+3. **Backlink matching follows Obsidian** (`vault/links.py`). Bare names resolve by file name across the vault,
+   case-insensitively; when several files share a name the linking note's own folder wins, otherwise the link is
+   ambiguous and is left alone with a warning. Path-qualified links resolve by vault path, then relative to the
+   linking note, then by a unique path suffix. Markdown links resolve relative to the linking note, then to the vault
+   root, and keep their style (`%20` encoding, `<…>`, relative vs absolute, with or without `.md`). Only the target
+   text is replaced; alias, heading, block, embed mark and table `\|` escapes are kept. A rewritten link is
+   path-qualified when its new name is not unique in the vault. Links inside fenced or inline code are ignored, MM3
+   archives and hidden folders are skipped, and the scan is bounded (20 000 notes, 2 MB per note) and runs in a worker
+   thread. Archive bodies are not rewritten: they are historical copies (their link properties are).
+4. **Folder rule.** The files move to the new date's output folder only if the note is in the old date's output
+   folder (`vault.output_subfolder` expanded for the old date) and the two differ. A note the user moved stays.
+5. **Backups go to app data, not the vault**, so Obsidian does not index duplicates; the manifest is enough to undo a
+   rename by hand. An "Undo last rename" button was not built (deferred).
+6. **Scope choices.** A collision is refused (no silent ` (2)`). A case-only rename is supported (on a
+   case-insensitive file system the file is renamed in place). Time: the CLI keeps the old time unless `--time` is
+   given (`none` clears it); the dialog is prefilled with the current time and an empty field means "unknown". The
+   `date` property keeps its YAML shape (datetime, date or text). The review page also offers the action for
+   read-only and note-only notes, because it only needs readable properties. The Meetings page has no row action:
+   its rows open the review page, where the dialog is.
+
+**Alternatives.** Renaming in place with `os.rename` and no journal (simplest, but a crash between files breaks
+links); asking Obsidian to rename (needs Obsidian running and a plugin; MM3 must work without it); backups inside the
+vault (`.trash`-like folder; Obsidian would index or sync them); rewriting archive bodies (they are a record of what
+was there).
+
+**Status.** Accepted (2026-10-14).
+**Consequences.** A new write path across the whole vault (threat model T-RENAME). Old names disappear from Obsidian's
+"recent files"; Obsidian follows the changes on its next index. Links to the meeting from inside archives point at the
+old names.

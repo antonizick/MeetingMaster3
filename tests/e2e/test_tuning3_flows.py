@@ -73,8 +73,8 @@ def test_switch_shows_a_moving_bar_elapsed_time_and_eta(
         # Again, to the end: the preview appears and Apply switches the template.
         page.click("#form-switch button[type=submit]")
         page.wait_for_selector("#switch-apply", timeout=60_000)
-        page.click("#switch-apply")
-        page.wait_for_load_state("load")
+        with page.expect_navigation():  # the page reloads once the switch is applied
+            page.click("#switch-apply")
         page.wait_for_selector("#preview:not([hidden]) h2")
         assert list(vault.rglob("Archive/*.md"))  # the previous note was archived (R12)
 

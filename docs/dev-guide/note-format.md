@@ -30,6 +30,15 @@ MM3 needs to re-open, regenerate or rename lives in the files themselves.
   `stem (2)`, `stem (3)`, ... for which **neither** file exists. Archive names collide the same
   way (`... .20261011-1430 (2).md`). Nothing is ever overwritten silently.
 * **Links:** the note links to `[[<stem>.transcript]]` and the companion to `[[<stem>]]`.
+* **Renaming a meeting (R28, ADR-0040)** changes the stem of every file of the meeting at once: note,
+  companion, readable transcript (regenerated), archives (same stamps and suffixes, e.g.
+  `<new stem>.20261012-1240.md`, with `mm3-archived-from`/`mm3-transcript`/`mm3-audio` re-pointed and the
+  body kept), and the vault audio copy (`<new stem>.opus`). In the note it rewrites `title`, `date` (keeping
+  its YAML shape), `mm3-transcript`, `mm3-audio`, the H1, the `Date & Time` header line and the link in the
+  `Transcript` header line, each only if it is still what MM3 wrote. In the companion it rewrites `mm3-note`
+  and `# Transcript: <title>`. Every other byte is kept (§3.6), including in the data block, and so are links
+  to the meeting in other vault notes (rewritten in place, target only). `mm3-id` never changes. The files
+  move to the new date's output folder only if the note was in the old date's output folder.
 
 ## 2. Encoding and line endings
 * UTF-8. A leading BOM is tolerated and preserved on re-write; MM3 never adds one.

@@ -113,6 +113,7 @@ file-only protocol whitelist. Measured speed and memory on the 8 GB reference GP
 | `review/progress.py` | Long review actions (switch, regenerate) as in-memory background tasks: `LongTask`, `TaskRegistry` (one running per note, cancel, prune), the time-left model (`eta`, `smooth_total`) (Phase 15c, R27, ADR-0038). |
 | `review/store.py` | Per-meeting working files in app data: base snapshots by SHA-256, the autosaved draft, a pending template switch. |
 | `review/workspace.py` | Locate a note by `mm3-id` (Meetings list or a vault path), load it with its companion transcript, job and audio state; transcript view model; degradation modes. |
+| `review/retitle.py`, `vault/links.py` | Rename and re-date a meeting (Phase 15d, R28, ADR-0040): `plan_retitle` (pure: every file rename/move, in-file change, backlink, warning and refusal), `apply_retitle` (journal + backups in `<data>/rename-backups/`, new names, DB + `written.json` commit point, old names removed), `recover_renames` (at start-up and before each CLI rename). `vault/links.py` finds and rewrites wikilinks and Markdown links to renamed files the way Obsidian resolves them. Used by "Title & date…" (`web/review.py`, `static/js/retitle.js`) and `mm3 meetings rename`. |
 | `review/upgrade.py` | "Update older notes" (Phase 15a): dry-run planner per note, applier (generate missing summaries with `NoteGenerator.write_sections`, `sections.insert_section`, `rename_heading`, readable transcript, archive, SHA + `mm3-id` re-check, atomic write), model choice, the background `UpgradeRun`. Used by `web/upgrade_ui.py` (card on Recent) and `mm3 notes upgrade`. |
 | `review/save.py`, `rename.py`, `switch.py` | Save with the hash check and conflict (ADR-0025); speaker renaming through the Phase 07 cascade; whole-note template switch with "Preserved notes". |
 | `web/review.py` | `/open` (redirects to Meetings), `/open/note`, `/ui/open/browse`, `/meetings/{mm3_id}` and the workspace's JSON actions under `/ui/review/{mm3_id}/` (including `keep`, the per-meeting Keep forever pin, and `task/…`, the polled switch/regenerate tasks). `web/paging.py` pages the Meetings sections. The note opens server-rendered in Preview. |
@@ -229,6 +230,8 @@ browser: transcript.js (player, binary-search sync, search, splitter, shortcuts)
    ├─ archive-section ─▶ vault/archive.archive_section (R12)      append-section ─▶ sections.append_section (R11)
    ├─ switch/preview|apply ─▶ review/switch.py (NoteGenerator) ─▶ archive_note + write
    ├─ speakers/preview|apply ─▶ review/rename.py (speakers.cascade) ─▶ companion + note + job speaker map
+   ├─ retitle/preview|apply ─▶ review/retitle.py plan (vault/links.py backlinks) ─▶ journal + backups in
+   │                           <data>/rename-backups/ ─▶ new names ─▶ DB commit point ─▶ old names removed
    └─ locate · link-transcript · reprocess (note-only mode)
 ```
 The editor never sends marker lines; the server re-inserts them from the base, and unchanged parts keep their
