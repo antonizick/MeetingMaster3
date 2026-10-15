@@ -2,6 +2,9 @@
 {% block title %}Meetings · MeetingMaster3{% endblock %}
 {% block content %}
 <h1>Meetings</h1>
+{% for r in rename_recoveries %}
+<div class="alert {{ 'error' if r.outcome == 'failed' else 'info' }}" role="status"><p>{{ r.message }}</p>{% if r.outcome != 'failed' %}<p class="hint">Backups and the record of the rename: <code>{{ r.backup }}</code></p>{% endif %}</div>
+{% endfor %}
 {% include "partials/meetings_jobs.html" %}
 
 <div hx-get="/ui/notes/upgrade" hx-trigger="load" hx-swap="outerHTML"></div>

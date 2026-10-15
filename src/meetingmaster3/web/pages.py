@@ -608,6 +608,7 @@ async def recent_page(request: Request) -> HTMLResponse:
         "meetings.html",
         {
             "active": "recent",
+            "rename_recoveries": getattr(request.app.state, "rename_recoveries", []),
             **_jobs_section(request),
             **_notes_section(request),
             **picker_context(listing, params),

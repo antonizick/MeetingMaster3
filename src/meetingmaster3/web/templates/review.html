@@ -8,6 +8,7 @@
   <script defer src="{{ url_for('static', path='js/progress.js') }}"></script>
   <script defer src="{{ url_for('static', path='js/review.js') }}"></script>
   <script defer src="{{ url_for('static', path='js/retention.js') }}"></script>
+  <script defer src="{{ url_for('static', path='js/retitle.js') }}"></script>
 {% endblock %}
 {% block content %}
 <script type="application/json" id="review-data">{{ data|tojson }}</script>
@@ -34,6 +35,7 @@
       <button type="button" id="btn-switch-bg" class="link" hidden></button>
       <button type="button" id="btn-rename"{% if not ws.can_regenerate or not ws.transcript or not ws.transcript.speakers %} disabled title="Needs a transcript with separate speakers"{% endif %}>Rename speakers…</button>
       {% endif %}
+      <button type="button" id="btn-retitle"{% if not meta %} disabled title="The note's properties cannot be read"{% endif %}>Title &amp; date…</button>
       <a class="button" href="{{ obsidian_link }}">Open in Obsidian</a>
       <details class="download-menu">
         <summary class="button">Download</summary>
@@ -185,6 +187,29 @@
     <p id="unkeep-message"></p>
     <div class="row"><button type="button" class="danger" id="unkeep-ok">Allow deletion</button> <button type="button" data-close>Keep it</button></div>
   </dialog>
+
+  {% if meta %}
+  <dialog id="dlg-retitle" class="wide-dialog" aria-labelledby="dlg-retitle-title" data-mm3-id="{{ ws.mm3_id }}" data-path="{{ ws.relative }}" data-sha="{{ ws.sha }}">
+    <form id="form-retitle">
+      <h2 id="dlg-retitle-title">Change the meeting's title and date</h2>
+      <p class="hint">Renames the note and its files (transcripts, archives, recording copy) and updates the links to them in your other notes, each backed up first. The meeting's content (sections, transcript, speakers, your own text) is not changed.</p>
+      {% if not ws.companion %}<p class="alert info">This note has no companion transcript, so only the note and its archives are renamed.</p>{% endif %}
+      <label class="field">Title
+        <input type="text" name="title" required maxlength="200" value="{{ meta.title }}">
+      </label>
+      <div class="row">
+        <label class="field">Date
+          <input type="date" name="date" required value="{{ meta.date.strftime('%Y-%m-%d') if meta.date else '' }}">
+        </label>
+        <label class="field">Time <span class="muted">(optional)</span>
+          <input type="time" name="time" value="{{ meta.date.strftime('%H:%M') if meta.date and (meta.date.hour or meta.date.minute) else '' }}">
+        </label>
+      </div>
+      <div class="row"><button type="submit" class="primary">Preview the changes</button> <button type="button" data-close>Cancel</button></div>
+    </form>
+    <div id="retitle-result" aria-live="polite"></div>
+  </dialog>
+  {% endif %}
 
   {% if not ws.readonly %}
   <dialog id="dlg-regen" aria-labelledby="dlg-regen-title">

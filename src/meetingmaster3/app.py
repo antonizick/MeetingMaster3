@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -54,11 +55,15 @@ def create_app(settings: Settings | None = None, paths: AppPaths | None = None) 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         from meetingmaster3.jobs.runner import JobRunner
+        from meetingmaster3.review.retitle import recover_renames
         from meetingmaster3.storage.db import Database
 
         app_paths.ensure()
         _install_templates(settings, app_paths)
         db = Database.open(app_paths.database)
+        app.state.rename_recoveries = await asyncio.to_thread(
+            recover_renames, app_paths.data_dir, db, app_paths.jobs_dir
+        )
         runner = JobRunner(db, settings, app_paths)
         await runner.start()
         app.state.db, app.state.runner = db, runner

@@ -36,6 +36,8 @@ voiceprints_app = typer.Typer(
 app.add_typer(voiceprints_app, name="voiceprints")
 notes_app = typer.Typer(help="Bring notes in the vault up to date.", no_args_is_help=True)
 app.add_typer(notes_app, name="notes")
+meetings_app = typer.Typer(help="Rename and re-date meetings.", no_args_is_help=True)
+app.add_typer(meetings_app, name="meetings")
 
 
 @app.command()
@@ -555,6 +557,138 @@ def notes_upgrade(
     except MM3Error as exc:
         _fail(exc)
     raise typer.Exit(code)
+
+
+def _find_note(root: Path, target: str, data_dir: Path) -> Path:
+    """A meeting's note from its ``mm3-id`` (Meetings list, else a vault search) or its
+    vault-relative path."""
+    import os
+    import uuid
+
+    from meetingmaster3.review.workspace import locate_note
+    from meetingmaster3.storage.db import Database
+    from meetingmaster3.storage.repositories import RecentMeetingsRepository
+    from meetingmaster3.vault.paths import confine
+    from meetingmaster3.vault.picker import read_identity
+
+    try:
+        mm3_id = str(uuid.UUID(target))
+    except ValueError:
+        return confine(root, target)
+    db = Database.open(data_dir / "mm3.db")
+    try:
+        return locate_note(root, RecentMeetingsRepository(db), mm3_id)[0]
+    except MM3Error:
+        pass
+    finally:
+        db.close()
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if not d.startswith(".")]
+        for name in filenames:
+            if name.endswith(".md"):
+                info = read_identity(Path(dirpath) / name)
+                if info is not None and info.is_note and info.mm3_id == mm3_id:
+                    return Path(dirpath) / name
+    raise MM3Error("E_NOTE_NOT_FOUND", f"No note with mm3-id {mm3_id} is in the vault.", "")
+
+
+@meetings_app.command("rename")
+def meetings_rename(
+    target: str = typer.Argument(..., help="The meeting's mm3-id, or its note (vault-relative)."),
+    title: str | None = typer.Option(None, "--title", help="The new title."),
+    date: str | None = typer.Option(None, "--date", help="The new date, YYYY-MM-DD."),
+    time: str | None = typer.Option(
+        None, "--time", help="The new time, HH:MM, or 'none' for unknown (default: keep it)."
+    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show the plan; write nothing."),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Apply without asking."),
+    vault: str | None = typer.Option(None, help="Vault folder (default from settings)."),
+) -> None:
+    """Change a meeting's title and/or date everywhere: its files, their links in other notes
+    (backed up first) and the database. The same operation as "Title & date…" on the review page."""
+    import datetime as dt
+
+    from meetingmaster3.review.retitle import KEEP, apply_retitle, plan_retitle, recover_renames
+    from meetingmaster3.review.store import ReviewStore
+    from meetingmaster3.storage.db import Database
+    from meetingmaster3.vault.io import read_text
+    from meetingmaster3.vault.paths import resolve_vault_root
+
+    configure_logging()
+    settings = _library_settings(vault)
+    paths = resolve_paths()
+    paths.ensure()
+    try:
+        new_date = dt.date.fromisoformat(date) if date else None
+        new_time: Any = KEEP
+        if time is not None:
+            new_time = None if time.strip().lower() in ("", "none") else dt.time.fromisoformat(time)
+    except ValueError as exc:
+        _fail(
+            MM3Error("E_RETITLE_INVALID", f"Not a date or time: {exc}.", "Use YYYY-MM-DD, HH:MM.")
+        )
+    if title is None and date is None and time is None:
+        _fail(
+            MM3Error("E_RETITLE_NOTHING", "Nothing to change.", "Give --title, --date or --time.")
+        )
+    db = Database.open(paths.database)
+    try:
+        for r in recover_renames(paths.data_dir, db, paths.jobs_dir):
+            typer.echo(r.message)
+        root = resolve_vault_root(settings.vault.path)
+        note = _find_note(root, target, paths.data_dir)
+        plan = plan_retitle(
+            root,
+            note,
+            title=title,
+            date=new_date,
+            time=new_time,
+            output_subfolder=settings.vault.output_subfolder,
+        )
+        d = plan.to_dict()
+        typer.echo(f"Meeting {plan.mm3_id}")
+        typer.echo(f"  title: {plan.old_title!r} -> {plan.new_title!r}")
+        typer.echo(f"  date:  {d['old_date']} -> {d['new_date']}")
+        if plan.old_folder != plan.new_folder:
+            typer.echo(f"  folder: {plan.old_folder} -> {plan.new_folder}")
+        for f in plan.files:
+            typer.echo(
+                f"  {f.role:<9} {f.old_rel}" + (f"\n            -> {f.new_rel}" if f.moved else "")
+            )
+            for c in f.changes:
+                typer.echo(f"            {c.label}: {c.before!r} -> {c.after!r}")
+        typer.echo(
+            f"  links: {plan.link_count} in {len(plan.links)} other note(s)"
+            f" ({plan.scanned} searched)"
+        )
+        for f in plan.links:
+            typer.echo(f"  link      {f.old_rel}")
+            for c in f.changes:
+                typer.echo(f"            {c.label}: {c.before} -> {c.after}")
+        for w in plan.warnings:
+            typer.echo(f"  warning: {w}")
+        for b in plan.blocked:
+            typer.secho(f"  blocked: {b}", fg=typer.colors.RED)
+        if plan.blocked:
+            raise typer.Exit(1)
+        if plan.empty:
+            typer.echo("Nothing to change.")
+            return
+        if dry_run:
+            typer.echo("Dry run: nothing was written.")
+            return
+        if not yes and not typer.confirm("Apply this rename?"):
+            raise typer.Exit(1)
+        result = apply_retitle(plan, data_dir=paths.data_dir, db=db, jobs_root=paths.jobs_dir)
+        ReviewStore(paths.data_dir, plan.mm3_id).put_base(read_text(root / result.note_rel))
+    except MM3Error as exc:
+        _fail(exc)
+    finally:
+        db.close()
+    typer.secho(f"Renamed: {result.note_rel}", fg=typer.colors.GREEN)
+    typer.echo(f"Backups and manifest: {result.backup}")
+    for w in result.warnings:
+        typer.echo(f"  warning: {w}")
 
 
 def _fail(exc: MM3Error) -> NoReturn:

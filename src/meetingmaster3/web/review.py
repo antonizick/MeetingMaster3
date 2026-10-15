@@ -54,6 +54,7 @@ from meetingmaster3.review.progress import (
     expected_seconds,
 )
 from meetingmaster3.review.rename import plan_rename
+from meetingmaster3.review.retitle import apply_retitle, plan_retitle
 from meetingmaster3.review.save import (
     SaveConflict,
     base_text,
@@ -854,6 +855,102 @@ async def rename_apply(request: Request, mm3_id: str) -> dict[str, Any]:
         "sha": sha,
         "changes": [asdict(c) for c in plan.changes],
         "job_updated": job_updated,
+    }
+
+
+# -- title & date (Phase 15d) ---------------------------------------------------------------------
+
+
+class RetitleBody(NoteRef):
+    base_sha: str = Field(min_length=64, max_length=64)
+    title: str = Field(max_length=1000)
+    date: dt.date
+    time: str = Field(default="", max_length=8)
+    """``HH:MM``, or empty for "time unknown"."""
+    digest: str | None = Field(default=None, min_length=64, max_length=64)
+
+
+def _clock(value: str) -> dt.time | None:
+    if not value.strip():
+        return None
+    try:
+        return dt.time.fromisoformat(value.strip())
+    except ValueError as exc:
+        raise MM3Error(
+            "E_RETITLE_INVALID", f"{value!r} is not a time.", "Use HH:MM, or leave it empty.", 422
+        ) from exc
+
+
+def _retitle_plan(request: Request, mm3_id: str, body: RetitleBody) -> Any:
+    root, path = _locate(request, mm3_id, body.path)
+    if text_sha(read_text(path)) != body.base_sha:
+        raise MM3Error(
+            "E_NOTE_CHANGED",
+            "The note changed since you opened it (or has unsaved edits in another tab).",
+            "Save or reload first, then change the title and date.",
+            status_code=409,
+        )
+    return plan_retitle(
+        root,
+        path,
+        title=body.title,
+        date=body.date,
+        time=_clock(body.time),
+        output_subfolder=_settings(request).vault.output_subfolder,
+    )
+
+
+@router.post("/ui/review/{mm3_id}/retitle/preview")
+async def retitle_preview(request: Request, mm3_id: str) -> dict[str, Any]:
+    body = await _body(request, RetitleBody)
+    plan = await asyncio.to_thread(_retitle_plan, request, mm3_id, body)
+    html = _fragment(request, "partials/retitle_result.html", {"plan": plan.to_dict()})
+    return {"html": html, "digest": plan.digest, "blocked": bool(plan.blocked), "empty": plan.empty}
+
+
+@router.post("/ui/review/{mm3_id}/retitle/apply")
+async def retitle_apply(request: Request, mm3_id: str) -> dict[str, Any]:
+    body = await _body(request, RetitleBody)
+    mm3_id = check_mm3_id(mm3_id)
+    store = _store(request, mm3_id)
+    if store.draft() is not None:
+        raise MM3Error(
+            "E_UNSAVED_EDITS",
+            "This note has unsaved edits (a draft is kept for it).",
+            "Save them to the vault or discard them, then change the title and date.",
+            status_code=409,
+        )
+    running = _tasks(request).for_note(mm3_id)
+    if running is not None and running.state is TaskState.RUNNING:
+        raise MM3Error(
+            "E_TASK_RUNNING",
+            "A template switch or regeneration is running for this note.",
+            "Wait for it to finish (or cancel it), then change the title and date.",
+            status_code=409,
+        )
+    if not body.digest:
+        raise MM3Error("E_RETITLE_INVALID", "Preview the changes first.", "", status_code=422)
+    runner = get_runner(request)
+
+    def run() -> Any:
+        plan = _retitle_plan(request, mm3_id, body)
+        return plan, apply_retitle(
+            plan,
+            data_dir=request.app.state.paths.data_dir,
+            db=runner.db,
+            jobs_root=runner.jobs_root,
+            expected_digest=body.digest,
+        )
+
+    plan, result = await asyncio.to_thread(run)
+    store.put_base(read_text(plan.root / result.note_rel))
+    store.clear_pending()
+    return {
+        "url": f"/meetings/{mm3_id}?path={quote(result.note_rel, safe='')}",
+        "note": result.note_rel,
+        "backup": result.backup,
+        "links": plan.link_count,
+        "warnings": result.warnings,
     }
 
 

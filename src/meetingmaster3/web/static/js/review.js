@@ -60,6 +60,7 @@
   let saved = JSON.stringify(collect());
   const markerSnapshot = new Map(parts().map((ta) => [ta, (ta.value.match(MARKER_LINES) || []).join("\n")]));
   const isDirty = () => JSON.stringify(collect()) !== saved;
+  window.mm3ReviewDirty = isDirty; // read by retitle.js (Title & date needs a clean editor)
 
   function setStatus(text, kind) {
     if (!status) return;

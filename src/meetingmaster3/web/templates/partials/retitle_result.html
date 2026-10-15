@@ -1,0 +1,56 @@
+{# Preview of a meeting rename / re-date (Phase 15d). Everything here is escaped by Jinja (S3). #}
+{% set roles = {"note": "Note", "companion": "Transcript (companion)", "readable": "Readable transcript", "archive": "Archived version", "audio": "Recording copy", "link": "Linking note"} %}
+<div class="card attention retitle-plan">
+  <h3 tabindex="-1">What will change</h3>
+  {% if plan.empty %}
+  <p>The title and date are unchanged, so there is nothing to do.</p>
+  {% else %}
+  <ul>
+    {% if plan.old_title != plan.new_title %}<li>Title: {{ plan.old_title }} → <strong>{{ plan.new_title }}</strong></li>{% endif %}
+    {% if plan.old_date != plan.new_date %}<li>Date: {{ (plan.old_date or 'none')[:16].replace('T', ' ').replace(' 00:00', '') }} → <strong>{{ plan.new_date[:16].replace('T', ' ').replace(' 00:00', '') }}</strong></li>{% endif %}
+    {% if plan.old_folder != plan.new_folder %}<li>Folder: <code>{{ plan.old_folder or '/' }}</code> → <strong><code>{{ plan.new_folder or '/' }}</code></strong></li>{% endif %}
+  </ul>
+
+  <h4>Files</h4>
+  <div class="table-wrap"><table>
+    <thead><tr><th scope="col">File</th><th scope="col">Now</th><th scope="col">After</th></tr></thead>
+    <tbody>
+      {% for f in plan.files %}
+      <tr><td>{{ roles[f.role] }}</td><td><code>{{ f.old.split('/')[-1] }}</code></td><td>{% if f.moved %}<code>{{ f.new.split('/')[-1] }}</code>{% else %}<span class="muted">same name</span>{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+
+  <details><summary>Changes inside the files</summary>
+    {% for f in plan.files if f.changes %}
+    <p><strong>{{ roles[f.role] }}</strong> <code>{{ f.old.split('/')[-1] }}</code></p>
+    <div class="table-wrap"><table class="diff-table"><tbody>
+      {% for c in f.changes %}<tr><th scope="row">{{ c.label }}</th><td class="dl">{{ c.before }}</td><td class="dr">{{ c.after }}</td></tr>{% endfor %}
+    </tbody></table></div>
+    {% endfor %}
+  </details>
+
+  {% if plan.link_count %}
+  <details><summary>{{ plan.link_count }} link{{ '' if plan.link_count == 1 else 's' }} in {{ plan.linking_notes }} other note{{ '' if plan.linking_notes == 1 else 's' }} will be updated</summary>
+    <p class="hint">Each of these notes is copied to MeetingMaster3's backup folder before it is changed. Only the link targets change.</p>
+    {% for f in plan.links %}
+    <p><code>{{ f.old }}</code></p>
+    <ul class="hint">{% for c in f.changes %}<li>{{ c.label }}: <code>{{ c.before }}</code> → <code>{{ c.after }}</code></li>{% endfor %}</ul>
+    {% endfor %}
+  </details>
+  {% else %}
+  <p class="hint">No other note links to this meeting ({{ plan.scanned }} note{{ '' if plan.scanned == 1 else 's' }} searched).</p>
+  {% endif %}
+  {% endif %}
+
+  {% if plan.warnings %}
+  <ul class="alert warn">{% for w in plan.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if plan.blocked %}
+  <div class="alert error" role="alert"><p><strong>This cannot be applied:</strong></p><ul>{% for b in plan.blocked %}<li>{{ b }}</li>{% endfor %}</ul></div>
+  {% endif %}
+  <div class="row">
+    {% if not plan.empty and not plan.blocked %}<button type="button" class="primary" id="retitle-apply">Rename the meeting</button>{% endif %}
+    <button type="button" data-close>Close</button>
+  </div>
+</div>
