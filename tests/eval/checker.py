@@ -26,6 +26,8 @@ from meetingmaster3.templates.schema import Template
 
 MEETINGS_DIR = Path(__file__).parent / "meetings"
 OWNER_RE = re.compile(r"\*\*(?P<owner>[^*:]{1,80}):\*\*")
+BULLET_RE = re.compile(r"^[-*+]\s")
+"""A Markdown list item; a bold line such as ``**Owner**`` (a group heading) is not one."""
 CHECKBOX_RE = re.compile(r"^- \[[ xX]\] ")
 ACTION_IDS = ("action-items",)
 DECISION_IDS = ("decisions",)
@@ -211,7 +213,7 @@ def score_note(
         s.checks["checkbox_format"] = all(
             CHECKBOX_RE.match(ln)
             for ln in _lines(note_text, ACTION_IDS)
-            if ln.startswith(("-", "*", "+")) and not ln.startswith("- [")
+            if BULLET_RE.match(ln) and not ln.startswith("- [")
         )
     # Questions (informational unless strict).
     if has & set(QUESTION_IDS):
