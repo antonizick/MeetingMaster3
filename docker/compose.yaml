@@ -26,6 +26,10 @@ services:
       # Backend "ollama" on the host (override with compose.host-network.yaml for a 127.0.0.1-only Ollama)
       MM3_LLM__BACKENDS__OLLAMA__KIND: ollama
       MM3_LLM__BACKENDS__OLLAMA__BASE_URL: ${MM3_OLLAMA_URL:-http://host.docker.internal:11434}
+    # Every variable in the repository's .env reaches the app, including cloud keys
+    # (MM3_SECRETS__AWS_ACCESS_KEY_ID / _SECRET_ACCESS_KEY, MM3_SECRETS__OPENROUTER_API_KEY;
+    # docs/user-guide/install-docker.md "Cloud backends"). Keys typed in Settings are kept in
+    # the mm3-config volume instead.
     env_file:
       - path: ../.env
         required: false
@@ -34,6 +38,10 @@ services:
       - mm3-config:/config
       - mm3-data:/data
       - mm3-models:/models
+      # Bedrock with an AWS profile instead of access keys: uncomment, and set the backend's
+      # "AWS profile". Read-only; the container's HOME is /tmp. SSO profiles need a fresh
+      # `aws sso login` on the host when their session expires.
+      # - ${HOME}/.aws:/tmp/.aws:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     read_only: true

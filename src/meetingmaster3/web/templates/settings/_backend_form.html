@@ -33,7 +33,7 @@
       <button type="button" id="load-models">Load models</button>{% else %}<p class="hint">Save the backend first to list its models.</p>{% endif %}</div>
     <div class="field{% if e.context_window %} has-error{% endif %}"><label for="b-ctx">Context window (tokens)</label>
       <input id="b-ctx" name="context_window" type="number" min="512" step="1" value="{{ s.get('context_window', cfg.context_window or '') }}">
-      <p class="hint">Only if the server cannot report it (Bedrock never does).</p>
+      <p class="hint">Only if the server cannot report it and, for Bedrock, the model is not in the app's table (the Test button says so).</p>
       {% if e.context_window %}<p class="error-text" role="alert">{{ e.context_window }}</p>{% endif %}</div>
   </div>
   <label class="check"><input type="checkbox" name="consent_remembered" value="1"{% if (s.get('consent_remembered') if s else cfg.consent_remembered) %} checked{% endif %}> Remember my consent to send transcripts to this backend</label>

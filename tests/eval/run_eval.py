@@ -5,9 +5,14 @@
     uv run python -m tests.eval.run_eval --model qwen3:8b --long      # map-reduce check
     uv run python -m tests.eval.run_eval --model qwen3:8b --json results.json
     uv run python -m tests.eval.baseline results.json                 # flag regressions
+    uv run python -m tests.eval.run_eval --backend bedrock --cloud \
+        --model us.anthropic.claude-haiku-5-5 --price-in 1 --price-out 5 --json cloud.json
 
 Notes are saved to ``--out`` (default: a temp folder) for reading. Uses the backends configured
-in ``config.yaml`` (default: the local Ollama). Nothing is sent anywhere else.
+in ``config.yaml`` (default: the local Ollama). With a local backend nothing leaves this computer.
+A cloud backend (Bedrock, OpenRouter...) receives the synthetic eval transcripts and is refused
+unless ``--cloud`` gives consent; ``--price-in/--price-out`` (USD per million tokens) add the cost
+of each note to the output.
 """
 
 from __future__ import annotations
@@ -19,11 +24,18 @@ import random
 import sys
 import tempfile
 import time
+from collections.abc import AsyncIterator
 from pathlib import Path
 
 from meetingmaster3.config.settings import load_settings
 from meetingmaster3.domain.transcript import Segment, Transcript
-from meetingmaster3.llm.base import LLMBackend
+from meetingmaster3.llm.base import (
+    ConnectionStatus,
+    GenerateRequest,
+    GenerateResult,
+    LLMBackend,
+    ModelInfo,
+)
 from meetingmaster3.llm.budget import estimate_tokens
 from meetingmaster3.llm.registry import BackendRegistry
 from meetingmaster3.markdown.note_writer import build_note, render_note
@@ -109,10 +121,60 @@ def _named(segments: list[Segment], speakers: dict[str, str]) -> Transcript:
     return SpeakerMap(names=speakers).apply(Transcript(segments=segments, diarized=True))
 
 
+class Meter:
+    """Wraps a backend and adds up the tokens its answers report (15g: cost per note)."""
+
+    def __init__(self, inner: LLMBackend) -> None:
+        self.inner = inner
+        self.id, self.kind, self.is_local = inner.id, inner.kind, inner.is_local
+        self.input_tokens = self.output_tokens = 0
+        self.unreported = 0
+
+    def reset(self) -> None:
+        self.input_tokens = self.output_tokens = self.unreported = 0
+
+    async def generate(self, req: GenerateRequest) -> GenerateResult:
+        result = await self.inner.generate(req)
+        usage = result.usage
+        if usage is None or usage.input_tokens is None or usage.output_tokens is None:
+            self.unreported += 1
+        else:
+            self.input_tokens += usage.input_tokens
+            self.output_tokens += usage.output_tokens
+        return result
+
+    def stream(self, req: GenerateRequest) -> AsyncIterator[str]:
+        return self.inner.stream(req)
+
+    async def list_models(self) -> list[ModelInfo]:
+        return await self.inner.list_models()
+
+    async def test_connection(self) -> ConnectionStatus:
+        return await self.inner.test_connection()
+
+    def context_window(self, model: str) -> int | None:
+        return self.inner.context_window(model)
+
+    async def warm(self, model: str) -> None:
+        await self.inner.warm(model)
+
+
+def cost_usd(meter: Meter, price_in: float | None, price_out: float | None) -> float | None:
+    if price_in is None or price_out is None:
+        return None
+    return (meter.input_tokens * price_in + meter.output_tokens * price_out) / 1_000_000
+
+
 async def run_one(
-    backend: LLMBackend, model: str, template: Template, meeting: Meeting, max_context: int
+    backend: LLMBackend,
+    model: str,
+    template: Template,
+    meeting: Meeting,
+    max_context: int,
+    cloud_consent: bool = False,
 ) -> tuple[str, GenerationResult, float]:
     gen = NoteGenerator(backend, model, template, max_context=max_context, today=TODAY,
+                        cloud_consent=cloud_consent,
                         warn=lambda m: print(f"    warning: {m}", file=sys.stderr))  # fmt: skip
     meta = meeting.meta().model_copy(update={"template_id": template.id, "model": model})
     started = time.monotonic()
@@ -120,8 +182,19 @@ async def run_one(
     return render_note(build_note(meta, result.sections)), result, time.monotonic() - started
 
 
-def score_record(score: Score, result: GenerationResult, seconds: float) -> dict[str, object]:
+def score_record(
+    score: Score,
+    result: GenerationResult,
+    seconds: float,
+    meter: Meter | None = None,
+    cost: float | None = None,
+) -> dict[str, object]:
     """One note's result for ``--json`` and the baseline (numbers and ids only)."""
+    extra: dict[str, object] = {}
+    if meter is not None and meter.input_tokens:
+        extra = {"input_tokens": meter.input_tokens, "output_tokens": meter.output_tokens}
+        if cost is not None:
+            extra["cost_usd"] = round(cost, 5)
     return {
         "meeting": score.meeting,
         "template": score.template,
@@ -133,6 +206,7 @@ def score_record(score: Score, result: GenerationResult, seconds: float) -> dict
         "mode": result.mode,
         "calls": result.calls,
         "seconds": round(seconds, 1),
+        **extra,
     }
 
 
@@ -154,11 +228,30 @@ async def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--long-window", type=int, default=8192)
     ap.add_argument("--out", type=Path, default=None)
     ap.add_argument("--json", type=Path, default=None, help="Write per-note results (scores).")
+    ap.add_argument(
+        "--cloud",
+        action="store_true",
+        help="Consent to sending the synthetic transcripts to a cloud backend.",
+    )
+    ap.add_argument(
+        "--long-tokens",
+        type=int,
+        default=None,
+        help="Size of the --long meeting (default 3x --long-window). A cloud model "
+        "has its own window, so make this larger than 70%% of it.",
+    )
+    ap.add_argument("--price-in", type=float, default=None, help="USD per million input tokens.")
+    ap.add_argument("--price-out", type=float, default=None, help="USD per million output tokens.")
     args = ap.parse_args(argv)
 
     settings = load_settings()
     registry = BackendRegistry(settings)
-    backend = registry.get(args.backend)
+    meter = Meter(registry.get(args.backend))
+    backend: LLMBackend = meter
+    if not backend.is_local and not args.cloud:
+        print(f"Backend {backend.id!r} is a cloud backend: the synthetic eval transcripts would be "
+              "sent to it. Add --cloud to agree.", file=sys.stderr)  # fmt: skip
+        return 2
     library = load_library()
     templates = (
         [library.get(t) for t in args.templates]
@@ -174,7 +267,8 @@ async def main(argv: list[str] | None = None) -> int:
     jobs: list[tuple[Template, Meeting, int]]
     if args.long:
         meeting = long_meeting(
-            [m for m in load_meetings() if m.templates is None], 3 * args.long_window
+            [m for m in load_meetings() if m.templates is None],
+            args.long_tokens or 3 * args.long_window,
         )
         tokens = estimate_tokens(format_turns(transcript_turns(meeting.named())))
         print(f"Long meeting: {tokens} estimated tokens, window {args.long_window} "
@@ -191,18 +285,28 @@ async def main(argv: list[str] | None = None) -> int:
     scores: list[Score] = []
     modes: list[str] = []
     records: list[dict[str, object]] = []
+    total_cost = 0.0
     for template, meeting, window in jobs:
         print(f"- {meeting.name} / {template.id} ...", flush=True)
-        text, result, seconds = await run_one(backend, args.model, template, meeting, window)
+        meter.reset()
+        text, result, seconds = await run_one(
+            backend, args.model, template, meeting, window, cloud_consent=args.cloud
+        )
         (out / f"{meeting.name}.{template.id}.md").write_text(text, encoding="utf-8")
         score = score_note(text, meeting, template)
         scores.append(score)
         modes.append(result.mode)
-        records.append(score_record(score, result, seconds))
+        cost = cost_usd(meter, args.price_in, args.price_out)
+        total_cost += cost or 0.0
+        records.append(score_record(score, result, seconds, meter, cost))
         if args.json:
             write_results(args.json, args.model, records)
+        token_note = (
+            f", {meter.input_tokens}+{meter.output_tokens} tokens" if meter.input_tokens else ""
+        )
+        money = f", ${cost:.4f}" if cost is not None else ""
         print(f"  {score.summary()}  [{result.mode}, {result.chunks} chunks, "
-              f"{result.calls} calls, {seconds:.0f} s]")  # fmt: skip
+              f"{result.calls} calls, {seconds:.0f} s{token_note}{money}]")  # fmt: skip
         for p in score.problems:
             print(f"    ! {p}")
         for kind, ids in score.missing.items():
@@ -221,6 +325,8 @@ async def main(argv: list[str] | None = None) -> int:
         return 0 if ok else 1
     passed = sum(s.passed for s in scores)
     print(f"\n{passed}/{len(scores)} notes pass every check. Notes saved in {out}")
+    if args.price_in is not None:
+        print(f"Total cost about ${total_cost:.3f} (from the token counts the backend reported).")
     return 0 if passed == len(scores) else 1
 
 

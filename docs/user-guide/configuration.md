@@ -54,11 +54,11 @@ Every setting below can also be changed on the **Settings** screen ([`settings.m
 | `llm.backends.<name>.kind` | | required | `ollama`, `openai_compat`, `openrouter`, `openai` or `bedrock`. |
 | `llm.backends.<name>.base_url` | | per kind | Ollama: `http://127.0.0.1:11434`. OpenRouter and OpenAI have presets. Required for `openai_compat`, include the `/v1`. |
 | `llm.backends.<name>.api_key` | | unset | Secret. For `openrouter` and `openai` it falls back to `secrets.openrouter_api_key` / `secrets.openai_api_key`. |
-| `llm.backends.<name>.region` / `.profile` | | `us-east-1` / unset | Bedrock only. Credentials come from the AWS chain (profile, `AWS_*` env) or `secrets.aws_*`. |
+| `llm.backends.<name>.region` / `.profile` | | `us-east-1` / unset | Bedrock only. Credentials come from `secrets.aws_*` when both are set, otherwise the AWS chain (profile, `AWS_*` env). |
 | `llm.backends.<name>.default_model` | | unset | Model id used when a job does not pick one. |
 | `llm.backends.<name>.params` | | `{}` | Extra options: Ollama `options` (e.g. `top_p`, `num_ctx`), OpenAI-style body fields, or Bedrock `additionalModelRequestFields`. |
 | `llm.backends.<name>.headers` | | `{}` | Extra HTTP headers, e.g. OpenRouter `HTTP-Referer` and `X-Title` (off by default; nothing identifying is sent unless you add it). |
-| `llm.backends.<name>.context_window` | | auto | Override when the server cannot report the model's context size (Bedrock never does). Unknown windows are treated as 8192 tokens. |
+| `llm.backends.<name>.context_window` | | auto | Override when the server cannot report the model's context size. Bedrock reads it from `llm/bedrock_models.yaml` by model family (inference profile ids included); set this only for a model that table does not know. Unknown windows are treated as 8192 tokens. |
 | `llm.backends.<name>.consent_remembered` | | `false` | Remember cloud-egress consent for this backend (skips the per-job prompt). |
 | `vault.attachments_subfolder` | `MM3_VAULT__ATTACHMENTS_SUBFOLDER` | `Meetings/attachments/` | Where the optional audio copy goes (inside the vault). Used only when `privacy.copy_audio_to_vault` is on. |
 | `generation.default_template` | `MM3_GENERATION__DEFAULT_TEMPLATE` | `default-notes` | Template used when a job does not choose one, and pre-selected on the New meeting page. Starting a meeting from that page with another template saves it here, so the choice sticks (R29). Was `executive-summary` before Phase 15e; a value already in your `config.yaml` is kept. |
@@ -81,7 +81,7 @@ Every setting below can also be changed on the **Settings** screen ([`settings.m
 | `secrets.hf_token` | `MM3_SECRETS__HF_TOKEN` (or `HF_TOKEN`) | unset | Hugging Face read token, needed once to download the gated diarization model (`pyannote/speaker-diarization-community-1`). |
 | `secrets.openrouter_api_key` | `MM3_SECRETS__OPENROUTER_API_KEY` | unset | |
 | `secrets.openai_api_key` | `MM3_SECRETS__OPENAI_API_KEY` | unset | |
-| `secrets.aws_access_key_id` / `secrets.aws_secret_access_key` | `MM3_SECRETS__AWS_ACCESS_KEY_ID` / `MM3_SECRETS__AWS_SECRET_ACCESS_KEY` | unset | |
+| `secrets.aws_access_key_id` / `secrets.aws_secret_access_key` | `MM3_SECRETS__AWS_ACCESS_KEY_ID` / `MM3_SECRETS__AWS_SECRET_ACCESS_KEY` | unset | Access key pair of the IAM user for Bedrock, used by every `bedrock` backend; set both or neither. Editable in Settings → Language models → *AWS keys for Bedrock*. Unset: the standard AWS chain (profile, `AWS_*` variables, session tokens). Guide: [llm-backends.md](llm-backends.md#setting-up-aws-bedrock-step-by-step). |
 
 Secrets are never printed or returned by the API unmasked, and are redacted from logs.
 

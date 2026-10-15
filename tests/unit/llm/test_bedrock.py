@@ -274,7 +274,10 @@ async def test_filtered_empty_answer_is_an_error() -> None:
 
 
 async def test_stream_empty_at_max_tokens_is_an_error() -> None:
-    events = [{"messageStart": {}}, {"messageStop": {"stopReason": "max_tokens"}}]
+    events: list[dict[str, Any]] = [
+        {"messageStart": {}},
+        {"messageStop": {"stopReason": "max_tokens"}},
+    ]
     b = BedrockBackend("bedrock", runtime_client=FakeStreamClient(events))
     with pytest.raises(MM3Error) as exc:
         [p async for p in b.stream(REQ)]
@@ -282,7 +285,7 @@ async def test_stream_empty_at_max_tokens_is_an_error() -> None:
 
 
 async def test_stream_with_text_and_normal_stop_is_fine() -> None:
-    events = [
+    events: list[dict[str, Any]] = [
         {"contentBlockDelta": {"delta": {"text": "A"}}},
         {"messageStop": {"stopReason": "end_turn"}},
     ]

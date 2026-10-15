@@ -59,6 +59,27 @@ with `./state/config:/config` (the folders must be writable by that uid).
 The container runs as that non-root user with a read-only root filesystem, a `tmpfs` for `/tmp`, all
 capabilities dropped and `no-new-privileges`.
 
+## Cloud backends (Bedrock, OpenRouter)
+The image includes the Bedrock client. Give the container your cloud keys in either of two ways:
+- **Settings → Language models** in the browser: the AWS keys card and each backend's API key. They
+  are saved in `config.yaml` inside the `mm3-config` volume (mode 0600).
+- **The `.env` file** next to `docker/` (the repository root), which `docker/compose.yaml` passes in
+  whole with `env_file:`. These outrank Settings:
+  ```bash
+  MM3_SECRETS__AWS_ACCESS_KEY_ID=AKIA...
+  MM3_SECRETS__AWS_SECRET_ACCESS_KEY=...
+  MM3_SECRETS__OPENROUTER_API_KEY=sk-or-...
+  ```
+  Restart the container after editing `.env` (`docker compose -f docker/compose.yaml up -d`). Keep `.env`
+  out of git (it is in `.gitignore`) and readable only by you (`chmod 600 .env`).
+
+To use an **AWS profile** instead of keys, uncomment the read-only `~/.aws` mount in
+`docker/compose.yaml` and put the profile name in the backend's *AWS profile* field.
+
+How to create the keys, step by step: [llm-backends.md](llm-backends.md#aws-bedrock). The container
+sends nothing to a cloud backend until you consent, exactly as outside Docker; with only local backends,
+the only outbound connections are model downloads from Hugging Face.
+
 ## Network posture (read this)
 MeetingMaster3 has no login, so the published port is bound to the **host's loopback only**
 (`127.0.0.1:8765`; verify with `ss -ltnp | grep 8765`). Inside the container the app listens on `0.0.0.0`
