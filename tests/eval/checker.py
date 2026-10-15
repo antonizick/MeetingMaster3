@@ -213,7 +213,7 @@ def score_note(
         s.checks["checkbox_format"] = all(
             CHECKBOX_RE.match(ln)
             for ln in _lines(note_text, ACTION_IDS)
-            if BULLET_RE.match(ln) and not ln.startswith("- [")
+            if (BULLET_RE.match(ln) and not ln.startswith("- [")) or "(due:" in ln
         )
     # Questions (informational unless strict).
     if has & set(QUESTION_IDS):

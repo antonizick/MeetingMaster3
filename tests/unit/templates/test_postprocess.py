@@ -180,3 +180,22 @@ def test_owner_guard_keeps_owner_who_also_committed() -> None:
     ]
     out, changed = guard_owners("- [ ] **Ann:** Rewrite the onboarding email", cues)
     assert changed == [] and out == "- [ ] **Ann:** Rewrite the onboarding email"
+
+
+def test_owner_task_lines_without_a_list_marker_become_checkboxes() -> None:
+    """15g: Haiku 5.5 on Bedrock wrote tasks as bold-owner lines with no ``- [ ]``."""
+    raw = (
+        "**Caleb:** Sync with the team on next steps. (due: not stated) [29:23]\n"
+        "\n"
+        "**Unassigned:** Evolve the SOC. (due: not stated) [22:18]\n"
+        "**Marcus Webb**\n"
+        "**Note:** owners were not always clear."
+    )
+    out = clean_section(raw, title="Action Items", fmt="tasks")
+    assert out.split("\n") == [
+        "- [ ] **Caleb:** Sync with the team on next steps. (due: not stated) [29:23]",
+        "",
+        "- [ ] **Unassigned:** Evolve the SOC. (due: not stated) [22:18]",
+        "**Marcus Webb**",  # an owner heading stays a heading
+        "**Note:** owners were not always clear.",  # no (due: ...): not a task
+    ]

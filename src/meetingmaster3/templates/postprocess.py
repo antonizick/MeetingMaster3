@@ -84,6 +84,11 @@ def _demote(line: str) -> str:
     return line
 
 
+_OWNER_TASK_RE = re.compile(r"^\*\*[^*\n]+:\*\*[ \t]+\S.*\(due:")
+"""A task written without its list marker, ``**Owner:** task (due: ...)`` (Haiku 5.5 on Bedrock,
+Phase 15g). An owner heading on its own (``**Owner**``) is not one."""
+
+
 def _task_line(line: str) -> str:
     """A top-level list item as an Obsidian checkbox. Other lines (nested notes under a task,
     prose) are kept."""
@@ -92,7 +97,7 @@ def _task_line(line: str) -> str:
         return line
     if m:
         indent, rest = m.group("indent"), m.group("rest")
-    elif _LOOSE_CHECKBOX_RE.match(line):
+    elif _LOOSE_CHECKBOX_RE.match(line) or _OWNER_TASK_RE.match(line):
         indent, rest = "", line.strip()
     else:
         return line
