@@ -29,6 +29,7 @@ from pathlib import Path
 
 from meetingmaster3.config.settings import load_settings
 from meetingmaster3.domain.transcript import Segment, Transcript
+from meetingmaster3.errors import MM3Error
 from meetingmaster3.llm.base import (
     ConnectionStatus,
     GenerateRequest,
@@ -288,12 +289,22 @@ async def main(argv: list[str] | None = None) -> int:
     modes: list[str] = []
     records: list[dict[str, object]] = []
     total_cost = 0.0
+    failures = 0
     for template, meeting, window in jobs:
         print(f"- {meeting.name} / {template.id} ...", flush=True)
         meter.reset()
-        text, result, seconds = await run_one(
-            backend, args.model, template, meeting, window, cloud_consent=args.cloud
-        )
+        try:
+            text, result, seconds = await run_one(
+                backend, args.model, template, meeting, window, cloud_consent=args.cloud
+            )
+        except MM3Error as exc:  # one failed note is a result, not the end of the run
+            print(f"  FAILED: {exc.code}: {exc.message}")
+            failures += 1
+            records.append({"meeting": meeting.name, "template": template.id, "passed": False,
+                            "error": exc.code, "checks": {}, "seconds": 0.0})  # fmt: skip
+            if args.json:
+                write_results(args.json, args.model, records)
+            continue
         (out / f"{meeting.name}.{template.id}.md").write_text(text, encoding="utf-8")
         score = score_note(text, meeting, template)
         scores.append(score)
@@ -321,15 +332,14 @@ async def main(argv: list[str] | None = None) -> int:
             "no_empty_sections", "no_invented_owners",
         )  # fmt: skip
         ok = modes == ["map-reduce"] and all(scores[0].checks.get(k) for k in required)
-        print(
-            f"\nLong meeting {'completed' if ok else 'FAILED'} through {modes[0]}. Notes in {out}"
-        )
+        how = modes[0] if modes else "an error"
+        print(f"\nLong meeting {'completed' if ok else 'FAILED'} through {how}. Notes in {out}")
         return 0 if ok else 1
     passed = sum(s.passed for s in scores)
-    print(f"\n{passed}/{len(scores)} notes pass every check. Notes saved in {out}")
+    print(f"\n{passed}/{len(scores) + failures} notes pass every check. Notes saved in {out}")
     if args.price_in is not None:
         print(f"Total cost about ${total_cost:.3f} (from the token counts the backend reported).")
-    return 0 if passed == len(scores) else 1
+    return 0 if passed == len(scores) and not failures else 1
 
 
 if __name__ == "__main__":

@@ -212,6 +212,11 @@ THINKING_OFF: dict[str, Any] = {"thinking": {"type": "disabled"}}
 """What asks a Claude model not to think (``generation.think`` off). Newer models want something
 else and say so in a ValidationException; :meth:`BedrockBackend._adapt` follows that advice."""
 THINKING_KEYS = frozenset({"thinking", "output_config"})
+THINKING_ROOM = 4096
+"""Output tokens added to ``maxTokens`` when a Claude model may think: reasoning counts against
+``maxTokens``, and Opus 5.5 thinks even at low effort (an empty section otherwise, measured
+live 2026-10-15). Only the tokens used are billed."""
+NO_THINKING = ({"thinking": {"type": "disabled"}}, {"thinking": {"type": "between_tools"}})
 
 
 class _Stop:
@@ -286,7 +291,8 @@ class BedrockBackend:
         if req.model not in self._no_temperature:
             inference["temperature"] = req.temperature
         if req.max_tokens:
-            inference["maxTokens"] = req.max_tokens
+            room = THINKING_ROOM if self._may_think(req) else 0
+            inference["maxTokens"] = req.max_tokens + room
         if req.stop:
             inference["stopSequences"] = list(req.stop)
         kwargs: dict[str, Any] = {
@@ -302,6 +308,14 @@ class BedrockBackend:
         if extra:
             kwargs["additionalModelRequestFields"] = extra
         return kwargs
+
+    def _may_think(self, req: GenerateRequest) -> bool:
+        """True when a Claude model may spend output tokens on reasoning in this call."""
+        if not base_model_id(req.model).startswith("anthropic.claude") or req.think is None:
+            return False
+        if req.think or not self._controls_thinking(req.model):
+            return True
+        return self._thinking_off.get(req.model, THINKING_OFF) not in NO_THINKING
 
     def _controls_thinking(self, model: str) -> bool:
         """Claude models think by default (Claude 5.x); others reject unknown fields. Thinking
@@ -351,6 +365,11 @@ class BedrockBackend:
             extra.pop(key)
         extra.update(new)
         adapted = {k: v for k, v in kwargs.items() if k != "additionalModelRequestFields"}
+        if new not in NO_THINKING and "maxTokens" in config and current in NO_THINKING:
+            adapted["inferenceConfig"] = {
+                **config,
+                "maxTokens": config["maxTokens"] + THINKING_ROOM,
+            }
         return {**adapted, "additionalModelRequestFields": extra} if extra else adapted
 
     # -- LLMBackend -----------------------------------------------------------------------

@@ -495,3 +495,31 @@ async def test_an_unrelated_validation_error_is_not_retried() -> None:
     with pytest.raises(MM3Error) as exc:
         await BedrockBackend("b", runtime_client=client).generate(THINK_OFF)
     assert exc.value.code == "E_LLM_CONFIG" and len(client.sent) == 1
+
+
+@pytest.mark.parametrize(
+    ("reject", "think", "max_tokens"),
+    [
+        ({}, False, 1000),  # thinking really off (Haiku 5.5, Claude 4.x): no extra room
+        ({"thinking": THINKING_OFF}, False, 1000),  # Sonnet 5.5 between_tools: off too
+        ({"thinking": OPUS_NO_DISABLE}, False, 1000 + 4096),  # Opus 5.5 still thinks
+        ({}, True, 1000 + 4096),  # reasoning switched on in Settings
+    ],
+)
+async def test_a_model_that_may_think_gets_thinking_room(
+    reject: dict[str, str], think: bool, max_tokens: int
+) -> None:
+    client = Recorder(reject)
+    b = BedrockBackend("b", runtime_client=client)
+    req = GenerateRequest(model="us.anthropic.claude-x", prompt="hi", think=think, max_tokens=1000)
+    await b.generate(req)
+    assert client.sent[-1]["inferenceConfig"]["maxTokens"] == max_tokens
+    await b.generate(req)  # and the learned mode keeps it
+    assert client.sent[-1]["inferenceConfig"]["maxTokens"] == max_tokens
+
+
+async def test_non_claude_models_get_no_thinking_room() -> None:
+    client = Recorder({})
+    req = GenerateRequest(model="us.amazon.nova-pro-v1:0", prompt="hi", think=True, max_tokens=900)
+    await BedrockBackend("b", runtime_client=client).generate(req)
+    assert client.sent[-1]["inferenceConfig"]["maxTokens"] == 900
