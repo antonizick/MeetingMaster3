@@ -46,6 +46,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0040 | 2026-10-14 | Renaming a meeting: pure plan, journal with a database commit point, Obsidian-style backlink matching, folder-move rule, backups in app data | Accepted | 15d |
 | ADR-0041 | 2026-10-15 | Live cloud backend verification: IAM user access keys, synthetic plus one real meeting, Bedrock required and OpenRouter if keyed, about USD 5 per provider | Accepted (planning) | 15g |
 | ADR-0042 | 2026-10-15 | Cloud model picker: capable-model filter, live OpenRouter prices and a dated Bedrock price table, Best value / Best quality recommendations; split from 15g | Accepted (planning) | 15h |
+| ADR-0043 | 2026-10-15 | `num_ctx` is the note's largest real call plus a measured 10 % margin (no double-counted reserve); map chunks count timestamps; reduce notes counted at 1.15× density; Ollama flash attention + q8_0 cache recommended | Accepted | 15f |
 
 ---
 
@@ -1161,3 +1162,66 @@ recommendations rest on numbers.
 **Consequences.** Someone must refresh the Bedrock price table (and the recommendations) before each release;
 Phase 16 checks the `as_of` date.
 
+## ADR-0043: Right-sized `num_ctx` from measured token counts; Ollama settings for small GPUs (Phase 15f)
+**Context.** On the 8 GB reference laptop Ollama never exceeds VRAM; it runs whatever does not fit on the CPU,
+several times slower. Phase 15e found that map-reduce asked for `usable_tokens(window) + reserve` (Default Notes
+15 360, Executive Summary 13 312 on a 16 384 window), although the map prompts and the reduce notes were already
+sized to fit in `usable`: the output reserve was counted twice. The same double count hid two underestimates:
+the 4-characters-per-token estimate had never been checked against qwen3's tokenizer, and the map chunker did not
+count the `[mm:ss]` stamp each turn gets in the prompt (map calls ran up to 3 % over their budget). Retries were
+not sized either: a map repair repeats up to 4 000 characters of the failed reply, and Summary Detailed's paragraph
+retry repeats up to 8 000 characters of its answer, so in full mode a retry could exceed `num_ctx` (a 31-minute
+Executive Summary asked for 9 216 with a largest first call of 8 345 tokens). Ollama silently drops the start of a
+prompt that does not fit, so the safety margin must live inside `num_ctx`. The owner had already enabled flash
+attention and an 8-bit KV cache on the host Ollama (OSMods "Ollama VRAM Tuning", 2026-10-14).
+
+**Measurement (2026-10-15).** Notes-only runs of Default Notes and Executive Summary on the owner's 31-, 59- and
+113-minute meetings (private; script outside the repo, deleted at close-out), old and new code, logging for every
+call the estimate of everything sent, the `num_ctx`, Ollama's `prompt_eval_count` and output count, and `ollama ps`.
+108 calls: real tokens / estimated tokens averaged **1.005**. Calls of 6 000+ estimated tokens (transcripts and map
+chunks, the ones that set `num_ctx`) ranged **0.97-1.011**. Smaller calls were denser: the merged map-reduce notes
+(timestamps, names, short lines) reached **1.06-1.115**, and a short final map chunk 1.115 (fixed chat-template
+overhead). `prompt_eval_count` reports the whole prompt even when Ollama reuses its prompt cache.
+
+**Options considered.**
+
+| Option | Pros | Cons |
+|---|---|---|
+| Keep `usable + reserve` | No change | Asks for 1-2k unused tokens; hides the underestimates by accident |
+| `usable × margin` for every map-reduce note | Simple | Still guesses; does not cover retries; full mode unchanged |
+| **Largest real call × margin, everything known before the first call** | Tight and provably sufficient; same value for every call (ADR-0017) | Map prompts are built before the first call (cheap); a few more lines |
+| Size each call separately | Tightest | Ollama reloads the model on every change of `num_ctx` (ADR-0017) |
+
+**Decision.**
+1. `num_ctx = ceil(largest call × 1.10 / 1 024) × 1 024`, floored at 4 096 and capped by the window, one value per
+   note. A **section call** counts the shared system message and context, the section's prompt tail and its
+   `max_tokens`; Summary Detailed adds its paragraph retry (its answer, up to its `max_tokens`, plus the firmer
+   instruction); a **regeneration** counts its previous body and feedback. In **map-reduce** every map prompt is
+   built first (chunks and task candidates are known), and a map call counts its prompt, its output room and a
+   repair turn (the repair prompt plus 250 tokens of the failed reply); the reduce side needs at least the system
+   message, the largest section and 512 tokens of notes.
+2. The **margin is 10 %** (`CONTEXT_MARGIN`): the calls that set `num_ctx` measured at most 1.011. The **reduce notes**
+   are fitted into what the chosen `num_ctx` leaves and counted at **1.15** real tokens per estimated token
+   (`NOTES_DENSITY`), because they measured up to 1.115.
+3. **Retries repeat only what fits**: the failed map reply (at most 4 000 characters) and the short Summary Detailed
+   (at most 8 000) are cut to the room left inside `num_ctx`.
+4. The chunker counts 3 tokens per turn for the stamp and line break (`TURN_STAMP_TOKENS`), so map prompts keep to
+   `map_budget`. The 70 % map-reduce trigger, `map_budget` and `generation.max_context` are unchanged.
+5. **Ollama settings** are documented, never applied by the app: `OLLAMA_FLASH_ATTENTION=1` and
+   `OLLAMA_KV_CACHE_TYPE=q8_0` (user guide `hardware.md`, with systemd drop-in, Docker and `ollama ps` checks). The
+   bundled Docker `ollama` service sets both (overridable from `.env`); the CPU override inherits them, which is
+   harmless because Ollama keeps the f16 cache where flash attention is unsupported.
+
+**Result.** On a 16 384 window, long meetings now ask for **13 312** with both templates (Default Notes was 15 360;
+Executive Summary is unchanged, its reserve was small). Full mode can ask for more than before when Summary
+Detailed's retry needs it (31-minute Executive Summary 9 216 → 11 264), which closes a silent-truncation gap. No
+call in the 14 measured notes had `prompt_eval_count + output > num_ctx`. Paired run (59 minutes, Default Notes, back
+to back): old code 339 s with 11 % of qwen3:8b on the CPU, new code 229 s entirely on the GPU (32 % faster). The
+eval is unchanged between old and new code on the same Ollama; three notes that find one item fewer than the Phase 15
+baseline do so with the old code too (host settings), and the baseline was updated. Details: `docs/PERFORMANCE.md`.
+
+**Status.** Accepted (2026-10-15).
+**Consequences.** Every generation call has a provable fit. A model whose tokenizer is much less efficient on
+English than qwen3 (more than about 1.1 tokens per 4 characters on transcripts) would need a larger margin; the
+measurement script's method is described here so it can be repeated. Default Notes' long meetings hold about
+150 MB less KV cache, which on 8 GB keeps more of the model on the GPU.

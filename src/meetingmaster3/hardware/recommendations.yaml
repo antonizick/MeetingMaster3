@@ -46,7 +46,12 @@ profiles:
       # 497 s), 4.5x (59 min, 780 s) and 7.3x (113 min, 927 s, map-reduce); Executive Summary on
       # the same machine and day: 11x (167 s, 318 s). The estimate describes the default, so
       # other templates finish sooner than it says.
-      notes_rtf: [3.5, 7]
+      # Phase 15f (2026-10-15): host Ollama with flash attention + q8_0 KV cache (ADR-0043) and
+      # num_ctx right-sized (long meetings 13 312 instead of 15 360). Default Notes: 31 min in
+      # 142 s (13x), 59 min in 204-229 s (15-17x), 113 min in 293 s (23x), qwen3:8b 100% on the GPU;
+      # the old code on the same Ollama, 59 min, 339 s (10x, 11% on the CPU). The range allows for
+      # a desktop holding more VRAM (more of the model on the CPU).
+      notes_rtf: [10, 20]
       summary: 7-8B models at Q4_K_M fit in 8 GB with a modest context window.
       models:
         - {family: "Llama 3.1 8B / Qwen 2.5 7B", size_b: 8, quant: Q4_K_M, context: "8k-16k", quality: good, speed: fast}

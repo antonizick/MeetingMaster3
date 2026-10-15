@@ -30,11 +30,12 @@ report slightly less (an "8 GB" card shows 8192 MiB).
 The `vram8` speed was **measured** in Phase 15 on the reference laptop (RTX 2070 Max-Q 8 GB, whole
 transcribe + align + diarize pipeline, diarization on): 10 minutes of audio in 47 s, 31 minutes in
 139 s and 72 minutes in 275 s, so **a 60-minute meeting takes about 4-5 minutes** to transcribe.
-Writing the notes with a local `qwen3:8b` adds about 3-5 minutes per hour of audio with a short
-template such as Executive Summary, so a whole job takes about 8-10 minutes; the default template,
-**Default Notes**, writes much fuller notes and adds about 13 minutes per hour (a whole job about
-17-18 minutes, see [`../PERFORMANCE.md`](../PERFORMANCE.md)). Peak GPU memory was 2.8 GB for transcription and 5.8 GB for the LLM (never at the
-same time). `medium` was not faster than `large-v3-turbo`. The other speeds are still **estimates**
+Writing the notes with a local `qwen3:8b`, with the recommended Ollama settings below, adds about
+2 minutes per hour of audio with a short template such as Executive Summary (a whole job about 6-7
+minutes) and about 3.5-4 minutes with the default template, **Default Notes**, which writes much
+fuller notes (a whole job about 8-9 minutes, see [`../PERFORMANCE.md`](../PERFORMANCE.md)). With
+Ollama's default settings the notes take about twice as long. Peak GPU memory was 2.8 GB for
+transcription and about 6 GB for the LLM (never at the same time). `medium` was not faster than `large-v3-turbo`. The other speeds are still **estimates**
 from the specification; they are targets, not promises. Before a job starts, the app shows
 `duration / speed` as a range, plus the notes time when the default backend is local. Method and raw
 numbers: [PERFORMANCE.md](../PERFORMANCE.md). More in [transcription.md](transcription.md).

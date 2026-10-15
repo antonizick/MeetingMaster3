@@ -473,7 +473,7 @@ async def test_high_detail_template_keeps_more_points_with_topics() -> None:
 def call_size(req: GenerateRequest) -> int:
     """Estimated tokens of one call: everything sent plus its output room."""
     sent = "\n".join([req.system or "", *(m.content for m in req.messages)])
-    return estimate_tokens(sent) + req.max_tokens
+    return estimate_tokens(sent) + (req.max_tokens or 0)
 
 
 def assert_every_call_fits(calls: list[GenerateRequest]) -> int:

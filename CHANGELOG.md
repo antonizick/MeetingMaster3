@@ -8,6 +8,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Ollama settings for small GPUs** in the hardware guide: flash attention (`OLLAMA_FLASH_ATTENTION=1`) and an 8-bit
+  context cache (`OLLAMA_KV_CACHE_TYPE=q8_0`) keep more of an 8B model on an 8 GB GPU, which roughly halved note
+  times on the reference laptop. How to set them for a systemd service, by hand and in Docker, and how to check the
+  CPU/GPU split with `ollama ps`. The app never changes them. The optional bundled Ollama in `docker/compose.yaml`
+  now sets both (Phase 15f, ADR-0043).
 - **Title & date…** on the review page, and `mm3 meetings rename`, change a meeting's title, date and time after
   it was written (Phase 15d, R28, ADR-0040). One previewed operation renames the note, its companion and
   readable transcripts, its archives and the vault copy of its recording (moving them to the new year's folder
@@ -181,6 +186,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   makes no network calls (verified with a socket audit).
 
 ### Fixed
+- Long meetings asked a local Ollama for more context than any call used (the output reserve was counted twice):
+  Default Notes now asks for 13 312 tokens instead of 15 360 on the default 16 384 window. Each note's context is
+  the size of its largest real call plus a measured 10 % margin, still one value per note (Phase 15f, ADR-0043).
+- A retry (a map step's JSON repair, or Summary Detailed asked for more paragraphs) and a section regeneration with a
+  long previous version could be larger than the context Ollama was given, which silently cuts the start of the
+  prompt. They are now counted, and a retry repeats only what fits. Map chunks count each turn's timestamp, and the
+  merged notes of very long meetings are counted at their real token density.
 - Static files are sent with `Cache-Control: no-cache`, so a browser that cached an older `review.js` no longer breaks the review page (for example an Edit note button that did nothing) after an upgrade.
 - With no default model set for Ollama, the new-meeting page filled in the first installed model, which could be
   an embedding model such as `nomic-embed-text` (2,048-token window). The job then failed at *Generating notes*

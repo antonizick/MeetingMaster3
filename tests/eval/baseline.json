@@ -1,6 +1,6 @@
 {
   "model": "qwen3:8b",
-  "date": "2026-10-12",
+  "date": "2026-10-15",
   "results": [
     {
       "meeting": "board-q3-governance",
@@ -26,13 +26,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 285,
+        "detailed_words": 267,
         "succinct_sentences": 1,
         "succinct_words": 30
       },
       "mode": "full",
       "calls": 8,
-      "seconds": 38.6
+      "seconds": 36.4
     },
     {
       "meeting": "budget-checkin",
@@ -60,13 +60,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 359,
+        "detailed_words": 357,
         "succinct_sentences": 1,
         "succinct_words": 35
       },
       "mode": "full",
       "calls": 7,
-      "seconds": 27.5
+      "seconds": 33.7
     },
     {
       "meeting": "budget-checkin",
@@ -92,13 +92,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 366,
+        "detailed_words": 323,
         "succinct_sentences": 1,
         "succinct_words": 19
       },
       "mode": "full",
       "calls": 6,
-      "seconds": 32.2
+      "seconds": 26.1
     },
     {
       "meeting": "budget-checkin",
@@ -123,13 +123,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 321,
+        "detailed_words": 379,
         "succinct_sentences": 2,
-        "succinct_words": 53
+        "succinct_words": 62
       },
       "mode": "full",
       "calls": 8,
-      "seconds": 32.6
+      "seconds": 37.2
     },
     {
       "meeting": "budget-checkin",
@@ -151,13 +151,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 339,
+        "detailed_words": 304,
         "succinct_sentences": 2,
-        "succinct_words": 52
+        "succinct_words": 55
       },
       "mode": "full",
       "calls": 9,
-      "seconds": 35.8
+      "seconds": 40.3
     },
     {
       "meeting": "budget-checkin",
@@ -184,13 +184,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 392,
+        "detailed_words": 405,
         "succinct_sentences": 2,
-        "succinct_words": 58
+        "succinct_words": 57
       },
       "mode": "full",
       "calls": 6,
-      "seconds": 40.1
+      "seconds": 43.0
     },
     {
       "meeting": "budget-checkin",
@@ -218,24 +218,23 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 301,
+        "detailed_words": 279,
         "succinct_sentences": 2,
-        "succinct_words": 34
+        "succinct_words": 36
       },
       "mode": "full",
       "calls": 6,
-      "seconds": 27.6
+      "seconds": 29.6
     },
     {
       "meeting": "budget-checkin",
-      "template": "detailed-meeting-minutes",
+      "template": "default-notes",
       "passed": true,
       "checks": {
         "markers_valid": true,
         "sections_present": true,
         "ai_recommendations_last": true,
         "no_empty_sections": true,
-        "decisions_captured": true,
         "actions_captured": true,
         "no_invented_owners": true,
         "checkbox_format": true,
@@ -245,20 +244,56 @@
         "succinct_short": true
       },
       "found": {
-        "decisions": 1,
-        "actions": 4,
-        "questions": 1
+        "actions": 4
       },
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 412,
-        "succinct_sentences": 3,
-        "succinct_words": 55
+        "detailed_words": 328,
+        "succinct_sentences": 2,
+        "succinct_words": 37
       },
       "mode": "full",
       "calls": 8,
-      "seconds": 44.0
+      "seconds": 68.0
+    },
+    {
+      "meeting": "budget-checkin",
+      "template": "detailed-meeting-minutes",
+      "passed": false,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": false,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "decisions": 1,
+        "actions": 3,
+        "questions": 1
+      },
+      "missing": {
+        "actions": [
+          "ask-platform"
+        ]
+      },
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 448,
+        "succinct_sentences": 3,
+        "succinct_words": 63
+      },
+      "mode": "full",
+      "calls": 8,
+      "seconds": 51.5
     },
     {
       "meeting": "budget-checkin",
@@ -286,13 +321,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 339,
+        "detailed_words": 278,
         "succinct_sentences": 4,
-        "succinct_words": 76
+        "succinct_words": 84
       },
       "mode": "full",
       "calls": 7,
-      "seconds": 32.1
+      "seconds": 31.9
     },
     {
       "meeting": "budget-checkin",
@@ -314,13 +349,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 327,
+        "detailed_words": 341,
         "succinct_sentences": 4,
-        "succinct_words": 80
+        "succinct_words": 72
       },
       "mode": "full",
       "calls": 6,
-      "seconds": 51.1
+      "seconds": 30.6
     },
     {
       "meeting": "budget-checkin",
@@ -341,12 +376,12 @@
       "metrics": {
         "detailed_paragraphs": 3,
         "detailed_words": 304,
-        "succinct_sentences": 3,
-        "succinct_words": 47
+        "succinct_sentences": 4,
+        "succinct_words": 59
       },
       "mode": "full",
       "calls": 10,
-      "seconds": 50.8
+      "seconds": 51.0
     },
     {
       "meeting": "budget-checkin",
@@ -373,13 +408,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 307,
+        "detailed_words": 373,
         "succinct_sentences": 2,
-        "succinct_words": 36
+        "succinct_words": 29
       },
       "mode": "full",
       "calls": 6,
-      "seconds": 35.1
+      "seconds": 37.9
     },
     {
       "meeting": "budget-checkin",
@@ -404,13 +439,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 353,
+        "detailed_words": 346,
         "succinct_sentences": 2,
         "succinct_words": 28
       },
       "mode": "full",
       "calls": 5,
-      "seconds": 25.5
+      "seconds": 26.3
     },
     {
       "meeting": "budget-checkin",
@@ -435,13 +470,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 361,
+        "detailed_words": 342,
         "succinct_sentences": 3,
-        "succinct_words": 45
+        "succinct_words": 47
       },
       "mode": "full",
       "calls": 9,
-      "seconds": 34.4
+      "seconds": 33.5
     },
     {
       "meeting": "budget-checkin",
@@ -469,13 +504,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 386,
+        "detailed_words": 343,
         "succinct_sentences": 3,
         "succinct_words": 69
       },
       "mode": "full",
       "calls": 9,
-      "seconds": 40.2
+      "seconds": 39.0
     },
     {
       "meeting": "budget-checkin",
@@ -495,25 +530,25 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 330,
+        "detailed_words": 401,
         "succinct_sentences": 2,
-        "succinct_words": 40
+        "succinct_words": 34
       },
       "mode": "full",
       "calls": 6,
-      "seconds": 40.1
+      "seconds": 43.3
     },
     {
       "meeting": "budget-checkin",
       "template": "retrospective",
-      "passed": true,
+      "passed": false,
       "checks": {
         "markers_valid": true,
         "sections_present": true,
         "ai_recommendations_last": true,
         "no_empty_sections": true,
         "decisions_captured": true,
-        "actions_captured": true,
+        "actions_captured": false,
         "no_invented_owners": true,
         "checkbox_format": true,
         "detailed_paragraphs": true,
@@ -523,18 +558,22 @@
       },
       "found": {
         "decisions": 1,
-        "actions": 4
+        "actions": 3
       },
-      "missing": {},
+      "missing": {
+        "actions": [
+          "monitoring-contract"
+        ]
+      },
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 304,
+        "detailed_words": 324,
         "succinct_sentences": 3,
-        "succinct_words": 55
+        "succinct_words": 56
       },
       "mode": "full",
       "calls": 9,
-      "seconds": 30.4
+      "seconds": 30.1
     },
     {
       "meeting": "budget-checkin",
@@ -560,13 +599,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 312,
+        "detailed_words": 305,
         "succinct_sentences": 2,
-        "succinct_words": 41
+        "succinct_words": 51
       },
       "mode": "full",
       "calls": 8,
-      "seconds": 37.5
+      "seconds": 39.0
     },
     {
       "meeting": "budget-checkin",
@@ -591,9 +630,9 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 287,
+        "detailed_words": 290,
         "succinct_sentences": 4,
-        "succinct_words": 76
+        "succinct_words": 72
       },
       "mode": "full",
       "calls": 10,
@@ -625,13 +664,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 343,
-        "succinct_sentences": 2,
-        "succinct_words": 34
+        "detailed_words": 310,
+        "succinct_sentences": 3,
+        "succinct_words": 54
       },
       "mode": "full",
       "calls": 7,
-      "seconds": 38.0
+      "seconds": 35.3
     },
     {
       "meeting": "budget-checkin",
@@ -655,13 +694,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 307,
+        "detailed_words": 319,
         "succinct_sentences": 3,
-        "succinct_words": 54
+        "succinct_words": 52
       },
       "mode": "full",
       "calls": 10,
-      "seconds": 32.2
+      "seconds": 34.1
     },
     {
       "meeting": "budget-checkin",
@@ -689,13 +728,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 358,
+        "detailed_words": 369,
         "succinct_sentences": 3,
-        "succinct_words": 68
+        "succinct_words": 65
       },
       "mode": "full",
       "calls": 10,
-      "seconds": 49.7
+      "seconds": 49.8
     },
     {
       "meeting": "budget-checkin",
@@ -715,13 +754,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 333,
-        "succinct_sentences": 3,
-        "succinct_words": 61
+        "detailed_words": 298,
+        "succinct_sentences": 4,
+        "succinct_words": 67
       },
       "mode": "full",
       "calls": 9,
-      "seconds": 44.8
+      "seconds": 44.2
     },
     {
       "meeting": "cache-design-review",
@@ -749,13 +788,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 321,
+        "detailed_words": 332,
         "succinct_sentences": 1,
-        "succinct_words": 42
+        "succinct_words": 34
       },
       "mode": "full",
       "calls": 7,
-      "seconds": 31.6
+      "seconds": 37.9
     },
     {
       "meeting": "cache-design-review",
@@ -781,13 +820,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 330,
+        "detailed_words": 337,
         "succinct_sentences": 2,
-        "succinct_words": 8
+        "succinct_words": 10
       },
       "mode": "full",
       "calls": 6,
-      "seconds": 28.7
+      "seconds": 31.0
     },
     {
       "meeting": "cache-design-review",
@@ -812,13 +851,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 358,
+        "detailed_words": 356,
         "succinct_sentences": 1,
         "succinct_words": 39
       },
       "mode": "full",
       "calls": 8,
-      "seconds": 51.4
+      "seconds": 46.3
     },
     {
       "meeting": "cache-design-review",
@@ -840,13 +879,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 288,
-        "succinct_sentences": 3,
-        "succinct_words": 47
+        "detailed_words": 307,
+        "succinct_sentences": 1,
+        "succinct_words": 37
       },
       "mode": "full",
       "calls": 9,
-      "seconds": 70.6
+      "seconds": 65.0
     },
     {
       "meeting": "cache-design-review",
@@ -873,13 +912,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 2,
-        "detailed_words": 282,
+        "detailed_words": 280,
         "succinct_sentences": 2,
-        "succinct_words": 41
+        "succinct_words": 49
       },
       "mode": "full",
       "calls": 6,
-      "seconds": 62.1
+      "seconds": 60.3
     },
     {
       "meeting": "cache-design-review",
@@ -902,18 +941,53 @@
       "found": {
         "decisions": 2,
         "actions": 5,
-        "questions": 2
+        "questions": 1
       },
-      "missing": {},
+      "missing": {
+        "questions": [
+          "payload"
+        ]
+      },
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 308,
+        "detailed_words": 355,
         "succinct_sentences": 2,
         "succinct_words": 35
       },
       "mode": "full",
       "calls": 6,
-      "seconds": 42.3
+      "seconds": 36.2
+    },
+    {
+      "meeting": "cache-design-review",
+      "template": "default-notes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "actions": 5
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 379,
+        "succinct_sentences": 2,
+        "succinct_words": 36
+      },
+      "mode": "full",
+      "calls": 8,
+      "seconds": 85.8
     },
     {
       "meeting": "cache-design-review",
@@ -940,14 +1014,14 @@
       },
       "missing": {},
       "metrics": {
-        "detailed_paragraphs": 2,
-        "detailed_words": 314,
+        "detailed_paragraphs": 3,
+        "detailed_words": 358,
         "succinct_sentences": 3,
-        "succinct_words": 52
+        "succinct_words": 50
       },
       "mode": "full",
       "calls": 8,
-      "seconds": 79.0
+      "seconds": 70.1
     },
     {
       "meeting": "cache-design-review",
@@ -975,13 +1049,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 277,
-        "succinct_sentences": 2,
-        "succinct_words": 74
+        "detailed_words": 270,
+        "succinct_sentences": 4,
+        "succinct_words": 92
       },
       "mode": "full",
       "calls": 7,
-      "seconds": 39.8
+      "seconds": 35.2
     },
     {
       "meeting": "cache-design-review",
@@ -1003,9 +1077,9 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 348,
+        "detailed_words": 302,
         "succinct_sentences": 3,
-        "succinct_words": 64
+        "succinct_words": 52
       },
       "mode": "full",
       "calls": 6,
@@ -1029,13 +1103,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 288,
-        "succinct_sentences": 4,
-        "succinct_words": 62
+        "detailed_words": 325,
+        "succinct_sentences": 3,
+        "succinct_words": 55
       },
       "mode": "full",
       "calls": 10,
-      "seconds": 63.7
+      "seconds": 63.9
     },
     {
       "meeting": "cache-design-review",
@@ -1061,14 +1135,14 @@
       },
       "missing": {},
       "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 404,
+        "detailed_paragraphs": 2,
+        "detailed_words": 311,
         "succinct_sentences": 1,
         "succinct_words": 35
       },
       "mode": "full",
       "calls": 6,
-      "seconds": 52.3
+      "seconds": 50.2
     },
     {
       "meeting": "cache-design-review",
@@ -1093,13 +1167,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 302,
+        "detailed_words": 306,
         "succinct_sentences": 2,
-        "succinct_words": 40
+        "succinct_words": 36
       },
       "mode": "full",
       "calls": 5,
-      "seconds": 26.0
+      "seconds": 26.4
     },
     {
       "meeting": "cache-design-review",
@@ -1124,13 +1198,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 309,
+        "detailed_words": 303,
         "succinct_sentences": 2,
         "succinct_words": 40
       },
       "mode": "full",
       "calls": 9,
-      "seconds": 37.7
+      "seconds": 34.8
     },
     {
       "meeting": "cache-design-review",
@@ -1158,13 +1232,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 297,
+        "detailed_words": 285,
         "succinct_sentences": 3,
         "succinct_words": 50
       },
       "mode": "full",
       "calls": 9,
-      "seconds": 41.9
+      "seconds": 39.2
     },
     {
       "meeting": "cache-design-review",
@@ -1184,13 +1258,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 293,
+        "detailed_words": 327,
         "succinct_sentences": 2,
-        "succinct_words": 34
+        "succinct_words": 44
       },
       "mode": "full",
       "calls": 6,
-      "seconds": 59.6
+      "seconds": 41.6
     },
     {
       "meeting": "cache-design-review",
@@ -1217,13 +1291,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 293,
+        "detailed_words": 295,
         "succinct_sentences": 3,
-        "succinct_words": 57
+        "succinct_words": 56
       },
       "mode": "full",
       "calls": 9,
-      "seconds": 48.8
+      "seconds": 43.3
     },
     {
       "meeting": "cache-design-review",
@@ -1249,13 +1323,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 300,
+        "detailed_words": 278,
         "succinct_sentences": 2,
-        "succinct_words": 48
+        "succinct_words": 45
       },
       "mode": "full",
       "calls": 8,
-      "seconds": 46.2
+      "seconds": 40.5
     },
     {
       "meeting": "cache-design-review",
@@ -1280,13 +1354,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 330,
+        "detailed_words": 326,
         "succinct_sentences": 3,
-        "succinct_words": 52
+        "succinct_words": 48
       },
       "mode": "full",
       "calls": 10,
-      "seconds": 59.9
+      "seconds": 60.1
     },
     {
       "meeting": "cache-design-review",
@@ -1314,13 +1388,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 359,
+        "detailed_words": 384,
         "succinct_sentences": 2,
-        "succinct_words": 62
+        "succinct_words": 61
       },
       "mode": "full",
       "calls": 7,
-      "seconds": 53.9
+      "seconds": 46.1
     },
     {
       "meeting": "cache-design-review",
@@ -1344,13 +1418,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 313,
+        "detailed_words": 292,
         "succinct_sentences": 3,
-        "succinct_words": 62
+        "succinct_words": 67
       },
       "mode": "full",
       "calls": 10,
-      "seconds": 52.3
+      "seconds": 51.2
     },
     {
       "meeting": "cache-design-review",
@@ -1378,13 +1452,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 323,
+        "detailed_words": 379,
         "succinct_sentences": 3,
         "succinct_words": 81
       },
       "mode": "full",
       "calls": 10,
-      "seconds": 83.8
+      "seconds": 83.2
     },
     {
       "meeting": "cache-design-review",
@@ -1404,13 +1478,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 316,
+        "detailed_words": 299,
         "succinct_sentences": 3,
-        "succinct_words": 66
+        "succinct_words": 62
       },
       "mode": "full",
       "calls": 9,
-      "seconds": 53.3
+      "seconds": 52.0
     },
     {
       "meeting": "interview-support-engineer",
@@ -1434,897 +1508,13 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 302,
+        "detailed_words": 295,
         "succinct_sentences": 3,
-        "succinct_words": 57
+        "succinct_words": 56
       },
       "mode": "full",
       "calls": 10,
-      "seconds": 48.7
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "action-focused",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "decisions_captured": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "decisions": 3,
-        "actions": 7,
-        "questions": 2
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 343,
-        "succinct_sentences": 1,
-        "succinct_words": 34
-      },
-      "mode": "full",
-      "calls": 7,
-      "seconds": 38.0
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "agile-standup",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "actions": 7,
-        "questions": 2
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 318,
-        "succinct_sentences": 2,
-        "succinct_words": 11
-      },
-      "mode": "full",
-      "calls": 6,
-      "seconds": 32.5
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "board-governance-minutes",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "actions": 7
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 397,
-        "succinct_sentences": 1,
-        "succinct_words": 30
-      },
-      "mode": "full",
-      "calls": 8,
-      "seconds": 50.3
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "brainstorming-ideation",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "questions": 1
-      },
-      "missing": {
-        "questions": [
-          "pricing"
-        ]
-      },
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 341,
-        "succinct_sentences": 3,
-        "succinct_words": 66
-      },
-      "mode": "full",
-      "calls": 9,
-      "seconds": 76.1
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "chronological-timeline",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "decisions_captured": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "decisions": 3,
-        "actions": 7
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 2,
-        "detailed_words": 317,
-        "succinct_sentences": 2,
-        "succinct_words": 52
-      },
-      "mode": "full",
-      "calls": 6,
-      "seconds": 79.5
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "decision-log",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "decisions_captured": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "decisions": 3,
-        "actions": 7,
-        "questions": 1
-      },
-      "missing": {
-        "questions": [
-          "support-staffing"
-        ]
-      },
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 374,
-        "succinct_sentences": 2,
-        "succinct_words": 61
-      },
-      "mode": "full",
-      "calls": 6,
-      "seconds": 46.6
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "detailed-meeting-minutes",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "decisions_captured": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "decisions": 3,
-        "actions": 7,
-        "questions": 1
-      },
-      "missing": {
-        "questions": [
-          "pricing"
-        ]
-      },
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 411,
-        "succinct_sentences": 3,
-        "succinct_words": 65
-      },
-      "mode": "full",
-      "calls": 8,
-      "seconds": 75.7
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "executive-summary",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "decisions_captured": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "decisions": 3,
-        "actions": 7,
-        "questions": 2
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 327,
-        "succinct_sentences": 3,
-        "succinct_words": 72
-      },
-      "mode": "full",
-      "calls": 7,
-      "seconds": 48.7
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "general-discussion-summary",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "questions": 1
-      },
-      "missing": {
-        "questions": [
-          "pricing"
-        ]
-      },
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 349,
-        "succinct_sentences": 4,
-        "succinct_words": 70
-      },
-      "mode": "full",
-      "calls": 6,
-      "seconds": 42.0
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "job-interview-notes",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {},
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 347,
-        "succinct_sentences": 3,
-        "succinct_words": 45
-      },
-      "mode": "full",
-      "calls": 10,
-      "seconds": 66.0
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "just-the-facts",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "decisions_captured": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "decisions": 3,
-        "actions": 7
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 517,
-        "succinct_sentences": 2,
-        "succinct_words": 59
-      },
-      "mode": "full",
-      "calls": 6,
-      "seconds": 69.2
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "key-takeaways-next-steps",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "actions": 7
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 355,
-        "succinct_sentences": 2,
-        "succinct_words": 36
-      },
-      "mode": "full",
-      "calls": 5,
-      "seconds": 31.2
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "one-on-one-coaching",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "actions": 7
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 320,
-        "succinct_sentences": 2,
-        "succinct_words": 40
-      },
-      "mode": "full",
-      "calls": 9,
-      "seconds": 56.0
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "project-team-sync",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "decisions_captured": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "decisions": 3,
-        "actions": 7,
-        "questions": 1
-      },
-      "missing": {
-        "questions": [
-          "pricing"
-        ]
-      },
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 434,
-        "succinct_sentences": 3,
-        "succinct_words": 55
-      },
-      "mode": "full",
-      "calls": 9,
-      "seconds": 59.5
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "qa-extraction",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {},
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 287,
-        "succinct_sentences": 1,
-        "succinct_words": 33
-      },
-      "mode": "full",
-      "calls": 6,
-      "seconds": 59.5
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "retrospective",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "decisions_captured": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "decisions": 3,
-        "actions": 7
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 334,
-        "succinct_sentences": 3,
-        "succinct_words": 52
-      },
-      "mode": "full",
-      "calls": 9,
-      "seconds": 60.1
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "risks-issues-mitigations",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "actions": 7,
-        "questions": 1
-      },
-      "missing": {
-        "questions": [
-          "pricing"
-        ]
-      },
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 321,
-        "succinct_sentences": 2,
-        "succinct_words": 32
-      },
-      "mode": "full",
-      "calls": 8,
-      "seconds": 48.0
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "sales-client-call",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "actions": 7
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 329,
-        "succinct_sentences": 3,
-        "succinct_words": 60
-      },
-      "mode": "full",
-      "calls": 10,
-      "seconds": 85.1
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "speaker-attributed-notes",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "decisions_captured": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "decisions": 3,
-        "actions": 7,
-        "questions": 1
-      },
-      "missing": {
-        "questions": [
-          "pricing"
-        ]
-      },
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 384,
-        "succinct_sentences": 2,
-        "succinct_words": 53
-      },
-      "mode": "full",
-      "calls": 7,
-      "seconds": 91.8
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "strategic-meeting-summary",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "decisions_captured": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "decisions": 3,
-        "questions": 1
-      },
-      "missing": {
-        "questions": [
-          "pricing"
-        ]
-      },
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 351,
-        "succinct_sentences": 3,
-        "succinct_words": 64
-      },
-      "mode": "full",
-      "calls": 10,
-      "seconds": 75.5
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "technical-deep-dive",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "decisions_captured": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "decisions": 3,
-        "actions": 7,
-        "questions": 2
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 365,
-        "succinct_sentences": 3,
-        "succinct_words": 68
-      },
-      "mode": "full",
-      "calls": 10,
-      "seconds": 92.9
-    },
-    {
-      "meeting": "launch-sync",
-      "template": "workshop-training-recap",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {},
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 347,
-        "succinct_sentences": 3,
-        "succinct_words": 63
-      },
-      "mode": "full",
-      "calls": 9,
-      "seconds": 92.9
-    },
-    {
-      "meeting": "retro-checkout-launch",
-      "template": "retrospective",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "decisions_captured": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "type_content": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "decisions": 1,
-        "actions": 2,
-        "content": 3
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 284,
-        "succinct_sentences": 3,
-        "succinct_words": 36
-      },
-      "mode": "full",
-      "calls": 9,
-      "seconds": 35.7
-    },
-    {
-      "meeting": "sales-call-harbor-logistics",
-      "template": "sales-client-call",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "type_content": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "actions": 3,
-        "content": 3
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 298,
-        "succinct_sentences": 4,
-        "succinct_words": 60
-      },
-      "mode": "full",
-      "calls": 10,
-      "seconds": 66.2
-    },
-    {
-      "meeting": "standup-platform-team",
-      "template": "agile-standup",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "type_content": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "actions": 1,
-        "content": 2
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 282,
-        "succinct_sentences": 2,
-        "succinct_words": 23
-      },
-      "mode": "full",
-      "calls": 6,
-      "seconds": 27.8
-    },
-    {
-      "meeting": "budget-checkin",
-      "template": "default-notes",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "actions": 4
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 333,
-        "succinct_sentences": 2,
-        "succinct_words": 36
-      },
-      "mode": "full",
-      "calls": 8,
-      "seconds": 59.8
-    },
-    {
-      "meeting": "cache-design-review",
-      "template": "default-notes",
-      "passed": true,
-      "checks": {
-        "markers_valid": true,
-        "sections_present": true,
-        "ai_recommendations_last": true,
-        "no_empty_sections": true,
-        "actions_captured": true,
-        "no_invented_owners": true,
-        "checkbox_format": true,
-        "detailed_paragraphs": true,
-        "detailed_prose": true,
-        "detailed_length": true,
-        "succinct_short": true
-      },
-      "found": {
-        "actions": 5
-      },
-      "missing": {},
-      "metrics": {
-        "detailed_paragraphs": 3,
-        "detailed_words": 402,
-        "succinct_sentences": 2,
-        "succinct_words": 36
-      },
-      "mode": "full",
-      "calls": 8,
-      "seconds": 95.8
+      "seconds": 52.5
     },
     {
       "meeting": "intro-call-platform-lead",
@@ -2360,13 +1550,217 @@
       "metrics": {
         "topics_numbered": 6,
         "detailed_paragraphs": 3,
-        "detailed_words": 360,
+        "detailed_words": 306,
         "succinct_sentences": 1,
         "succinct_words": 41
       },
       "mode": "full",
       "calls": 8,
-      "seconds": 111.4
+      "seconds": 102.4
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "action-focused",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7,
+        "questions": 2
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 324,
+        "succinct_sentences": 1,
+        "succinct_words": 34
+      },
+      "mode": "full",
+      "calls": 7,
+      "seconds": 42.5
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "agile-standup",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "actions": 7,
+        "questions": 1
+      },
+      "missing": {
+        "questions": [
+          "pricing"
+        ]
+      },
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 367,
+        "succinct_sentences": 2,
+        "succinct_words": 11
+      },
+      "mode": "full",
+      "calls": 6,
+      "seconds": 35.4
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "board-governance-minutes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "actions": 7
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 347,
+        "succinct_sentences": 1,
+        "succinct_words": 34
+      },
+      "mode": "full",
+      "calls": 8,
+      "seconds": 49.3
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "brainstorming-ideation",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "questions": 1
+      },
+      "missing": {
+        "questions": [
+          "pricing"
+        ]
+      },
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 439,
+        "succinct_sentences": 1,
+        "succinct_words": 32
+      },
+      "mode": "full",
+      "calls": 9,
+      "seconds": 71.0
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "chronological-timeline",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 383,
+        "succinct_sentences": 2,
+        "succinct_words": 50
+      },
+      "mode": "full",
+      "calls": 6,
+      "seconds": 77.8
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "decision-log",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7,
+        "questions": 1
+      },
+      "missing": {
+        "questions": [
+          "support-staffing"
+        ]
+      },
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 304,
+        "succinct_sentences": 2,
+        "succinct_words": 57
+      },
+      "mode": "full",
+      "calls": 6,
+      "seconds": 45.9
     },
     {
       "meeting": "launch-sync",
@@ -2391,13 +1785,627 @@
       "missing": {},
       "metrics": {
         "detailed_paragraphs": 3,
-        "detailed_words": 434,
+        "detailed_words": 411,
         "succinct_sentences": 1,
-        "succinct_words": 29
+        "succinct_words": 33
       },
       "mode": "full",
       "calls": 8,
-      "seconds": 91.2
+      "seconds": 83.9
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "detailed-meeting-minutes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7,
+        "questions": 2
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 496,
+        "succinct_sentences": 3,
+        "succinct_words": 75
+      },
+      "mode": "full",
+      "calls": 8,
+      "seconds": 78.6
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "executive-summary",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7,
+        "questions": 2
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 360,
+        "succinct_sentences": 3,
+        "succinct_words": 63
+      },
+      "mode": "full",
+      "calls": 7,
+      "seconds": 43.3
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "general-discussion-summary",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "questions": 1
+      },
+      "missing": {
+        "questions": [
+          "pricing"
+        ]
+      },
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 378,
+        "succinct_sentences": 3,
+        "succinct_words": 68
+      },
+      "mode": "full",
+      "calls": 6,
+      "seconds": 43.1
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "job-interview-notes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {},
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 328,
+        "succinct_sentences": 3,
+        "succinct_words": 50
+      },
+      "mode": "full",
+      "calls": 10,
+      "seconds": 77.8
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "just-the-facts",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 454,
+        "succinct_sentences": 2,
+        "succinct_words": 49
+      },
+      "mode": "full",
+      "calls": 6,
+      "seconds": 56.2
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "key-takeaways-next-steps",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "actions": 7
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 294,
+        "succinct_sentences": 1,
+        "succinct_words": 25
+      },
+      "mode": "full",
+      "calls": 5,
+      "seconds": 27.8
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "one-on-one-coaching",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "actions": 7
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 316,
+        "succinct_sentences": 2,
+        "succinct_words": 37
+      },
+      "mode": "full",
+      "calls": 9,
+      "seconds": 57.5
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "project-team-sync",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7,
+        "questions": 2
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 432,
+        "succinct_sentences": 3,
+        "succinct_words": 66
+      },
+      "mode": "full",
+      "calls": 9,
+      "seconds": 60.6
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "qa-extraction",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {},
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 274,
+        "succinct_sentences": 1,
+        "succinct_words": 33
+      },
+      "mode": "full",
+      "calls": 6,
+      "seconds": 47.7
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "retrospective",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 322,
+        "succinct_sentences": 3,
+        "succinct_words": 56
+      },
+      "mode": "full",
+      "calls": 9,
+      "seconds": 57.4
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "risks-issues-mitigations",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "actions": 7,
+        "questions": 1
+      },
+      "missing": {
+        "questions": [
+          "pricing"
+        ]
+      },
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 317,
+        "succinct_sentences": 2,
+        "succinct_words": 38
+      },
+      "mode": "full",
+      "calls": 8,
+      "seconds": 45.4
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "sales-client-call",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "actions": 7
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 293,
+        "succinct_sentences": 3,
+        "succinct_words": 60
+      },
+      "mode": "full",
+      "calls": 10,
+      "seconds": 66.0
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "speaker-attributed-notes",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7,
+        "questions": 2
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 404,
+        "succinct_sentences": 2,
+        "succinct_words": 47
+      },
+      "mode": "full",
+      "calls": 7,
+      "seconds": 60.3
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "strategic-meeting-summary",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "decisions": 3,
+        "questions": 1
+      },
+      "missing": {
+        "questions": [
+          "pricing"
+        ]
+      },
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 415,
+        "succinct_sentences": 3,
+        "succinct_words": 60
+      },
+      "mode": "full",
+      "calls": 10,
+      "seconds": 56.3
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "technical-deep-dive",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "decisions": 3,
+        "actions": 7,
+        "questions": 1
+      },
+      "missing": {
+        "questions": [
+          "pricing"
+        ]
+      },
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 338,
+        "succinct_sentences": 3,
+        "succinct_words": 73
+      },
+      "mode": "full",
+      "calls": 10,
+      "seconds": 74.0
+    },
+    {
+      "meeting": "launch-sync",
+      "template": "workshop-training-recap",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {},
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 343,
+        "succinct_sentences": 3,
+        "succinct_words": 66
+      },
+      "mode": "full",
+      "calls": 9,
+      "seconds": 65.1
+    },
+    {
+      "meeting": "retro-checkout-launch",
+      "template": "retrospective",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "type_content": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "decisions": 1,
+        "actions": 2,
+        "content": 3
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 296,
+        "succinct_sentences": 3,
+        "succinct_words": 41
+      },
+      "mode": "full",
+      "calls": 9,
+      "seconds": 34.2
+    },
+    {
+      "meeting": "sales-call-harbor-logistics",
+      "template": "sales-client-call",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "type_content": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "actions": 3,
+        "content": 3
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 260,
+        "succinct_sentences": 4,
+        "succinct_words": 61
+      },
+      "mode": "full",
+      "calls": 10,
+      "seconds": 50.8
+    },
+    {
+      "meeting": "standup-platform-team",
+      "template": "agile-standup",
+      "passed": true,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "type_content": true,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "actions": 1,
+        "content": 2
+      },
+      "missing": {},
+      "metrics": {
+        "detailed_paragraphs": 3,
+        "detailed_words": 331,
+        "succinct_sentences": 2,
+        "succinct_words": 23
+      },
+      "mode": "full",
+      "calls": 6,
+      "seconds": 23.2
     }
   ]
 }

@@ -193,10 +193,10 @@ def test_eta_estimate() -> None:
     t = recommend(info_for(SMI_2070)).transcription
     assert t.estimate(1560) == (97.5, 120.0)  # measured 13-16x (Phase 15)
     llm = recommend(info_for(SMI_2070)).llm
-    # 3.5-7x real time: Default Notes, the default template since Phase 15e (R29)
+    # 10-20x real time: Default Notes (R29) on the tuned Ollama, Phase 15f (ADR-0043)
     low, high = llm.estimate(3600)  # type: ignore[misc]
-    assert llm.status == "measured" and (round(low), round(high)) == (514, 1029)
-    assert recommend(info_for(SMI_2070)).to_dict()["llm"]["notes_rtf"] == [3.5, 7.0]
+    assert llm.status == "measured" and (round(low), round(high)) == (180, 360)
+    assert recommend(info_for(SMI_2070)).to_dict()["llm"]["notes_rtf"] == [10.0, 20.0]
 
 
 def test_format_eta() -> None:

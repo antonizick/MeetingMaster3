@@ -52,9 +52,52 @@ of the model on the CPU next to the desktop's own GPU use):
 
 So Default Notes takes **about 2.5-3 times as long** as Executive Summary: on this laptop a 60-minute
 meeting needs about 13 minutes for the notes, and the whole job about 17-18 minutes. The pre-job
-estimate (`notes_rtf` in `recommendations.yaml`) now uses 3.5-7× real time, since it describes the
+estimate (`notes_rtf` in `recommendations.yaml`) then used 3.5-7× real time (10-20× since Phase 15f), since it describes the
 default; other templates finish sooner than it says. Pick a shorter template (Executive Summary, Key
 Takeaways) on New meeting when speed matters, or a cloud model.
+
+## Phase 15f: tuned Ollama and right-sized context (2026-10-15)
+Two changes, measured separately on the same laptop with `qwen3:8b`, notes only (the owner's three
+meetings, generated from their companion transcripts; private, only numbers recorded):
+
+1. **Host Ollama settings** (the owner's machine, not the app): flash attention and an 8-bit KV cache
+   (`OLLAMA_FLASH_ATTENTION=1`, `OLLAMA_KV_CACHE_TYPE=q8_0`), recommended for small GPUs in
+   [`user-guide/hardware.md`](user-guide/hardware.md#ollama-settings-for-small-gpus-recommended-on-8-gb).
+2. **App: `num_ctx` right-sized** (ADR-0043). Long meetings asked Ollama for 15 360 tokens of context
+   with Default Notes; now 13 312 (the largest real call plus a measured 10 % margin).
+
+| Meeting | Mode | Default Notes: 15e (default Ollama) | tuned Ollama, old code | tuned Ollama, new code | Executive Summary: 15e | old code | new code |
+|---|---|---|---|---|---|---|---|
+| 31 min | full | 497 s | 160 s (12 288; 8 % CPU) | 142 s (12 288; 100 % GPU) | 167 s | 70 s | 65 s |
+| 59 min | map-reduce, 2 parts | 780 s | 339-367 s (15 360; 11-13 % CPU) | 204-229 s (13 312; 100 % GPU) | 318 s | 128 s | 101 s |
+| 113 min | map-reduce, 3 parts | 927 s | 616 s (15 360; 13 % CPU) | 293 s (13 312; 100 % GPU) | not run | 150 s | 126 s |
+
+In brackets: the context Ollama was given (`ollama ps` CONTEXT) and the model's CPU/GPU split. **Read
+with care:** the desktop's own GPU use changes over time, and it moved during these runs. Executive
+Summary asked for the same 13 312 in both code versions, yet went from 8 % on the CPU to 100 % on the
+GPU and 21 % faster. The fair comparison of the app change alone is the **paired run** (59 minutes,
+Default Notes, back to back at 08:28-08:38): old code 339 s with 11 % of the model on the CPU, new code
+229 s with all of it on the GPU, **32 % faster**. The host settings alone (15e vs tuned, old code)
+made Default Notes 2.1-3.1× faster.
+
+So on this laptop, with the recommended Ollama settings, **Default Notes for a 60-minute meeting takes
+about 3.5-4 minutes** and Executive Summary under 2; a whole job is about 8-9 and 6-7 minutes
+(transcription unchanged, 4-5 minutes per hour; whole jobs were not re-run). The pre-job estimate now
+uses 10-20× real time for the notes (was 3.5-7×). With Ollama's defaults expect about twice as long.
+
+- Ollama 0.33.3, service at `Nice=5` with idle I/O priority (set by another app on the reference
+  machine; it slows the part of a model that runs on the CPU). GPU memory of the loaded model
+  (`ollama ps` SIZE): 6.0 GB at 13 312, 6.6 GB at 15 360.
+- **Token estimate:** 108 calls compared `estimate_tokens` (4 characters per token) with Ollama's
+  `prompt_eval_count`: mean 1.005; calls of 6 000+ estimated tokens 0.97-1.011; merged map-reduce
+  notes up to 1.115 (now counted at 1.15). No call had prompt plus output above its `num_ctx`.
+- **Quality:** the full eval (75 notes, 2026-10-15, flash attention + q8_0 cache, new code) passes
+  72/75, mean 49 s per note (max 102 s). Against the Phase 15 baseline (default Ollama) five notes
+  found one action or question fewer. Re-runs: two were sampling noise (passed on re-run); three
+  (`decision-log` and `agile-standup` 1/2 questions, `retrospective` 3-4/4 actions) behave the same
+  with the **old code** on the tuned Ollama, so they come with the host settings, not the app change.
+  The baseline was updated to this run. The long all-hands (map-reduce, window 8 192) still completes:
+  decisions 5/6, actions 15/16, questions 3/5 (Phase 15a: 6/6, 15/16, 3/5).
 
 ## Raw numbers
 Per stage: wall time in seconds (real-time factor in brackets = audio seconds / wall seconds), then

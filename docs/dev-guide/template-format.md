@@ -184,8 +184,9 @@ For each section, one chat request (see `templates/assembler.py`):
   capped by the window. A section call counts its prompt and `max_tokens` (Summary Detailed also
   its paragraph retry; a regeneration its previous body and feedback); in map-reduce the map calls
   are built first and count their prompt, output room and a repair turn, and the reduce notes are
-  then cut to fit. Estimates use 4 characters per token; qwen3 measured 0.95-1.03 real tokens per
-  estimated token.
+  then cut to fit, counted at 1.15 real tokens per estimated token (`NOTES_DENSITY`). Estimates use
+  4 characters per token; on qwen3, transcript-sized calls measured 0.97-1.01 real tokens per
+  estimated token, and the denser merged notes up to 1.115.
 
 Because the system message and the transcript are identical for every section of a note, a local
 Ollama reuses its prompt cache and only processes the short section-specific tail (ADR-0017).

@@ -137,10 +137,13 @@ numbers: [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md); settings: [`docs/user-gui
 | 16 GB VRAM | large-v3, float16 | yes | 30-50 (estimated) | 12-14B at Q4_K_M |
 | 24 GB+ VRAM | large-v3, float16 | yes | 40-70 (estimated) | about 30B at Q4_K_M |
 
-On 8 GB, transcription and the LLM take turns on the GPU (peak 2.8 GB for transcription, 5.8 GB for
-qwen3:8b). A 60-minute meeting goes from upload to a finished note in about 8-10 minutes with a local
-8B model and a short template such as Executive Summary, or about 17-18 minutes with the default,
-Default Notes, which writes much fuller notes ([measurements](docs/PERFORMANCE.md)). Override auto-detection with `hardware.profile` in `config.yaml`.
+On 8 GB, transcription and the LLM take turns on the GPU (peak 2.8 GB for transcription, about 6 GB
+for qwen3:8b). With Ollama's flash attention and 8-bit context cache turned on
+([how](docs/user-guide/hardware.md#ollama-settings-for-small-gpus-recommended-on-8-gb)), a 60-minute
+meeting goes from upload to a finished note in about 6-7 minutes with a short template such as
+Executive Summary, or about 8-9 minutes with the default, Default Notes, which writes much fuller
+notes; with Ollama's default settings notes take about twice as long
+([measurements](docs/PERFORMANCE.md)). Override auto-detection with `hardware.profile` in `config.yaml`.
 
 ## Known limitations
 - **No login.** Single user on `127.0.0.1`; do not expose the port (use an SSH tunnel for remote
