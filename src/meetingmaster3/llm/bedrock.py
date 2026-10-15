@@ -154,12 +154,64 @@ def map_boto_error(exc: Exception) -> MM3Error:
                 "Use a model with a larger context or let the app split the transcript.",
                 status_code=413,
             )
+        if code == "ValidationException":
+            return _validation_error(message)
         if code in {"ServiceUnavailableException", "InternalServerException"}:
             return llm_error(
                 E_LLM_UNREACHABLE, "Bedrock is temporarily unavailable.", status_code=503
             )
         return llm_error(E_LLM_BAD_RESPONSE, f"Bedrock returned an error ({code or 'unknown'}).")
     return llm_error(E_LLM_BAD_RESPONSE, f"Unexpected Bedrock failure: {type(exc).__name__}.")
+
+
+def _validation_error(message: str) -> MM3Error:
+    """Bedrock's ``ValidationException`` texts (recorded live 2026-10-15) as setup errors."""
+    low = message.lower()
+    if "inference profile" in low and "on-demand" in low:
+        return llm_error(
+            E_LLM_CONFIG,
+            "This Bedrock model can only be called through an inference profile.",
+            "Use its inference profile ID instead, for example us.<model id> or global.<model id> "
+            "(Load models lists them).",
+            status_code=400,
+        )
+    if "doesn't support on-demand" in low or "does not support on-demand" in low:
+        return llm_error(
+            E_LLM_CONFIG,
+            "This Bedrock model needs Provisioned Throughput, which the app does not use.",
+            "Choose another model or its inference profile ID.",
+            status_code=400,
+        )
+    if "model identifier is invalid" in low:
+        return llm_error(
+            E_LLM_CONFIG,
+            "Bedrock does not know this model ID in the configured region.",
+            "Check the ID and the region; Load models lists what this account can see.",
+            status_code=400,
+        )
+    detail = redact(message.removeprefix("The model returned the following errors: "))[:200]
+    return llm_error(
+        E_LLM_CONFIG,
+        f"Bedrock refused the request: {detail}",
+        "Check the backend's model and parameters (params).",
+        status_code=400,
+    )
+
+
+def _validation_message(exc: Exception) -> str | None:
+    """The text of a Bedrock ``ValidationException``, or None for any other failure."""
+    from botocore.exceptions import ClientError
+
+    if not isinstance(exc, ClientError):
+        return None
+    err = exc.response.get("Error", {})
+    return str(err.get("Message", "")) if err.get("Code") == "ValidationException" else None
+
+
+THINKING_OFF: dict[str, Any] = {"thinking": {"type": "disabled"}}
+"""What asks a Claude model not to think (``generation.think`` off). Newer models want something
+else and say so in a ValidationException; :meth:`BedrockBackend._adapt` follows that advice."""
+THINKING_KEYS = frozenset({"thinking", "output_config"})
 
 
 class _Stop:
@@ -193,6 +245,10 @@ class BedrockBackend:
         self._override_ctx = context_window
         self._runtime = runtime_client
         self._control = control_client
+        self._no_temperature: set[str] = set()
+        """Models that rejected ``temperature`` once; it is left out for them from then on."""
+        self._thinking_off: dict[str, dict[str, Any]] = {}
+        """Per model, the request fields that turn its thinking off, learned from its errors."""
 
     # -- clients (lazy: boto3 is optional) ------------------------------------------------
 
@@ -226,7 +282,9 @@ class BedrockBackend:
     # -- request building -----------------------------------------------------------------
 
     def _kwargs(self, req: GenerateRequest) -> dict[str, Any]:
-        inference: dict[str, Any] = {"temperature": req.temperature}
+        inference: dict[str, Any] = {}
+        if req.model not in self._no_temperature:
+            inference["temperature"] = req.temperature
         if req.max_tokens:
             inference["maxTokens"] = req.max_tokens
         if req.stop:
@@ -238,9 +296,62 @@ class BedrockBackend:
         }
         if system := req.system_text():
             kwargs["system"] = [{"text": system}]
-        if self.params:
-            kwargs["additionalModelRequestFields"] = self.params
+        extra = dict(self.params)
+        if req.think is False and self._controls_thinking(req.model):
+            extra.update(self._thinking_off.get(req.model, THINKING_OFF))
+        if extra:
+            kwargs["additionalModelRequestFields"] = extra
         return kwargs
+
+    def _controls_thinking(self, model: str) -> bool:
+        """Claude models think by default (Claude 5.x); others reject unknown fields. Thinking
+        fields the user set in ``params`` are left alone."""
+        claude = base_model_id(model).startswith("anthropic.claude")
+        return claude and not (THINKING_KEYS & set(self.params))
+
+    def _call(self, method: str, kwargs: dict[str, Any]) -> Any:
+        """One Converse(Stream) call. When the model rejects a field the app added (temperature,
+        the thinking switch) the call is repeated as its error message advises, and the model
+        remembers it (ADR-0045). Rejected calls are not billed. Runs in a worker thread."""
+        call = getattr(self.runtime, method)
+        for _ in range(3):
+            try:
+                return call(**kwargs)
+            except Exception as exc:
+                adapted = self._adapt(kwargs, exc)
+                if adapted is None:
+                    raise
+                kwargs = adapted
+        return call(**kwargs)
+
+    def _adapt(self, kwargs: dict[str, Any], exc: Exception) -> dict[str, Any] | None:
+        message = _validation_message(exc)
+        if message is None:
+            return None
+        model = kwargs["modelId"]
+        config = kwargs["inferenceConfig"]
+        if "temperature" in message and "temperature" in config:
+            log.info("Bedrock model %s rejects temperature; sending it without", model)
+            self._no_temperature.add(model)
+            config = {k: v for k, v in config.items() if k != "temperature"}
+            return {**kwargs, "inferenceConfig": config}
+        extra = dict(kwargs.get("additionalModelRequestFields") or {})
+        current = {k: extra[k] for k in THINKING_KEYS & set(extra) if k not in self.params}
+        if not current or "thinking" not in message:
+            return None
+        if "between_tools" in message and current != {"thinking": {"type": "between_tools"}}:
+            new: dict[str, Any] = {"thinking": {"type": "between_tools"}}
+        elif "effort" in message and "output_config" not in current:
+            new = {"output_config": {"effort": "low"}}
+        else:
+            new = {}
+        log.info("Bedrock model %s: thinking switched off with %s", model, new or "nothing")
+        self._thinking_off[model] = new
+        for key in current:
+            extra.pop(key)
+        extra.update(new)
+        adapted = {k: v for k, v in kwargs.items() if k != "additionalModelRequestFields"}
+        return {**adapted, "additionalModelRequestFields": extra} if extra else adapted
 
     # -- LLMBackend -----------------------------------------------------------------------
 
@@ -249,7 +360,7 @@ class BedrockBackend:
         kwargs = self._kwargs(req)
         try:
             data = await asyncio.wait_for(
-                asyncio.to_thread(self.runtime.converse, **kwargs), timeout=req.timeout
+                asyncio.to_thread(self._call, "converse", kwargs), timeout=req.timeout
             )
         except TimeoutError as exc:
             raise llm_error(
@@ -284,7 +395,7 @@ class BedrockBackend:
 
         def pump() -> None:
             try:
-                response = self.runtime.converse_stream(**kwargs)
+                response = self._call("converse_stream", kwargs)
                 for event in response["stream"]:
                     if stop.is_set():
                         break

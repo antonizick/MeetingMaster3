@@ -16,6 +16,7 @@ from dataclasses import dataclass
 
 import pytest
 
+from meetingmaster3.config.paths import resolve_paths
 from meetingmaster3.config.settings import load_settings
 from meetingmaster3.errors import MM3Error
 from meetingmaster3.llm.base import E_CONSENT_REQUIRED, GenerateRequest, LLMBackend
@@ -27,6 +28,9 @@ from tests.eval.checker import load_meetings, score_note
 from tests.eval.run_eval import TODAY, Meter
 
 pytestmark = [pytest.mark.network, pytest.mark.slow]
+
+REAL_CONFIG = resolve_paths().config_file
+"""Resolved at import, before the autouse fixture points XDG_* at a temp folder."""
 
 
 @dataclass(frozen=True)
@@ -41,7 +45,7 @@ def _live(kind: str) -> Live:
     if os.environ.get(flag) != "1":
         pytest.skip(f"set {flag}=1 to run the live {kind} checks (they cost a few cents)")
     name = os.environ.get(f"{flag}_BACKEND", kind)
-    registry = BackendRegistry(load_settings())
+    registry = BackendRegistry(load_settings(REAL_CONFIG))
     if name not in registry.names():
         pytest.fail(f"no backend named {name!r} in config.yaml ({flag}_BACKEND to choose one)")
     backend = registry.get(name)
