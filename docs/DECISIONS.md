@@ -49,6 +49,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0043 | 2026-10-15 | `num_ctx` is the note's largest real call plus a measured 10 % margin (no double-counted reserve); map chunks count timestamps; reduce notes counted at 1.15× density; Ollama flash attention + q8_0 cache recommended | Accepted | 15f |
 | ADR-0044 | 2026-10-15 | Bedrock context windows from a dated, family-level table (`bedrock_models.yaml`, longest prefix, geo profile ids stripped, Claude capped at 200k); unknown models keep 8192 with a visible hint | Accepted | 15g |
 | ADR-0045 | 2026-10-15 | Bedrock follows a model's own ValidationException advice once (drop `temperature`; thinking off as `disabled`/`between_tools`/effort `low`) and remembers it; an empty answer cut off by length or a filter is an `E_LLM_BAD_RESPONSE`; real Bedrock validation texts map to `E_LLM_CONFIG`; OpenRouter addendum: `reasoning` switch with a low-effort fallback, provider reasons on 4xx | Accepted | 15g |
+| ADR-0046 | 2026-10-16 | Logging never blocks the event loop: all records, uvicorn's included, go through a bounded queue to a writer thread; a stalled terminal drops (and later reports) log lines instead of freezing the web app | Accepted | fix |
 
 ---
 
@@ -1336,3 +1337,20 @@ is repeated once with `reasoning: {effort: low}` and 4 096 extra output tokens, 
 `THINKING_ROOM`. A 4xx from any HTTP backend now shows the provider's own short reason (redacted, 300 characters)
 instead of only "returned HTTP 400". Verified live: 9/9 checks on OpenRouter Haiku, Sonnet and Opus 5.5.
 
+## ADR-0046: Logging never blocks the event loop (2026-10-16)
+**Context.** After a restart the web interface accepted connections but never answered. The server was alive and idle
+(0 % CPU, blocked in `wait_woken`); the vault paths were fine (a trailing slash, `~`, and a missing folder were all
+tested and start normally). Its terminal had stopped accepting output (XOFF flow control, Ctrl+S, which a terminal
+sends on a stray keypress; `stty` on that tty hung because its output could not drain). Both our logging handler and
+uvicorn's own handlers wrote to that terminal synchronously on the event-loop thread, so the first request log line
+froze the whole app. Turning `ixon` off on that tty released the process at once.
+
+**Decision.** `configure_logging` installs a `NonBlockingQueueHandler` on the root logger. Records are redacted on the
+calling thread, put on a bounded queue (10 000) with `put_nowait`, and written by a daemon `QueueListener` thread. A
+full queue drops the record and counts it; the writer reports "N log line(s) were dropped while the terminal was not
+accepting output" when output resumes. `mm3 serve` passes `log_config=None` to uvicorn so its loggers use the same path
+(log lines now carry our timestamp format instead of `INFO:     `).
+
+**Consequences.** A frozen terminal, a full pipe or a slow log consumer can no longer take the app down; only the log
+text is lost. `tests/unit/test_serve_stalled_terminal.py` runs the real server on a pty, sends Ctrl+S and checks that it
+keeps answering (it fails on the old code). Prints written directly to stdout (not logging) are not covered.

@@ -208,6 +208,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   makes no network calls (verified with a socket audit).
 
 ### Fixed
+- **The web app no longer freezes when its terminal stops accepting output** (ADR-0046): logging, uvicorn's included,
+  goes through a bounded queue to a writer thread, so Ctrl+S (or a paused terminal) can only drop log lines, which
+  are reported afterwards, instead of hanging every request. Log lines now use one timestamp format.
 - **Claude 5.x models on Bedrock can write notes** (Phase 15g, ADR-0045): they reject `temperature`, which the app
   sent on every call, so every note failed. The Bedrock backend now repeats a rejected call as the model's error
   advises (no temperature; thinking switched off the way that model accepts) and remembers it per model.

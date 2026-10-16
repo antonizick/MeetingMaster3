@@ -7,6 +7,8 @@ Transcript content must not be logged at INFO; this module only guarantees that 
 from __future__ import annotations
 
 import logging
+import logging.handlers
+import queue
 import re
 import threading
 
@@ -58,12 +60,70 @@ class RedactionFilter(logging.Filter):
         return True
 
 
+_QUEUE_SIZE = 10_000
+
+
+class NonBlockingQueueHandler(logging.handlers.QueueHandler):
+    """Hand records to a writer thread and never block the caller.
+
+    A terminal that has stopped accepting output (Ctrl+S flow control, a paused emulator, a full
+    pipe) blocks writes to it. Writing from the event-loop thread would then freeze the whole web
+    app, so records go through a bounded queue and are dropped, with a count, when it is full.
+    """
+
+    def __init__(self, target: queue.Queue[logging.LogRecord]) -> None:
+        super().__init__(target)
+        self.dropped = 0
+
+    def enqueue(self, record: logging.LogRecord) -> None:
+        try:
+            self.queue.put_nowait(record)
+        except queue.Full:
+            self.dropped += 1
+
+
+class _ReportingStreamHandler(logging.StreamHandler):  # type: ignore[type-arg]
+    """Writer-thread handler that reports log lines lost while the output was stalled."""
+
+    def __init__(self, source: NonBlockingQueueHandler) -> None:
+        super().__init__()
+        self._source = source
+        self._reported = 0
+
+    def emit(self, record: logging.LogRecord) -> None:
+        lost = self._source.dropped - self._reported
+        if lost > 0:
+            self._reported += lost
+            super().emit(
+                logging.makeLogRecord(
+                    {
+                        "name": "meetingmaster3.logging",
+                        "levelno": logging.WARNING,
+                        "levelname": "WARNING",
+                        "msg": f"{lost} log line(s) were dropped while the terminal was not "
+                        "accepting output (is it paused? try Ctrl+Q).",
+                    }
+                )
+            )
+        super().emit(record)
+
+
+_listener: logging.handlers.QueueListener | None = None
+
+
 def configure_logging(level: int | str = logging.INFO) -> None:
+    """Send all logging, uvicorn's included, through a non-blocking queue to stderr."""
+    global _listener
     root = logging.getLogger()
     root.setLevel(level)
-    if not any(getattr(h, "_mm3", False) for h in root.handlers):
-        handler = logging.StreamHandler()
-        handler._mm3 = True  # type: ignore[attr-defined]
-        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
-        handler.addFilter(RedactionFilter())
-        root.addHandler(handler)
+    if any(getattr(h, "_mm3", False) for h in root.handlers):
+        return
+    log_queue: queue.Queue[logging.LogRecord] = queue.Queue(_QUEUE_SIZE)
+    front = NonBlockingQueueHandler(log_queue)
+    front._mm3 = True  # type: ignore[attr-defined]
+    front.addFilter(RedactionFilter())  # redact before a record leaves the calling thread
+    back = _ReportingStreamHandler(front)
+    back.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    _listener = logging.handlers.QueueListener(log_queue, back)
+    _listener.start()
+    root.addHandler(front)

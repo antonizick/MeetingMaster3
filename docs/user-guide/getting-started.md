@@ -110,6 +110,8 @@ Three files are written next to each other:
   feedback.
 
 ## Troubleshooting
+- *The page never loads but the server is running*: in older versions a terminal paused with Ctrl+S froze the server. Press
+  Ctrl+Q in its terminal. Current versions keep serving and report "log lines were dropped" instead.
 - *"The vault folder does not exist"*: mount the drive or fix the path on the setup page (`/setup`).
 - *Upload rejected*: the limit is `audio.max_upload_mb` (default 2048).
 - *The page does not update*: reload; if the server stopped, restart `mm3 serve` and resume the interrupted job

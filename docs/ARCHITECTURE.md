@@ -80,7 +80,7 @@ file-only protocol whitelist. Measured speed and memory on the 8 GB reference GP
 | `speakers/match.py`, `vectors.py` | Max-cosine scoring, Hungarian one-to-one assignment, threshold and margin; pure-Python vector helpers and float32 BLOBs. |
 | `speakers/store.py` | `VoiceprintStore` over migration 2 (opt-in writes, model-id isolation, cap, physical delete, wipe tokens). |
 | `speakers/stages.py`, `cascade.py` | `speaker_suggest` and `await_speaker_confirmation` stages (enrollment, merges); one `SpeakerMap` per job applied to transcript, note metadata and companion transcript. |
-| `logging.py` | Logging setup with a secret-redaction filter on the handler. |
+| `logging.py` | Logging setup: secret redaction, then a bounded queue and writer thread so a stalled terminal can never block the event loop (ADR-0046). |
 | `web/security.py` | Security-headers and CSRF middleware. |
 | `hardware/detect.py` | `HardwareInfo`: nvidia-smi, then torch.cuda (only if importable), then CPU/RAM from `/proc`. Cached; `get_hardware(refresh=True)` re-detects. |
 | `hardware/profiles.py` | `cpu`, `vram8`, `vram16`, `vram24plus`, chosen from total VRAM or `hardware.profile`. |

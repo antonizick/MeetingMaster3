@@ -76,11 +76,17 @@ def serve(
             host=settings.server.host,
             port=settings.server.port,
             reload=True,
+            log_config=None,
         )
     else:
         from meetingmaster3.app import create_app
 
-        uvicorn.run(create_app(settings), host=settings.server.host, port=settings.server.port)
+        uvicorn.run(
+            create_app(settings),
+            host=settings.server.host,
+            port=settings.server.port,
+            log_config=None,  # uvicorn's own handlers write to the terminal synchronously
+        )
 
 
 @app.command()
