@@ -50,7 +50,17 @@ Meetings: launch-sync, budget-checkin, cache-design-review, intro-call-platform-
 | Bedrock `amazon.nova-micro-v1:0` | 2/7 | 0 | 9.2 s | 16,370 | 1,828 | summary style |
 | Bedrock `us.deepseek.r1-v1:0` | 2/7 | 5 | 28.4 s | 14,512 | 4,182 | reasoning-only: empty answers |
 | Bedrock `openai.gpt-oss-20b-1:0` | 1/7 | 6 | 22.2 s | 8,724 | 4,084 | reasoning-only: empty answers |
-<!-- OPENROUTER-BATCH -->
+| OpenRouter `openai/gpt-5.5` | 6/7 | 0 | 26.5 s | 13,855 | 2,060 | |
+| OpenRouter `meta-llama/llama-4-maverick` | 6/7 | 0 | 58.1 s | 14,601 | 1,441 | |
+| OpenRouter `google/gemma-3-12b-it` | 6/7 | 0 | 92.3 s | 15,090 | 1,787 | |
+| OpenRouter `openai/gpt-oss-20b` | 5/7 | 0 | 89.7 s | 14,338 | 3,122 | the reasoning switch reaches it (1/7 on Bedrock) |
+| OpenRouter `qwen/qwen3-32b` | 1/7 | 6 | 135.8 s | 8,749 | 3,837 | its provider ignored the reasoning switch |
+| OpenRouter `mistralai/mistral-large-2512` | not measured | 7 | | | | rate-limited upstream (Mistral's shared pool) all day |
+| OpenRouter `deepseek/deepseek-r1-0528` | not measured | | | | | stopped: one note took minutes (reasoning-only) |
+
+OpenRouter times include its routing to third-party providers and were much slower for non-Claude models than
+on Bedrock. The common failure, `type_content`, is always the intro call's Default Notes leaving out facts the meeting
+states (order volume, store count, that the call was recorded); `nothing_forbidden` is the family detail again.
 
 ## Long meeting (map-reduce)
 
