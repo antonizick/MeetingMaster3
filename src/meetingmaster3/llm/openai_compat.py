@@ -35,6 +35,9 @@ PROBE_TIMEOUT_S = 10.0
 REASONING_LOW: dict[str, Any] = {"effort": "low"}
 """OpenRouter's reasoning setting for a model that refuses ``{"enabled": false}`` ("Reasoning is
 mandatory for this endpoint", Claude Sonnet 5.5 and Opus 5.5), learned per model (ADR-0045)."""
+CLAUDE_WINDOW = 200_000
+"""OpenRouter lists Claude 5.x with a 1M window; planning uses 200k as on Bedrock (ADR-0044), so
+a long meeting is summarised in parts rather than billed at the long-context price."""
 REASONING_ROOM = 4096
 """Output tokens added to ``max_tokens`` when the model must reason: reasoning counts against
 ``max_tokens``. Only the tokens used are billed."""
@@ -240,7 +243,12 @@ class OpenAICompatBackend:
         )
 
     def context_window(self, model: str) -> int | None:
-        return self._override_ctx or self._ctx.get(model)
+        if self._override_ctx:
+            return self._override_ctx
+        window = self._ctx.get(model)
+        if window and self.kind == "openrouter" and model.startswith("anthropic/claude"):
+            return min(window, CLAUDE_WINDOW)
+        return window
 
     async def warm(self, model: str) -> None:
         if model in self._ctx:

@@ -201,3 +201,20 @@ async def test_a_4xx_shows_the_providers_reason_once() -> None:
         "OpenRouter returned HTTP 400: Reasoning is mandatory for this endpoint and cannot be "
         "disabled."
     )
+
+
+@respx.mock
+async def test_openrouter_claude_window_is_capped_like_bedrock() -> None:
+    respx.get(f"{BASE}/models").respond(
+        json={
+            "data": [
+                {"id": "anthropic/claude-haiku-5.5", "context_length": 1_000_000},
+                {"id": "meta-llama/llama-4-maverick", "context_length": 1_048_576},
+            ]
+        }
+    )
+    b = backend()
+    await b.list_models()
+    assert b.context_window("anthropic/claude-haiku-5.5") == 200_000
+    assert b.context_window("meta-llama/llama-4-maverick") == 1_048_576
+    assert backend(context_window=500_000).context_window("anthropic/claude-haiku-5.5") == 500_000
