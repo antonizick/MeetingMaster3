@@ -439,6 +439,29 @@ class RecentMeetingsRepository:
     def remove(self, note_path: str) -> None:
         self.db.execute("DELETE FROM recent_meetings WHERE note_path = ?", (note_path,))
 
+    def relink(self, old_path: str, new_path: str, transcript_path: str | None) -> None:
+        """Point the entry for ``old_path`` at the note's new location, keeping its history.
+
+        If the list already has an entry for ``new_path`` (the note was opened again from its new
+        place), the two merge into that one and the stale entry goes.
+        """
+        old = self.get(old_path)
+        if new_path == old_path:
+            return
+        if self.db.fetchone("SELECT 1 FROM recent_meetings WHERE note_path = ?", (new_path,)):
+            self.db.execute(
+                "UPDATE recent_meetings SET job_id = COALESCE(job_id, ?),"
+                " transcript_path = COALESCE(?, transcript_path),"
+                " mm3_id = COALESCE(mm3_id, ?) WHERE note_path = ?",
+                (old.job_id, transcript_path, old.mm3_id, new_path),
+            )
+            self.remove(old_path)
+            return
+        self.db.execute(
+            "UPDATE recent_meetings SET note_path = ?, transcript_path = ? WHERE note_path = ?",
+            (new_path, transcript_path, old_path),
+        )
+
     @staticmethod
     def _from_row(row: sqlite3.Row) -> RecentMeeting:
         return RecentMeeting(

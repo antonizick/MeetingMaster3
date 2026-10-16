@@ -565,6 +565,52 @@ def notes_upgrade(
     raise typer.Exit(code)
 
 
+@notes_app.command("relink")
+def notes_relink(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show the plan; change nothing."),
+    vault: str | None = typer.Option(None, help="Vault folder (default from settings)."),
+) -> None:
+    """Re-link Meetings entries whose notes moved, by each note's ``mm3-id``.
+
+    Only the Meetings list is updated; no note file is touched. Entries with no match, or with
+    several, are listed and left alone (choose those on the Meetings page)."""
+    from meetingmaster3.storage.db import Database
+    from meetingmaster3.storage.repositories import RecentMeetingsRepository
+    from meetingmaster3.vault import relink
+    from meetingmaster3.vault.paths import resolve_vault_root
+
+    configure_logging()
+    settings = _library_settings(vault)
+    paths = resolve_paths()
+    paths.ensure()
+    try:
+        root = resolve_vault_root(settings.vault.path)
+        db = Database.open(paths.database)
+        try:
+            repo = RecentMeetingsRepository(db)
+            matches = relink.plan_relink(root, repo.recent(10_000))
+            if not matches:
+                typer.echo("Every Meetings entry still points to a note in the vault.")
+                return
+            for m in matches:
+                label = m.entry.title or m.entry.note_path
+                if m.status == "found":
+                    typer.echo(f"  link       {label} -> {m.candidates[0].rel(root)}")
+                elif m.status == "ambiguous":
+                    typer.echo(f"  ambiguous  {label}: {len(m.candidates)} notes match")
+                else:
+                    typer.echo(f"  not found  {label}")
+            if dry_run:
+                typer.echo("Dry run: nothing was changed.")
+                return
+            done = relink.apply_clear_matches(repo, matches)
+            typer.echo(f"Re-linked {done} of {len(matches)} entries.")
+        finally:
+            db.close()
+    except MM3Error as exc:
+        _fail(exc)
+
+
 def _find_note(root: Path, target: str, data_dir: Path) -> Path:
     """A meeting's note from its ``mm3-id`` (Meetings list, else a vault search) or its
     vault-relative path."""

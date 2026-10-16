@@ -2,9 +2,17 @@
 <section id="sec-notes" aria-labelledby="h-notes" class="card">
   <h2 id="h-notes" tabindex="-1">Notes in your vault</h2>
   {% if notes %}
+  {% if relink_message %}<p class="alert info" role="status">{{ relink_message }}</p>{% endif %}
   {% if orphans %}
   <div class="alert warn" role="status">
-    <p>{{ orphans }} {{ 'entry points' if orphans == 1 else 'entries point' }} to a note that is missing or outside your vault.</p>
+    <p>{{ orphans }} {{ 'entry points' if orphans == 1 else 'entries point' }} to a note that is missing or outside your vault.
+       If you moved your vault or its folders, the notes can usually be found again by their identity.</p>
+    {% if not scanned %}
+    <button hx-post="/ui/recent/relink/scan{{ notes_qs }}" hx-target="#sec-notes" hx-swap="outerHTML">Find them in the vault</button>
+    {% elif relink_clear %}
+    <button hx-post="/ui/recent/relink/all{{ notes_qs }}" hx-target="#sec-notes" hx-swap="outerHTML"
+            hx-confirm="Re-link {{ relink_clear }} {{ 'entry' if relink_clear == 1 else 'entries' }} to the notes found in your vault? No note files are changed.">Re-link {{ relink_clear }} found</button>
+    {% endif %}
     <button hx-post="/ui/recent/prune{{ notes_qs }}" hx-target="#sec-notes" hx-swap="outerHTML"
             hx-confirm="Remove the entries marked as missing or outside your vault from this list? No files are deleted.">Remove {{ 'it' if orphans == 1 else 'them' }} from the list</button>
   </div>
@@ -17,6 +25,23 @@
       <span class="muted">{{ n.date or '' }}</span>
       <span class="badge status-failed">{{ n.orphan }}</span>
       <span class="muted note-path">{{ n.note_path }}</span> ·
+      {% if n.relink %}
+      {% if n.relink.status == 'found' %}
+      <span class="muted">Found: {{ n.relink.candidates[0] }}</span>
+      <button class="link" hx-post="/ui/recent/relink{{ notes_qs }}"
+              hx-vals='{{ {"path": n.note_path, "to": n.relink.candidates[0]}|tojson }}'
+              hx-target="#sec-notes" hx-swap="outerHTML"
+              aria-label="Re-link {{ n.title or n.note_path }} to {{ n.relink.candidates[0] }}">Re-link</button> ·
+      {% elif n.relink.status == 'ambiguous' %}
+      <form class="inline" hx-post="/ui/recent/relink{{ notes_qs }}" hx-target="#sec-notes" hx-swap="outerHTML">
+        <input type="hidden" name="path" value="{{ n.note_path }}">
+        <label>Matches {{ n.relink.candidates|length }} notes:
+          <select name="to">{% for c in n.relink.candidates %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
+        </label>
+        <button class="link" type="submit">Re-link</button>
+      </form> ·
+      {% else %}<span class="muted">No matching note in your vault</span> ·{% endif %}
+      {% endif %}
       {% else %}
       <a href="{{ n.preview_link }}">{{ n.title or n.note_path }}</a>
       <span class="muted">{{ n.date or '' }}</span> ·

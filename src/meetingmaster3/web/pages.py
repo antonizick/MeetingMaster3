@@ -35,6 +35,7 @@ from meetingmaster3.storage.repositories import RecentMeetingsRepository
 from meetingmaster3.templates import model_check
 from meetingmaster3.templates.loader import MANIFEST_NAME, install_builtins
 from meetingmaster3.templates.stages import WRITTEN_FILE, template_library
+from meetingmaster3.vault import relink
 from meetingmaster3.vault.io import read_text
 from meetingmaster3.vault.paths import is_inside, resolve_vault_root
 from meetingmaster3.vault.picker import browse, read_identity
@@ -556,7 +557,11 @@ def _jobs_section(request: Request) -> dict[str, Any]:
     }
 
 
-def _notes_section(request: Request) -> dict[str, Any]:
+def _notes_section(
+    request: Request,
+    matches: dict[str, relink.Match] | None = None,
+    message: str | None = None,
+) -> dict[str, Any]:
     runner = get_runner(request)
     vault = _settings(request).vault.path
     repo = RecentMeetingsRepository(runner.db)
@@ -567,6 +572,8 @@ def _notes_section(request: Request) -> dict[str, Any]:
         item = meeting.to_dict()
         rel = views.vault_relative(vault, meeting.note_path)
         item["orphan"] = _orphan_reason(meeting.note_path, rel)
+        match = (matches or {}).get(meeting.note_path)
+        item["relink"] = _relink_view(match, vault) if match else None
         item["obsidian_link"] = views.obsidian_link(meeting.note_path)
         item["preview_link"] = (
             f"/open/note?path={quote(rel, safe='')}"
@@ -584,6 +591,9 @@ def _notes_section(request: Request) -> dict[str, Any]:
     return {
         "notes": notes,
         "orphans": orphans,
+        "scanned": matches is not None,
+        "relink_clear": sum(1 for m in (matches or {}).values() if m.status == "found"),
+        "relink_message": message,
         "notes_qs": with_params("", {**own, "notes_page": str(page.number)}),
         "notes_pager": pager(
             page,
@@ -593,6 +603,14 @@ def _notes_section(request: Request) -> dict[str, Any]:
             hx_base="/ui/meetings/notes",
             label="Notes in your vault",
         ),
+    }
+
+
+def _relink_view(match: relink.Match, vault: Path | str) -> dict[str, Any]:
+    root = resolve_vault_root(vault)
+    return {
+        "status": match.status,
+        "candidates": [c.rel(root) for c in match.candidates],
     }
 
 
@@ -667,6 +685,80 @@ async def recent_note_prune(request: Request) -> Response:
         if _orphan_reason(meeting.note_path, rel):
             repo.remove(meeting.note_path)
     return render(request, "partials/meetings_notes.html", _notes_section(request))
+
+
+async def _scan_orphans(request: Request) -> dict[str, relink.Match]:
+    """Look for every orphaned entry's note in the current vault (reads note headers only)."""
+    repo = RecentMeetingsRepository(get_runner(request).db)
+    root = resolve_vault_root(_settings(request).vault.path)
+    entries = repo.recent(10_000)
+    matches = await asyncio.to_thread(relink.plan_relink, root, entries)
+    return {m.entry.note_path: m for m in matches}
+
+
+def _relink_summary(linked: int, matches: dict[str, relink.Match]) -> str:
+    left = [m for m in matches.values() if m.status != "found"]
+    none = sum(1 for m in left if m.status == "none")
+    parts = [f"Re-linked {linked} {'entry' if linked == 1 else 'entries'}."] if linked else []
+    if none:
+        parts.append(f"{none} could not be found in your vault.")
+    if len(left) - none:
+        parts.append(f"{len(left) - none} match more than one note: choose which one below.")
+    return " ".join(parts) or "Nothing to re-link."
+
+
+@router.post("/ui/recent/relink/scan", response_class=HTMLResponse)
+async def recent_relink_scan(request: Request) -> HTMLResponse:
+    """Search the vault for the notes of orphaned entries (by ``mm3-id``); change nothing."""
+    matches = await _scan_orphans(request)
+    found = sum(1 for m in matches.values() if m.status == "found")
+    message = (
+        f"{found} of {len(matches)} can be re-linked automatically." if matches else "All good."
+    )
+    return render(
+        request, "partials/meetings_notes.html", _notes_section(request, matches, message)
+    )
+
+
+@router.post("/ui/recent/relink/all", response_class=HTMLResponse)
+async def recent_relink_all(request: Request) -> HTMLResponse:
+    """Re-link every orphaned entry that has exactly one matching note in the vault."""
+    repo = RecentMeetingsRepository(get_runner(request).db)
+    matches = await _scan_orphans(request)
+    linked = relink.apply_clear_matches(repo, matches.values())
+    remaining = await _scan_orphans(request) if linked != len(matches) else {}
+    return render(
+        request,
+        "partials/meetings_notes.html",
+        _notes_section(request, remaining, _relink_summary(linked, remaining)),
+    )
+
+
+@router.post("/ui/recent/relink", response_class=HTMLResponse)
+async def recent_relink_one(
+    request: Request, path: str = Form(...), to: str = Form(...)
+) -> HTMLResponse:
+    """Re-link one entry to ``to`` (vault-relative). The target must be one of the notes the
+    vault search found for that entry, so a forged request cannot point an entry anywhere else."""
+    repo = RecentMeetingsRepository(get_runner(request).db)
+    matches = await _scan_orphans(request)
+    root = resolve_vault_root(_settings(request).vault.path)
+    match = matches.get(path)
+    chosen = next((c for c in match.candidates if c.rel(root) == to), None) if match else None
+    if match is None or chosen is None:
+        raise MM3Error(
+            "E_NOTE_NOT_FOUND",
+            "That note can no longer be matched to this entry.",
+            "Search the vault again and pick one of the notes it finds.",
+            status_code=404,
+        )
+    relink.apply_relink(repo, match.entry, chosen)
+    remaining = await _scan_orphans(request)
+    return render(
+        request,
+        "partials/meetings_notes.html",
+        _notes_section(request, remaining, _relink_summary(1, remaining)),
+    )
 
 
 # -- preview ------------------------------------------------------------------

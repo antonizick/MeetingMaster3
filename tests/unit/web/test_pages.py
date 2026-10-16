@@ -722,3 +722,57 @@ def test_logo_files_carry_no_metadata() -> None:
         data = p.read_bytes()
         for marker in (b"Exif", b"GIMP", b"iCCP", b"ICCP", b"tEXt", b"XMP"):
             assert marker not in data, (p.name, marker)
+
+
+def test_orphaned_entries_can_be_relinked_from_the_meetings_page(
+    ui: TestClient, vault: Path, tmp_path: Path
+) -> None:
+    from meetingmaster3.storage.repositories import RecentMeetingsRepository
+
+    def note(path: Path, mm3_id: str) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f'---\nmm3-id: "{mm3_id}"\ntitle: T\n---\n# T\n', "utf-8")
+
+    repo = RecentMeetingsRepository(ui.app.state.runner.db)  # type: ignore[attr-defined]
+    new = vault / "Moved" / "2026-10-11 - One.md"
+    note(new, "id-one")
+    note(vault / "A" / "Two-a.md", "id-two")
+    note(vault / "B" / "Two-b.md", "id-two")  # two candidates: needs a choice
+    repo.touch(str(tmp_path / "old" / "2026-10-11 - One.md"), mm3_id="id-one", title="One")
+    repo.touch(str(tmp_path / "old" / "Two.md"), mm3_id="id-two", title="Two")
+    repo.touch(str(tmp_path / "old" / "Lost.md"), mm3_id="id-lost", title="Lost")
+
+    page = ui.get("/meetings").text  # no scan until asked
+    assert "Find them in the vault" in page and "Re-link" not in page.replace("Re-link N", "")
+
+    assert ui.post("/ui/recent/relink/scan", headers=NO_TOKEN).status_code == 403
+    scan = ui.post("/ui/recent/relink/scan").text
+    assert "1 of 3 can be re-linked automatically" in scan
+    assert "Found: Moved/2026-10-11 - One.md" in scan
+    assert "Matches 2 notes" in scan and "No matching note in your vault" in scan
+    assert [
+        m.title for m in repo.recent() if m.note_path == str(new)
+    ] == []  # a scan changes nothing
+
+    # The target must be one the vault search found for that entry.
+    forged = ui.post(
+        "/ui/recent/relink",
+        data={"path": str(tmp_path / "old" / "2026-10-11 - One.md"), "to": "A/Two-a.md"},
+    )
+    assert forged.status_code == 404
+
+    done = ui.post("/ui/recent/relink/all").text
+    assert (
+        "Re-linked 1 entry." in done
+        and "could not be found" in done
+        and "match more than one" in done
+    )
+    assert repo.get(str(new)).title == "One"
+
+    one = ui.post(
+        "/ui/recent/relink",
+        data={"path": str(tmp_path / "old" / "Two.md"), "to": "B/Two-b.md"},
+    )
+    assert one.status_code == 200 and "Re-linked 1 entry." in one.text
+    assert repo.get(str(vault / "B" / "Two-b.md")).title == "Two"
+    assert repo.count() == 3  # nothing was removed; only the unmatched one is still an orphan

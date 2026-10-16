@@ -99,6 +99,12 @@ Three files are written next to each other:
   vault*; **Remove from list** forgets one entry and the box above the list removes all such entries at once.
   Only the list entry goes: the app never deletes a note file from here, and an entry comes back when you open
   that note again.
+  **If you moved or renamed your vault or its folders**, don't remove the entries: press **Find them in the vault**.
+  MM3 looks for each note by its `mm3-id` (stored in the note, so it survives a move) and offers **Re-link** for
+  each match, or **Re-link N found** for all the clear ones at once. An entry that matches several notes shows a
+  list to choose from; one with no match says so. Re-linking only updates the list: no note file is changed, and
+  the entry keeps its job, audio and history. Headless: `mm3 notes relink --dry-run`, then `mm3 notes relink`.
+  ![Re-linking moved notes](../assets/09-relink.png)
 - **Update older notes** (on Meetings, when there is something to do): notes written before the current format
   can gain **Summary Detailed** (written by your default model from each note's companion transcript), have a
   "Summary" heading renamed to "Summary Succinct" (a heading you changed is kept) and get a readable transcript.

@@ -10,7 +10,9 @@ import logging
 import logging.handlers
 import queue
 import re
+import sys
 import threading
+from typing import TextIO
 
 REDACTED = "[REDACTED]"
 
@@ -89,6 +91,15 @@ class _ReportingStreamHandler(logging.StreamHandler):  # type: ignore[type-arg]
         super().__init__()
         self._source = source
         self._reported = 0
+
+    @property
+    def stream(self) -> TextIO:
+        """Whatever ``sys.stderr`` is now, so a replaced or closed stream is never held."""
+        return sys.stderr
+
+    @stream.setter
+    def stream(self, _value: object) -> None:
+        pass
 
     def emit(self, record: logging.LogRecord) -> None:
         lost = self._source.dropped - self._reported

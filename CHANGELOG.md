@@ -8,6 +8,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Re-link moved meetings** (Meetings page, `mm3 notes relink`, ADR-0047): after a vault folder is moved or `vault.path`
+  changes, entries whose note is missing or outside the vault can be found again by their `mm3-id`: **Find them in the
+  vault**, then **Re-link** per entry or **Re-link N found** for all clear matches (one live note, or one that kept its
+  file name); ambiguous entries offer a choice. Only the list entry changes, keeping its job, audio link and history.
 - **Cloud model picker** (New meeting, Settings, the review page's Regenerate and Switch template): a drop-down of
   only the models that can write notes (text in and out, callable on demand or through an inference profile, workable
   context window, not measured as unsuitable), with **Show all models (N hidden)** and the reason for each hidden

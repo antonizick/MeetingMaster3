@@ -50,6 +50,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0044 | 2026-10-15 | Bedrock context windows from a dated, family-level table (`bedrock_models.yaml`, longest prefix, geo profile ids stripped, Claude capped at 200k); unknown models keep 8192 with a visible hint | Accepted | 15g |
 | ADR-0045 | 2026-10-15 | Bedrock follows a model's own ValidationException advice once (drop `temperature`; thinking off as `disabled`/`between_tools`/effort `low`) and remembers it; an empty answer cut off by length or a filter is an `E_LLM_BAD_RESPONSE`; real Bedrock validation texts map to `E_LLM_CONFIG`; OpenRouter addendum: `reasoning` switch with a low-effort fallback, provider reasons on 4xx | Accepted | 15g |
 | ADR-0046 | 2026-10-16 | Logging never blocks the event loop: all records, uvicorn's included, go through a bounded queue to a writer thread; a stalled terminal drops (and later reports) log lines instead of freezing the web app | Accepted | fix |
+| ADR-0047 | 2026-10-16 | Meetings entries stranded by a vault move are re-linked by `mm3-id` (found in the current vault, matched only when unambiguous), on request from the Meetings page or `mm3 notes relink`; only the list entry changes | Accepted | fix |
 
 ---
 
@@ -1354,3 +1355,19 @@ accepting output" when output resumes. `mm3 serve` passes `log_config=None` to u
 **Consequences.** A frozen terminal, a full pipe or a slow log consumer can no longer take the app down; only the log
 text is lost. `tests/unit/test_serve_stalled_terminal.py` runs the real server on a pty, sends Ctrl+S and checks that it
 keeps answering (it fails on the old code). Prints written directly to stdout (not logging) are not covered.
+
+## ADR-0047: Re-link moved meetings by identity (2026-10-16)
+**Context.** The Meetings list stores absolute note paths. Moving the vault folders and changing `vault.path` marked every
+entry "File not found" or "Not in your vault", and the only remedy was **Remove from list**, which also loses the entry's
+job and audio link. A note's `mm3-id` frontmatter does not change when it moves.
+
+**Decision.** The vault is searched on request (never on page load; only note headers are read, hidden folders skipped,
+50 000 files at most) and each orphaned entry is matched to the live note (not a transcript, readable copy or archive) with
+its `mm3-id`. One candidate, or several of which exactly one kept the entry's file name, is a clear match; several is
+"ambiguous" (the user picks); none is "not found". Entries without an id match on file name alone. The companion
+transcript is re-found the same way. Re-linking updates (or merges into an existing entry for the new path) only the
+`recent_meetings` row, keeping `job_id`, title and history, and never writes to a note. The single-entry endpoint accepts
+only a target the search itself returns, so a forged request cannot point an entry elsewhere. Also `mm3 notes relink [--dry-run]`.
+
+**Consequences.** Nothing happens automatically, so an unexpected match can never silently change the list; the cost is
+one click. Other absolute paths (job audio, review sessions) were not stranded by this move and are out of scope.
