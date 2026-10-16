@@ -24,7 +24,8 @@ The CI badge above is a placeholder until the repository is published (Phase 16)
 - Fix a meeting's title or date after the fact: every file is renamed and the links to it in your other
   notes follow (backed up first).
 - Local-first LLMs through Ollama; optional BYOK cloud backends (AWS Bedrock, OpenAI-compatible
-  endpoints including OpenRouter).
+  endpoints including OpenRouter), both verified live with Claude and other model families
+  ([setup guide](docs/user-guide/llm-backends.md), [measured cost and quality](docs/PERFORMANCE.md#cloud-backends)).
 - Hardware-aware: designed to work on an 8 GB VRAM GPU.
 - Docker Compose deployment (GPU and CPU).
 
@@ -156,6 +157,10 @@ notes; with Ollama's default settings notes take about twice as long
   with an 8B model on 8 GB (map-reduce); regenerating one section of a long meeting repeats that work.
 - **Voice recognition** was tuned on a few recordings (threshold 0.6); suggestions always need your
   confirmation.
+- **Cloud models vary.** Claude, Llama 4, Qwen3, GLM, Mistral Large and GPT-5.5 write good notes; models
+  that only reason (DeepSeek R1, gpt-oss) often return nothing within a section's allowance, Mistral 7B/Mixtral on
+  Bedrock reject system prompts, and some models are only callable through an inference profile. The model
+  pickers do not yet filter or price models (planned).
 - Only measured on one 8 GB laptop GPU; tested in Chromium (Firefox and Safari not tested).
 
 ## FAQ

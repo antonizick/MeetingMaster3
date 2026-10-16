@@ -210,8 +210,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   OpenAI-compatible, streaming too).
 - Bedrock setup mistakes give clear errors (`E_LLM_CONFIG`): a model that needs its inference-profile ID, a
   Provisioned-only model, an unknown model ID. Bedrock lists every inference profile (the list is paged).
+- **OpenRouter** (Phase 15g, ADR-0045 addendum): **Let reasoning models think** now reaches OpenRouter as its
+  `reasoning` switch; Claude 5.x reasoned by default there and emptied sections. Models that cannot stop reasoning
+  (Sonnet 5.5, Opus 5.5) fall back to low effort automatically. Claude models on OpenRouter are planned at a 200k
+  window as on Bedrock, so long meetings are not billed at the long-context price.
+- A cloud or OpenAI-compatible server's 4xx error now shows the provider's own short reason instead of only
+  "returned HTTP 400".
 - Settings → Language models → **Edit** a backend no longer collapses: the model list replaced the whole form.
 - Eval checker: a bold owner heading above a group of tasks is not a malformed task line.
+- Tasks written as `**Owner:** task (due: …)` without a list marker (Haiku 5.5 in Default Notes) become `- [ ]`
+  checkboxes, so they show up as Obsidian tasks; the eval checker flags any task line that is not a checkbox.
 - Long meetings asked a local Ollama for more context than any call used (the output reserve was counted twice):
   Default Notes now asks for 13 312 tokens instead of 15 360 on the default 16 384 window. Each note's context is
   the size of its largest real call plus a measured 10 % margin, still one value per note (Phase 15f, ADR-0043).

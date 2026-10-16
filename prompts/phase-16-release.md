@@ -12,10 +12,14 @@
 history, `scripts/pip_audit_ml.sh`, trivy on both images, `uv run --extra ml --extra bedrock python
 scripts/gen_third_party.py --check`). **Publishing images (GHCR) carries GPL obligations** for the Debian packages in
 them, ffmpeg included (THIRD_PARTY_NOTICES "Docker images"); decide with Nick how sources are offered. Items only
-Nick can verify (MVP checklist): a Firefox click-through (only Chromium is automated). **15g** ran Bedrock (and
-OpenRouter, if Nick gave a key) live and added the AWS setup guide and AWS key fields in Settings (ADR-0041); if it
-recorded OpenRouter as untested, keep that in the known limitations and the roadmap. Repeat
-`tests/integration/test_live_cloud.py` before tagging if Nick's keys are still active. **15h** added the filtered
+Nick can verify (MVP checklist): a Firefox click-through (only Chromium is automated). **15g** ran Bedrock **and**
+OpenRouter live on 2026-10-15 (results in ADR-0041 "Results", `tests/eval/cloud-results.md` and
+`docs/PERFORMANCE.md#cloud-backends`) and added the AWS setup guide and AWS key fields in Settings: the Phase 15
+roadmap item "live Bedrock/OpenRouter run" is **done**, drop it from `docs/ROADMAP.md`. Keep as roadmap items:
+reasoning-only models (DeepSeek R1, gpt-oss) need their own parameters, Mistral 7B/Mixtral on Bedrock reject system
+prompts, and Fable 5.1 on Bedrock needs a data-retention setting the app does not send. Repeat
+`tests/integration/test_live_cloud.py` before tagging only if Nick has new test keys (he was asked to revoke the 15g
+ones). **15h** added the filtered
 cloud model picker with prices and Best value / Best quality badges (ADR-0042): refresh the Bedrock price table's
 `as_of` date and the recommendations if they are older than about 90 days, and add a picker screenshot. The quality baseline is `tests/eval/baseline.json` (`tests/eval/baseline.py` flags
 regressions); measured numbers are in `docs/PERFORMANCE.md`; the README already has a "Known limitations" section.

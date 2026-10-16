@@ -53,13 +53,19 @@ OpenRouter is one account and one key for many providers' models, paid from prep
    - or the environment: `export MM3_SECRETS__OPENROUTER_API_KEY=sk-or-...` (in Docker, the `.env`
      file; see [install-docker.md](install-docker.md#cloud-backends-bedrock-openrouter)).
 5. **Choose a model:** open the backend, press **Load models**, pick one, **Save backend**, then
-   **Test**. OpenRouter reports each model's context window, so long meetings are split correctly.
+   **Test**. OpenRouter reports each model's context window, so long meetings are split correctly
+   (Claude models are planned at 200k, as on Bedrock, to stay below the long-context price).
+   A credit limit on the key (step 3's page) caps what it can ever spend. Under OpenRouter's
+   *Settings → Privacy* you can also exclude providers that may train on your inputs.
 6. **When you are done** with a key, delete it in *Settings → API Keys*; nothing else needs undoing.
 
-Reasoning models (for example the `…:thinking` variants) can spend a section's whole length allowance
-on hidden reasoning and return nothing; the app then stops with a clear `E_LLM_BAD_RESPONSE` instead of
-writing an empty section. Prefer a model without reasoning for notes, or turn reasoning off with the
-backend's `params` (for OpenRouter: `params: {reasoning: {enabled: false}}`).
+**Reasoning.** With *Settings → Notes → Let reasoning models think* off (the default) the app sends
+OpenRouter `reasoning: {enabled: false}`; Claude 5.x reasons by default there and would otherwise spend a
+section's length allowance on it. Models that cannot stop reasoning (Claude Sonnet 5.5 and Opus 5.5 say
+"Reasoning is mandatory") are switched to low effort with extra room automatically. Models built only to
+reason (DeepSeek R1, gpt-oss) can still return nothing; the app then stops with a clear `E_LLM_BAD_RESPONSE`
+instead of writing an empty section. Prefer a model without reasoning for notes; a `reasoning` entry in the
+backend's `params` overrides all of this.
 
 ```yaml
 llm:

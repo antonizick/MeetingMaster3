@@ -48,7 +48,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0042 | 2026-10-15 | Cloud model picker: capable-model filter, live OpenRouter prices and a dated Bedrock price table, Best value / Best quality recommendations; split from 15g | Accepted (planning) | 15h |
 | ADR-0043 | 2026-10-15 | `num_ctx` is the note's largest real call plus a measured 10 % margin (no double-counted reserve); map chunks count timestamps; reduce notes counted at 1.15× density; Ollama flash attention + q8_0 cache recommended | Accepted | 15f |
 | ADR-0044 | 2026-10-15 | Bedrock context windows from a dated, family-level table (`bedrock_models.yaml`, longest prefix, geo profile ids stripped, Claude capped at 200k); unknown models keep 8192 with a visible hint | Accepted | 15g |
-| ADR-0045 | 2026-10-15 | Bedrock follows a model's own ValidationException advice once (drop `temperature`; thinking off as `disabled`/`between_tools`/effort `low`) and remembers it; an empty answer cut off by length or a filter is an `E_LLM_BAD_RESPONSE`; real Bedrock validation texts map to `E_LLM_CONFIG` | Accepted | 15g |
+| ADR-0045 | 2026-10-15 | Bedrock follows a model's own ValidationException advice once (drop `temperature`; thinking off as `disabled`/`between_tools`/effort `low`) and remembers it; an empty answer cut off by length or a filter is an `E_LLM_BAD_RESPONSE`; real Bedrock validation texts map to `E_LLM_CONFIG`; OpenRouter addendum: `reasoning` switch with a low-effort fallback, provider reasons on 4xx | Accepted | 15g |
 
 ---
 
@@ -1248,7 +1248,8 @@ list carries the window too (`ModelInfo.context_window`) for 15h.
 **Status.** Accepted (2026-10-15). Verified live: a 151 778-token meeting on `us.anthropic.claude-haiku-5-5` ran
 through map-reduce in 2 parts (the 8 192 fallback would have needed about 25).
 **Consequences.** Unknown families seen in one account (GLM, Gemma, Nemotron, OpenAI GPT-5.x/6 on Bedrock) need a
-row or a manual window; 15h may add them.
+row or a manual window; 15h may add them. OpenRouter reports windows itself but lists Claude 5.x at 1M; its `anthropic/claude*` models are
+planned at the same 200 000 for the same price reason (`openai_compat.CLAUDE_WINDOW`; a configured window still wins).
 
 ## ADR-0045: Bedrock adapts to what a model rejects; empty answers are errors (Phase 15g)
 **Context.** The first live calls failed in ways the Stubber tests could not show. Claude 5.x on Bedrock rejects
@@ -1277,4 +1278,12 @@ model complaints) map to `E_LLM_CONFIG` with a remedy.
 the eval.
 **Consequences.** If AWS rewords these messages, the adaptation stops and the clear `E_LLM_CONFIG` error appears
 instead (no silent failure). Each recorded message has a unit test.
+
+**Addendum (OpenRouter, 2026-10-15).** OpenRouter's Claude 5.x also reasons by default and emptied sections the same
+way (Haiku 5.5: 278 characters of text for 800 output tokens). `generation.think` now maps to OpenRouter's unified
+`reasoning: {enabled: …}` switch (OpenRouter backends only; `reasoning` in the backend's `params` wins). Sonnet 5.5 and
+Opus 5.5 refuse it ("Reasoning is mandatory for this endpoint and cannot be disabled"), so on that message the call
+is repeated once with `reasoning: {effort: low}` and 4 096 extra output tokens, remembered per model, like Bedrock's
+`THINKING_ROOM`. A 4xx from any HTTP backend now shows the provider's own short reason (redacted, 300 characters)
+instead of only "returned HTTP 400". Verified live: 9/9 checks on OpenRouter Haiku, Sonnet and Opus 5.5.
 
