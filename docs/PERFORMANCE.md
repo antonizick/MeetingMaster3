@@ -166,6 +166,24 @@ makes more calls. The eval below gives per-template times.
   eval's long-meeting check passes (below). Regenerating one section of a long meeting repeats the
   map step (about the same time as the first generation); caching the map notes is on the roadmap.
 
+## Cloud backends
+Measured live on 2026-10-15 (Phase 15g) with the synthetic eval meetings; full tables, quirks and spend in
+[`tests/eval/cloud-results.md`](../tests/eval/cloud-results.md). Cloud generation does not use the GPU, and a
+note takes about as long as the slowest section call, not the meeting's length.
+
+| Model (Bedrock / OpenRouter) | Eval pass | Time per note | Cost per note | One-hour meeting* |
+|---|---|---|---|---|
+| Claude Haiku 5.5 | 73/75 / 74/75 | 17-18 s | about $0.003 | about $0.02 |
+| Claude Sonnet 5.5 | 71/75 (Bedrock) | 26 s | about $0.07 | about $0.45 |
+| Claude Opus 5.5 | 9/27 (style rules; content good) | 42 s | about $0.15 | about $1 |
+| Llama 4 Maverick, Qwen3 32B, GLM-5, Mistral Large, GPT-5.5 | 6/7 each (Bedrock) | 9-53 s | not priced | |
+| qwen3:8b on the 8 GB laptop (local, for comparison) | baseline | about 1-2 min | free | about 4-5 min |
+
+\* Measured on a real 31-minute meeting with Default Notes (about 80 000 input tokens in total) and doubled.
+Long meetings: a 151 800-token meeting is summarised in 2 parts (9 calls, about 40 s) with Haiku 5.5 on either
+provider, because Claude is planned at a 200k window (ADR-0044). Reasoning-only models (DeepSeek R1, gpt-oss on
+Bedrock) mostly return empty sections and are not recommended.
+
 ## Quality baseline
 `tests/eval/baseline.json` records the generation eval with `qwen3:8b` on this machine: every
 template against every synthetic eval meeting (`tests/eval/meetings/`), plus the long map-reduce

@@ -15,11 +15,12 @@ hundreds. The app shows no prices. This phase builds the filter, the prices and 
   capability, with clear cost/privacy notes") and §15.
 - **The Phase 15g Phase Log entry and ADR-0041 "Results"**: which models were callable, measured eval quality, time,
   tokens and cost per note, model-list quirks. This phase's recommendations come from those numbers, not from
-  guesses. If 15g recorded OpenRouter as untested, build its filter and prices from the documented `/models` format,
-  test them with recorded responses, and give no "measured" OpenRouter recommendation (say so in the UI text).
+  guesses. 15g tested **both** Bedrock and OpenRouter live (`tests/eval/cloud-results.md`), so both providers get
+  measured recommendations.
 - ADR-0029 (model checks, `usable`/`suggest`), ADR-0041, **ADR-0042** (this phase's decisions).
 - `src/meetingmaster3/llm/cloud_recommendations.yaml`, `llm/recommendations.py`, the Bedrock model data file 15g
-  added (`bedrock_models.yaml` or whatever 15g named it; check the 15g log), `docs/user-guide/llm-backends.md`.
+  added (`src/meetingmaster3/llm/bedrock_models.yaml`: `context_windows` by id prefix, `version`, `checked`;
+  loaded by `known_context_window`/`base_model_id` in `llm/bedrock.py`), `docs/user-guide/llm-backends.md`.
 
 ## Nick's request (verbatim intent, 2026-10-15)
 "With each model provider, there should be a drop-down where they can select the model they want to use, where
@@ -47,6 +48,26 @@ choosing a cloud model shows only models that can write MeetingMaster3 notes, ea
 1M tokens and an estimated cost for a typical meeting, with Best value and Best quality marked and explained. A
 "Show all models" option is still there for experts, and a typed custom id still works.
 
+## What 15g found (2026-10-15)
+- **Bedrock listing (one account, us-east-1):** 188 ids: 95 text foundation models (39 callable only through an
+  inference profile, 45 on demand, 4 both, 7 Provisioned-only; 6 LEGACY already excluded) plus 99 inference profiles
+  (67 `us.`, 32 `global.`). `BedrockBackend.list_models` now pages `list_inference_profiles` and fills
+  `ModelInfo.context_window` from `bedrock_models.yaml`. Calling a profile-only base id or a Provisioned-only model
+  gives `E_LLM_CONFIG` with the reason (`_validation_error`): use that to hide them.
+- **Unknown windows** (8 192 fallback): GLM, Gemma, Nemotron, OpenAI GPT-5.x/6 on Bedrock. Add rows or hide.
+- **Not usable as is:** Fable 5.1 on Bedrock (data-retention mode), Mistral 7B/Mixtral on Bedrock (no system
+  prompt), reasoning-only models (DeepSeek R1 everywhere, gpt-oss on Bedrock: mostly empty answers), OpenRouter
+  `qwen/qwen3-32b` (its provider ignores the reasoning switch). Bedrock's Nova Micro/Lite pass only 2/7 and 4/7.
+- **OpenRouter:** 465 models listed; Claude 5.x shows a 1M window, planned at 200k (`openai_compat.CLAUDE_WINDOW`).
+  OpenRouter's `usage` includes a `cost` field (USD) per call: a measured price source if useful.
+- **Measured candidates:** Best value is clearly **Claude Haiku 5.5** on both providers (73-74/75, about $0.003 per
+  note, about $0.02 per hour of meeting). Best quality: **Claude Sonnet 5.5** (71/75, about $0.07 per note, $0.45 per
+  hour; it read best in the agent's private real-meeting comparison). Opus 5.5 scored lower on the style checks at twice Sonnet's price, so do not
+  recommend it without Nick. Cheap non-Claude options that passed 6/7: Llama 4 Maverick (fastest), Qwen3 32B
+  (Bedrock), GLM-5, Mistral Large, GPT-5.5. Token figures for the cost estimate: about 18 700 input and 2 500-3 000
+  output tokens per note on the synthetic meetings, and about 80 000 input tokens for a 31-minute real meeting with
+  Default Notes (about 2 600 input tokens per minute of meeting).
+
 ## What exists (verified 2026-10-15; re-check before relying on it, and after 15g)
 - `src/meetingmaster3/llm/base.py:ModelInfo`: `id`, `name`, `context_window`, `size_bytes`, `can_generate`. No price,
   access or streaming fields.
@@ -59,7 +80,7 @@ choosing a cloud model shows only models that can write MeetingMaster3 notes, ea
   `settings/_model_options.html` as a `<datalist>` for `_backend_form.html`'s `default_model` input; it filters only
   `can_generate is False`, **not** the context check, so Settings and New meeting disagree.
 - `src/meetingmaster3/llm/bedrock.py:list_models` returns ACTIVE text-output foundation models plus every inference
-  profile, with no access, on-demand or context check (15g may have changed this; see its log).
+  profile (paged since 15g), with the window from `bedrock_models.yaml` but no access or on-demand check.
   `llm/openai_compat.py:_list_models` keeps `context_length` and drops the rest of OpenRouter's model object
   (pricing, `architecture`, `supported_parameters`).
 - `src/meetingmaster3/llm/cloud_recommendations.yaml` and `llm/recommendations.py`: generic per-provider suggestions

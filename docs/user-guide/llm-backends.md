@@ -42,8 +42,8 @@ OpenRouter is one account and one key for many providers' models, paid from prep
 ### Setting up OpenRouter, step by step
 1. **Create an account** at <https://openrouter.ai> and sign in.
 2. **Add credit:** *Settings → Credits → Add credits*. A few US dollars is plenty to try it: a
-   one-hour meeting costs cents on most models (see [PERFORMANCE.md](../PERFORMANCE.md#cloud-backends)
-   for what we measured).
+   one-hour meeting cost about $0.02 with Claude Haiku 5.5, $0.45 with Sonnet 5.5 and $1 with Opus 5.5
+   in our tests (see [PERFORMANCE.md](../PERFORMANCE.md#cloud-backends)).
 3. **Create a key:** *Settings → API Keys → Create key*. Name it `MeetingMaster3`. Optionally set a
    **credit limit** on the key, so a mistake can never spend more than that. Copy the key (it
    starts with `sk-or-`); OpenRouter shows it only once.

@@ -1139,6 +1139,32 @@ without blocking the release. (4) Spend ceiling about USD 5 per provider, estima
 **Consequences.** A new secret entry point in Settings (threat model update in 15g). Nick revokes or rotates the
 test keys after the phase.
 
+**Results (Phase 15g, 2026-10-15).** Both providers verified live with Nick's keys; details in
+`tests/eval/cloud-results.md`.
+- **Credentials:** option A as planned. AWS keys entered in Settings (new write-only fields) worked; Nick's backend
+  also carried an AWS profile. The IAM policy in `llm-backends.md` was enough for listing, invoking and streaming.
+  OpenRouter: key with a credit limit, entered in Settings.
+- **Budget:** Nick lifted the ~$5 Bedrock ceiling during the phase ("all bedrock models that would accomplish the
+  function are in scope"). Estimated spend: Bedrock about $12, OpenRouter about $1.
+- **Measured (eval, synthetic meetings):** Claude Haiku 5.5 73/75 on Bedrock and 74/75 on OpenRouter at about
+  $0.003 per note and 17-18 s; Sonnet 5.5 71/75 at $0.07 and 26 s; Opus 5.5 9/27 on a 7-template subset (good
+  content, ignores the summary style rules) at $0.15 and 42 s. Llama 4 Maverick, Qwen3 32B, GLM-5, Mistral Large
+  (2402) and GPT-5.5 on Bedrock 6/7 each; Nova Lite 4/7, Nova Micro 2/7; DeepSeek R1 and gpt-oss-20b on Bedrock
+  mostly empty answers (reasoning-only). A 151 800-token meeting ran through map-reduce in 2 parts on both providers.
+- **Real meeting (31 min, Default Notes, private):** Haiku 31 s (about $0.01), Sonnet 58 s ($0.23, two
+  length-limit warnings), Opus 91 s ($0.49), local qwen3:8b 116 s. In the agent's reading Sonnet gave the most useful note
+  (the private comparison was left for Nick and deleted at close-out; no text kept).
+- **Web UI walk-through (Nick, Bedrock):** decline consent sends nothing, allow writes the note, template switch and
+  section regeneration work, remembered consent skips the prompt.
+- **Docker:** the CPU image with a temporary `.env` passed `mm3 llm test` and processed the CC clip with Bedrock.
+- **Bugs found and fixed:** Claude 5.x rejected `temperature` (every note failed) and reasoned by default
+  (empty sections) on both providers; Bedrock was planned at the 8 192 fallback window; the Settings Edit form
+  collapsed when models loaded; an empty answer was written as an empty section; tasks without list markers;
+  a 4xx error hid the provider's reason (ADR-0044, ADR-0045 and its addendum).
+- **Not supported, recorded for later:** Fable 5.1 on Bedrock (needs a data-retention mode), Mistral 7B/Mixtral
+  (no system prompt), reasoning-only models without extra `params`, OpenRouter's Qwen3 32B (its provider ignores the
+  reasoning switch), unknown windows for GLM, Gemma, Nemotron and GPT-5.x/6 on Bedrock.
+
 ## ADR-0042: A filtered cloud model picker with prices and measured recommendations (planning, Phase 15h)
 **Context.** Nick wants each provider's model drop-down to list only models that can do MeetingMaster3's job, to show
 costs where practical, and to recommend both "the least expensive model with decent performance" and "the top

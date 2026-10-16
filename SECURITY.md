@@ -45,7 +45,7 @@ is [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
   config file; they are never logged, never returned unmasked, never written to the vault. The HF
   token is only used to download the gated diarization model.
 - **Cloud egress consent.** Cloud LLM backends are clearly badged and need explicit confirmation on
-  first use per job (`llm.consent.enforce_consent` raises `E_CONSENT_REQUIRED` for any non-local backend unless the job has `cloud_consent` or the backend has `consent_remembered`). A backend counts as local only when its host is loopback or `host.docker.internal`; a LAN or remote Ollama is treated as cloud. LLM request and response bodies are never logged above DEBUG and are redacted even there. API keys in `config.yaml` are `0600`, masked in every API response, and registered with the log redaction filter. No telemetry, ever.
+  first use per job (`llm.consent.enforce_consent` raises `E_CONSENT_REQUIRED` for any non-local backend unless the job has `cloud_consent` or the backend has `consent_remembered`). A backend counts as local only when its host is loopback or `host.docker.internal`; a LAN or remote Ollama is treated as cloud. LLM request and response bodies are never logged above DEBUG and are redacted even there; a provider's own reason for a 4xx error is shown to the user redacted and capped at 300 characters. API keys in `config.yaml` are `0600`, masked in every API response, and registered with the log redaction filter. No telemetry, ever.
 - **Voiceprints are biometric data.** Opt-in (off by default), local only, never written to the
   vault, logs or API responses, listable and deletable, physically erased on delete.
 - **Supply chain.** Locked dependencies, `pip-audit` in CI, Dependabot, licence inventory.
