@@ -140,3 +140,64 @@ async def test_stream_empty_at_length_is_an_error() -> None:
     respx.post(f"{BASE}/chat/completions").respond(content=sse)
     with pytest.raises(MM3Error):
         [p async for p in backend().stream(REQ)]
+
+
+@respx.mock
+async def test_openrouter_sends_the_reasoning_switch() -> None:
+    route = respx.post(f"{BASE}/chat/completions").respond(
+        json={"choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}]}
+    )
+    off = GenerateRequest(model="anthropic/claude-haiku-5.5", prompt="hi", think=False)
+    await backend().generate(off)
+    assert json.loads(route.calls[-1].request.content)["reasoning"] == {"enabled": False}
+    await backend().generate(GenerateRequest(model="m", prompt="hi"))
+    assert "reasoning" not in json.loads(route.calls[-1].request.content)
+    await backend(params={"reasoning": {"effort": "high"}}).generate(off)
+    assert json.loads(route.calls[-1].request.content)["reasoning"] == {"effort": "high"}
+    plain = OpenAICompatBackend("lm", "http://127.0.0.1:1234/v1")
+    respx.post("http://127.0.0.1:1234/v1/chat/completions").respond(
+        json={"choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}]}
+    )
+    await plain.generate(off)
+    assert "reasoning" not in json.loads(respx.calls[-1].request.content)
+
+
+MANDATORY = {
+    "error": {
+        "message": "Reasoning is mandatory for this endpoint and cannot be disabled.",
+        "code": 400,
+    }
+}
+
+
+@respx.mock
+async def test_mandatory_reasoning_falls_back_to_low_effort_and_is_remembered() -> None:
+    ok = httpx.Response(
+        200, json={"choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}]}
+    )
+    route = respx.post(f"{BASE}/chat/completions")
+    route.side_effect = [httpx.Response(400, json=MANDATORY), ok, ok]
+    b = backend()
+    req = GenerateRequest(
+        model="anthropic/claude-sonnet-5.5", prompt="hi", think=False, max_tokens=800
+    )
+    assert (await b.generate(req)).text == "ok"
+    first, second = (json.loads(c.request.content) for c in route.calls)
+    assert first["reasoning"] == {"enabled": False} and first["max_tokens"] == 800
+    assert second["reasoning"] == {"effort": "low"} and second["max_tokens"] == 800 + 4096
+    await b.generate(req)
+    assert route.call_count == 3
+    assert json.loads(route.calls[-1].request.content)["reasoning"] == {"effort": "low"}
+
+
+@respx.mock
+async def test_a_4xx_shows_the_providers_reason_once() -> None:
+    route = respx.post(f"{BASE}/chat/completions").respond(400, json=MANDATORY)
+    req = GenerateRequest(model="m", prompt="hi", think=True)
+    with pytest.raises(MM3Error) as exc:
+        await backend().generate(req)
+    assert exc.value.code == "E_LLM_BAD_RESPONSE" and route.call_count == 1
+    assert exc.value.message == (
+        "OpenRouter returned HTTP 400: Reasoning is mandatory for this endpoint and cannot be "
+        "disabled."
+    )

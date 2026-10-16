@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import random
 from collections.abc import Awaitable, Callable
@@ -27,6 +28,8 @@ MAX_ATTEMPTS = 4
 BASE_DELAY_S = 0.5
 MAX_DELAY_S = 20.0
 RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
+REASON_CHARS = 300
+"""How much of a provider's own error message a 4xx error shows (``provider_reason``)."""
 CONTEXT_MARKERS = (
     "context length",
     "context_length",
@@ -88,11 +91,30 @@ def error_from_response(provider: str, resp: httpx.Response, body: str | None = 
         )
     if status == 408 or status == 504:
         return llm_error(E_LLM_TIMEOUT, f"{provider} timed out (HTTP {status}).", status_code=504)
-    return llm_error(
+    reason = provider_reason(text) if 400 <= status < 500 else ""
+    return MM3Error(
         E_LLM_BAD_RESPONSE,
-        f"{provider} returned HTTP {status}.",
+        f"{provider} returned HTTP {status}" + (f": {reason}" if reason else "."),
         "Check the backend's logs and that the selected model exists.",
+        status_code=502,
+        details={"provider_reason": reason} if reason else None,
     )
+
+
+def provider_reason(text: str) -> str:
+    """The provider's own short explanation from a JSON error body (``{"error": {"message":
+    ...}}``, ``{"error": "..."}`` or ``{"message": ...}``), redacted and capped; else ``""``."""
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return ""
+    if not isinstance(data, dict):
+        return ""
+    error = data.get("error", data)
+    message = error.get("message") if isinstance(error, dict) else error
+    if not isinstance(message, str):
+        return ""
+    return redact(" ".join(message.split()))[:REASON_CHARS]
 
 
 def error_from_exception(provider: str, exc: Exception) -> MM3Error:

@@ -22,7 +22,11 @@ async def _backend() -> OllamaBackend:
 async def test_generate_and_stream_live() -> None:
     b = await _backend()
     req = GenerateRequest(
-        model=MODEL, prompt="Reply with the single word: pong", max_tokens=200, temperature=0
+        model=MODEL,
+        prompt="Reply with the single word: pong",
+        max_tokens=200,
+        temperature=0,
+        think=False,
     )
     result = await b.generate(req)
     assert result.text.strip() and result.latency_ms > 0

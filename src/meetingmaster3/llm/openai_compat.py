@@ -32,6 +32,12 @@ PRESET_BASE_URLS = {
     "openai": "https://api.openai.com/v1",
 }
 PROBE_TIMEOUT_S = 10.0
+REASONING_LOW: dict[str, Any] = {"effort": "low"}
+"""OpenRouter's reasoning setting for a model that refuses ``{"enabled": false}`` ("Reasoning is
+mandatory for this endpoint", Claude Sonnet 5.5 and Opus 5.5), learned per model (ADR-0045)."""
+REASONING_ROOM = 4096
+"""Output tokens added to ``max_tokens`` when the model must reason: reasoning counts against
+``max_tokens``. Only the tokens used are billed."""
 
 
 class OpenAICompatBackend:
@@ -59,6 +65,8 @@ class OpenAICompatBackend:
             self._headers["Authorization"] = f"Bearer {api_key}"
         self._override_ctx = context_window
         self._ctx: dict[str, int] = {}
+        self._reasoning: dict[str, dict[str, Any]] = {}
+        """Per model, the ``reasoning`` setting used instead of ``{"enabled": false}``."""
         self._provider = {"openrouter": "OpenRouter", "openai": "OpenAI"}.get(kind, "the server")
 
     def _client(self, timeout: float) -> httpx.AsyncClient:
@@ -81,15 +89,55 @@ class OpenAICompatBackend:
             body["stop"] = list(req.stop)
         if req.json_mode:
             body["response_format"] = {"type": "json_object"}
+        if self._sends_reasoning(req):
+            # OpenRouter's unified switch. Claude 5.x thinks by default there and spends the
+            # section's max_tokens on hidden reasoning (measured on Haiku 5.5, Phase 15g).
+            learned = self._reasoning.get(req.model) if req.think is False else None
+            body["reasoning"] = learned or {"enabled": req.think}
+            if learned and req.max_tokens:
+                body["max_tokens"] = req.max_tokens + REASONING_ROOM
         return body
+
+    def _sends_reasoning(self, req: GenerateRequest) -> bool:
+        return (
+            self.kind == "openrouter" and req.think is not None and "reasoning" not in self.params
+        )
+
+    def _adapt(self, req: GenerateRequest, exc: MM3Error) -> bool:
+        """Learn the model's reasoning setting when it refuses to turn reasoning off."""
+        reason = str(exc.details.get("provider_reason", "")).lower()
+        if (
+            req.think is not False
+            or not self._sends_reasoning(req)
+            or req.model in self._reasoning
+            or "reasoning is mandatory" not in reason
+        ):
+            return False
+        log.info(
+            "%s model %s cannot turn reasoning off; using low effort", self._provider, req.model
+        )
+        self._reasoning[req.model] = REASONING_LOW
+        return True
+
+    async def _send(
+        self, client: httpx.AsyncClient, req: GenerateRequest, stream: bool
+    ) -> httpx.Response:
+        """Send the request; repeat it once if the model refuses the reasoning switch. The
+        refused call is not billed."""
+        while True:
+            request = client.build_request(
+                "POST", "/chat/completions", json=self._payload(req, stream)
+            )
+            try:
+                return await send(client, request, self._provider, stream=stream)
+            except MM3Error as exc:
+                if not self._adapt(req, exc):
+                    raise
 
     async def generate(self, req: GenerateRequest) -> GenerateResult:
         started = time.monotonic()
         async with self._client(req.timeout) as client:
-            request = client.build_request(
-                "POST", "/chat/completions", json=self._payload(req, False)
-            )
-            resp = await send(client, request, self._provider)
+            resp = await self._send(client, req, False)
         try:
             data = resp.json()
             choice = data["choices"][0]
@@ -111,10 +159,7 @@ class OpenAICompatBackend:
 
     async def stream(self, req: GenerateRequest) -> AsyncIterator[str]:
         async with self._client(req.timeout) as client:
-            request = client.build_request(
-                "POST", "/chat/completions", json=self._payload(req, True)
-            )
-            resp = await send(client, request, self._provider, stream=True)
+            resp = await self._send(client, req, True)
             streamed = False
             finish: str | None = None
             try:

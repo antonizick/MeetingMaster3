@@ -60,8 +60,9 @@ class GenerateRequest:
     timeout: float = 300.0
     num_ctx: int | None = None  # context to allocate where the backend lets us choose (Ollama)
     think: bool | None = None
-    """Reasoning ("thinking") on or off for models that support it (Ollama); ``None`` leaves
-    the model's default. Other backends ignore it."""
+    """Reasoning ("thinking") on or off for models that support it (Ollama, Claude on Bedrock,
+    OpenRouter's ``reasoning`` switch); ``None`` leaves the model's default. Other backends
+    ignore it."""
 
     def chat(self) -> list[Message]:
         """The user/assistant turns, with ``prompt`` appended as a user message."""
