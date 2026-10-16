@@ -65,7 +65,14 @@
           <span class="badge" x-bind:class="badgeClass" x-text="badge">{{ default_backend.badge }}</span>
         </div>
       </div>
-      <div class="field"><label for="model">Model</label>
+      <div class="field">
+        <div class="sync" role="status" aria-live="polite" x-show="syncing" x-cloak>
+          <span class="sync-ring" aria-hidden="true"></span>
+          <span class="sync-text"><strong>Synchronizing models&hellip;</strong>
+            <span>Fetching the latest models, prices and recommendations. This only takes a moment.</span></span>
+          <span class="sync-bar" aria-hidden="true"></span>
+        </div>
+        <label for="model">Model</label>
         <input id="model" name="model" type="text"  autocomplete="off" spellcheck="false"
                value="{{ default_backend.default_model or '' }}" aria-describedby="model-note"
                x-on:input="modelChanged" x-on:change="modelChanged"

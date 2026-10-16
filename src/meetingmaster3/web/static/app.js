@@ -149,6 +149,7 @@
       needsConsent: false,
       consented: "",
       modelNote: "",
+      syncing: false, // the model list and prices are being fetched
       modelProblem: "",
       models: {},
       suggestedModel: "",
@@ -325,8 +326,12 @@
         const template = this.field("template").value;
         if (template) url += "&template=" + encodeURIComponent(template);
         clearTimeout(this.pickerTimer); // a backend and a template change arrive together
+        this.syncing = true;
+        const token = (this.pickerToken = (this.pickerToken || 0) + 1);
+        const done = () => { if (token === this.pickerToken) this.syncing = false; };
         this.pickerTimer = setTimeout(
-          () => htmx.ajax("GET", url, { target: "#model-picker", swap: "innerHTML" }), 50);
+          () => htmx.ajax("GET", url, { target: "#model-picker", swap: "innerHTML" })
+            .then(done, done), 50);
       },
 
       modelChanged() {

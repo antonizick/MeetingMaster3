@@ -212,6 +212,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   makes no network calls (verified with a socket audit).
 
 ### Fixed
+- **New meeting shows a "Synchronizing models…" banner** above the Model field while the model list, prices and
+  recommendations load, instead of a bare text box for a few seconds. It fades in only if loading takes a moment, and
+  respects reduced-motion settings.
 - **The web app no longer freezes when its terminal stops accepting output** (ADR-0046): logging, uvicorn's included,
   goes through a bounded queue to a writer thread, so Ctrl+S (or a paused terminal) can only drop log lines, which
   are reported afterwards, instead of hanging every request. Log lines now use one timestamp format.

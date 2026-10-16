@@ -3,6 +3,7 @@ and in Settings, with a fake OpenRouter that lists priced models."""
 
 from __future__ import annotations
 
+import asyncio
 import os
 import socket
 import threading
@@ -59,6 +60,7 @@ def server(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
     monkeypatch.setenv("MM3_FAKE_PIPELINE", "1")
 
     async def fake_list(self: OpenAICompatBackend) -> list[ModelInfo]:
+        await asyncio.sleep(1.5)  # a real provider takes a moment: the sync banner shows
         return list(FAKE_MODELS)
 
     monkeypatch.setattr(OpenAICompatBackend, "list_models", fake_list)
@@ -127,3 +129,24 @@ def test_choose_a_recommended_cloud_model_on_new_meeting(server: str) -> None:
         playwright_sync.expect(page.locator("#model")).to_have_value("my/custom-model")
         browser.close()
     assert not errors
+
+
+def test_new_meeting_says_it_is_synchronizing_while_models_load(server: str) -> None:
+    with playwright_sync.sync_playwright() as pw:
+        try:
+            browser = pw.chromium.launch(executable_path=os.environ.get("MM3_E2E_BROWSER") or None)
+        except playwright_sync.Error as exc:
+            pytest.skip(f"no Chromium available for Playwright: {exc}")
+        page = browser.new_page(viewport={"width": 1100, "height": 1000})
+        page.goto(server)
+        banner = page.locator(".sync")
+        playwright_sync.expect(banner).to_be_hidden()  # nothing to wait for yet
+        page.select_option("#backend", "or_")
+        page.click("text=Allow for this meeting")
+        playwright_sync.expect(banner).to_be_visible()
+        assert "Synchronizing models" in banner.inner_text()
+        page.wait_for_timeout(500)  # past the short fade-in delay
+        shot(page, "10-model-sync")
+        page.locator("#model-picker select").wait_for()  # the drop-down arrives ...
+        playwright_sync.expect(banner).to_be_hidden()  # ... and the banner goes away
+        browser.close()
