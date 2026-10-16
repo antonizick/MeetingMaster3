@@ -43,6 +43,23 @@ REASONING_ROOM = 4096
 ``max_tokens``. Only the tokens used are billed."""
 
 
+def parse_pricing(pricing: object) -> tuple[float | None, float | None]:
+    """USD per 1M (input, output) tokens from OpenRouter's per-token ``pricing`` strings.
+
+    Missing, unparsable or negative values (OpenRouter uses -1 for "variable price", as on its
+    routers) give ``(None, None)``: no price is shown rather than a wrong one."""
+    if not isinstance(pricing, dict):
+        return None, None
+    try:
+        per_in = float(pricing["prompt"])
+        per_out = float(pricing["completion"])
+    except (KeyError, TypeError, ValueError):
+        return None, None
+    if per_in < 0 or per_out < 0:
+        return None, None
+    return per_in * 1_000_000, per_out * 1_000_000
+
+
 class OpenAICompatBackend:
     kind = "openai_compat"
 
@@ -200,14 +217,7 @@ class OpenAICompatBackend:
             resp = await send(client, request, self._provider, attempts=attempts)
         try:
             items = resp.json()["data"]
-            models = [
-                ModelInfo(
-                    id=m["id"],
-                    name=m.get("name"),
-                    context_window=m.get("context_length") or m.get("context_window"),
-                )
-                for m in items
-            ]
+            models = [self._model_info(m) for m in items]
         except (ValueError, KeyError, TypeError) as exc:
             raise llm_error(
                 E_LLM_BAD_RESPONSE, f"Unexpected model list from {self._provider}."
@@ -216,6 +226,28 @@ class OpenAICompatBackend:
             if m.context_window:
                 self._ctx[m.id] = m.context_window
         return models
+
+    def _model_info(self, m: dict[str, Any]) -> ModelInfo:
+        """One entry of the provider's model list. OpenRouter adds ``pricing`` (USD per token, as
+        strings) and ``architecture`` (modalities); plain OpenAI-style servers send neither."""
+        price_in, price_out = parse_pricing(m.get("pricing"))
+        arch = m.get("architecture")
+        text_only: bool | None = None
+        if isinstance(arch, dict) and arch.get("output_modalities") is not None:
+            text_only = "text" in arch.get("input_modalities", []) and arch.get(
+                "output_modalities"
+            ) == ["text"]
+        live = price_in is not None
+        return ModelInfo(
+            id=m["id"],
+            name=m.get("name"),
+            context_window=m.get("context_length") or m.get("context_window"),
+            price_in=price_in,
+            price_out=price_out,
+            price_source="live" if live else None,
+            free=(live and price_in == 0 and price_out == 0) or str(m["id"]).endswith(":free"),
+            text_only=text_only,
+        )
 
     async def test_connection(self) -> ConnectionStatus:
         started = time.monotonic()

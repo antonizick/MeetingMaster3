@@ -225,8 +225,10 @@
               {% for b in backends %}<option value="{{ b.name }}" data-consent="{{ 'yes' if b.requires_consent else 'no' }}"{% if b.name == note_backend %} selected{% endif %}>{{ b.name }}{% if b.badge %} ({{ b.badge }}){% endif %}</option>{% endfor %}
             </select>
           </label>
-          <label class="field">Model <input type="text" name="model" value="{{ note_model }}" placeholder="The backend's default"></label>
+          <label class="field">Model <input id="regen-model" type="text" name="model" value="{{ note_model }}" placeholder="The backend's default"></label>
         </div>
+        <button type="button" hx-get="/settings/llm/models?target=regen-model" hx-params="backend" hx-include="closest form" hx-target="#regen-model-picker" hx-swap="innerHTML">List models that can write notes</button>
+        <div id="regen-model-picker" class="stack" aria-live="polite"></div>
       </details>
       <label class="check consent" hidden><input type="checkbox" name="cloud_consent"> Send this meeting's transcript to <strong class="consent-name"></strong>, a cloud service, for this request.</label>
       <p class="hint">This can take a minute with a local model. The current text stays until you accept.</p>
@@ -251,8 +253,10 @@
               {% for b in backends %}<option value="{{ b.name }}" data-consent="{{ 'yes' if b.requires_consent else 'no' }}"{% if b.name == note_backend %} selected{% endif %}>{{ b.name }}{% if b.badge %} ({{ b.badge }}){% endif %}</option>{% endfor %}
             </select>
           </label>
-          <label class="field">Model <input type="text" name="model" value="{{ note_model }}" placeholder="The backend's default"></label>
+          <label class="field">Model <input id="switch-model" type="text" name="model" value="{{ note_model }}" placeholder="The backend's default"></label>
         </div>
+        <button type="button" hx-get="/settings/llm/models?target=switch-model" hx-params="backend,template" hx-include="closest form" hx-target="#switch-model-picker" hx-swap="innerHTML">List models that can write notes</button>
+        <div id="switch-model-picker" class="stack" aria-live="polite"></div>
       </details>
       <label class="check consent" hidden><input type="checkbox" name="cloud_consent"> Send this meeting's transcript to <strong class="consent-name"></strong>, a cloud service, for this request.</label>
       <div class="row"><button type="submit" class="primary">Preview the new note</button> <button type="button" data-close>Cancel</button></div>

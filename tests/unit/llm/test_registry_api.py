@@ -171,16 +171,14 @@ def test_test_and_models_endpoints(api: TestClient) -> None:
     )
     assert r.status_code == 200 and r.json()["ok"] and r.json()["default_model_present"] is True
     models = api.get("/api/llm/backends/or_/models").json()["models"]
-    assert models == [
-        {
-            "id": "v/m",
-            "name": None,
-            "context_window": 32000,
-            "size_bytes": None,
-            "can_generate": None,
-            "usable": True,
-        }
-    ]
+    assert len(models) == 1
+    assert {k: models[0][k] for k in ("id", "context_window", "size_bytes", "can_generate")} == {
+        "id": "v/m",
+        "context_window": 32000,
+        "size_bytes": None,
+        "can_generate": None,
+    }
+    assert models[0]["usable"] is True and models[0]["price_in"] is None
 
 
 def test_unknown_backend_is_404_with_code(api: TestClient) -> None:
@@ -192,7 +190,9 @@ def test_test_endpoint_requires_csrf(api: TestClient) -> None:
     assert api.post("/api/llm/backends/or_/test").status_code == 403
 
 
-def test_recommendations_have_cloud_entries_and_no_prices(api: TestClient) -> None:
+def test_recommendations_have_cloud_entries_without_prices_in_the_generic_list(
+    api: TestClient,
+) -> None:
     data = api.get("/api/llm/recommendations").json()
     assert data["cloud"] and all(
         {"capability", "cost_tier", "privacy_note", "pricing_url"} <= set(c) for c in data["cloud"]

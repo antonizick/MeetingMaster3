@@ -97,7 +97,8 @@ file-only protocol whitelist. Measured speed and memory on the 8 GB reference GP
 | `llm/_http.py` | Shared httpx send with bounded jittered retries (429/5xx) and error normalisation. |
 | `llm/registry.py` | Kind to factory map and `BackendRegistry` (config to cached backend instances). |
 | `llm/budget.py`, `llm/consent.py` | 70% context budgeting and speaker-turn chunking; cloud-egress consent check. |
-| `llm/recommendations.py` + `cloud_recommendations.yaml` | Local (Phase 05) plus cloud model suggestions, no prices. |
+| `llm/recommendations.py` + `cloud_recommendations.yaml` | Local (Phase 05) plus cloud suggestions, and the dated measured Best value / Best quality picks and the models known to be unsuitable (Phase 15h, ADR-0042). |
+| `llm/pricing.py`, `llm/cost.py`, `templates/picker.py` | Model prices (live OpenRouter, dated Bedrock table in `bedrock_models.yaml`), the per-meeting cost estimate from measured token rates, and the grouped picker data shared by New meeting, Settings and the review page. The capable-model filter is `templates/model_check.py:assess`. |
 | `web/llm.py` | `/api/llm/*` routes (masked config, test, models, recommendations). |
 | `llm/fake.py` | `FakeLLMBackend`: deterministic, offline (tests and `MM3_FAKE_PIPELINE`). |
 | `templates/schema.py`, `loader.py` | Template file parser with line-numbered validation; library of built-ins (`starter_templates/*.md`) and vault templates (override by id); non-clobbering install with a hash manifest. |

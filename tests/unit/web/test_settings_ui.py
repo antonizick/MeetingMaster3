@@ -227,6 +227,13 @@ def test_revoke_remembered_consent(ui: TestClient) -> None:
 
 def test_backend_test_and_models(ui: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     class Fake:
+        id = "fake"
+        kind = "ollama"
+        is_local = True
+
+        def context_window(self, model: str) -> int | None:
+            return None
+
         async def test_connection(self) -> ConnectionStatus:
             return ConnectionStatus(True, "Connected (12 ms)")
 

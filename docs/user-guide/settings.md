@@ -41,7 +41,7 @@ The backends that write your notes, their connection tests and the recommendatio
 * **Add a backend** (Ollama, OpenAI-compatible, OpenRouter, OpenAI or Bedrock). Fields that do not apply to a kind are ignored.
 * **AWS keys for Bedrock:** the access key ID and secret access key of the IAM user you made for MeetingMaster3. Write-only like every key here (never shown again; *Remove the saved value* removes both), stored in `config.yaml`, removed from logs. Leave them empty to use an AWS profile or the standard AWS variables. How to create them: [Setting up AWS Bedrock, step by step](llm-backends.md#setting-up-aws-bedrock-step-by-step); for OpenRouter, [Setting up OpenRouter](llm-backends.md#setting-up-openrouter-step-by-step).
 * **API keys are write-only**: type a new key to replace the old one, or tick *Remove the saved key*. A stored key is never displayed.
-* **Test** tries the connection. In the form, **Load models** lists the models the backend offers and offers them as you type the default model.
+* **Test** tries the connection. In the form, **Load models** shows a drop-down of the models that can write notes (cloud backends with prices, an estimated cost and Best value / Best quality badges; **Show all models** reveals the rest). Choosing one fills the **Default model** box, which still accepts any id you type. See [Choosing a model](llm-backends.md#choosing-a-model-the-picker-prices-and-recommendations).
 * **Remember my consent** (cloud backends) skips the per-meeting question. **Revoke consent** brings the question back.
 * The **default backend** is what a new meeting uses. You cannot remove the default; choose another first.
 

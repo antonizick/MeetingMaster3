@@ -33,6 +33,7 @@ from meetingmaster3.llm.base import (
     llm_error,
 )
 from meetingmaster3.llm.budget import DEFAULT_CONTEXT_WINDOW
+from meetingmaster3.llm.pricing import with_table_price
 from meetingmaster3.logging import redact
 
 log = logging.getLogger(__name__)
@@ -78,6 +79,83 @@ def known_context_window(model: str, table: Mapping[str, int] | None = None) -> 
     model_id = base_model_id(model).lower()
     matches = [prefix for prefix in table if model_id.startswith(prefix.lower())]
     return table[max(matches, key=len)] if matches else None
+
+
+def region_geo(region: str) -> str:
+    """The inference-profile prefix of a Region (``us-east-1`` -> ``us``, ``ap-*`` -> ``apac``)."""
+    head = region.split("-", 1)[0].lower()
+    return {"ap": "apac"}.get(head, head)
+
+
+def collect_models(
+    summaries: list[dict[str, Any]], profiles: list[dict[str, Any]], region: str
+) -> list[ModelInfo]:
+    """One entry per usable text model, with the id that can be called (ADR-0042).
+
+    A model that supports on-demand calls is listed by its own id. One that is only callable
+    through an inference profile is listed by that profile's id (the profile of the account's own
+    geography first, then ``global.``), so the base id and its ``us.`` twin are not both shown.
+    Provisioned-only and non-ACTIVE models are left out. A profile whose base model the list
+    does not mention (a newer model) is kept as it is. Account access is not reported by the
+    listing; a model the account may not call fails with ``E_LLM_CONFIG`` when it is used."""
+    geo = region_geo(region)
+    by_base: dict[str, list[str]] = {}
+    for p in profiles:
+        by_base.setdefault(base_model_id(p["inferenceProfileId"]), []).append(
+            p["inferenceProfileId"]
+        )
+
+    def best_profile(base: str) -> str | None:
+        ids = by_base.get(base, [])
+        for prefix in (f"{geo}.", "global."):
+            for pid in sorted(ids):
+                if pid.startswith(prefix):
+                    return pid
+        return sorted(ids)[0] if ids else None
+
+    found: list[ModelInfo] = []
+    known: set[str] = set()
+    for m in summaries:
+        base = m["modelId"]
+        known.add(base)
+        if "TEXT" not in m.get("outputModalities", []):
+            continue
+        if m.get("modelLifecycle", {}).get("status", "ACTIVE") != "ACTIVE":
+            continue
+        types = set(m.get("inferenceTypesSupported", []))
+        target: str | None = base
+        callable_: bool | None = True
+        if types and "ON_DEMAND" not in types:
+            target = best_profile(base) if "INFERENCE_PROFILE" in types else None
+            callable_ = target is not None
+        elif not types:
+            callable_ = None  # an older API answer without the field: try it as listed
+        found.append(
+            with_table_price(
+                ModelInfo(
+                    id=target or base,
+                    name=m.get("modelName"),
+                    context_window=known_context_window(target or base),
+                    callable=callable_,
+                )
+            )
+        )
+    listed = {m.id for m in found}
+    for p in profiles:  # profiles of models the foundation list does not describe
+        pid = p["inferenceProfileId"]
+        if base_model_id(pid) in known or pid in listed:
+            continue
+        found.append(
+            with_table_price(
+                ModelInfo(
+                    id=pid,
+                    name=p.get("inferenceProfileName"),
+                    context_window=known_context_window(pid),
+                    callable=True,
+                )
+            )
+        )
+    return sorted(found, key=lambda m: m.id)
 
 
 def finish_reason(stop: str | None) -> str | None:
@@ -457,28 +535,12 @@ class BedrockBackend:
             )
         except Exception as exc:
             raise map_boto_error(exc) from exc
-        models = [
-            ModelInfo(
-                id=m["modelId"],
-                name=m.get("modelName"),
-                context_window=known_context_window(m["modelId"]),
-            )
-            for m in data.get("modelSummaries", [])
-            if "TEXT" in m.get("outputModalities", [])
-            and m.get("modelLifecycle", {}).get("status", "ACTIVE") == "ACTIVE"
-        ]
+        profiles: list[dict[str, Any]] = []
         try:  # newer models are only callable through inference profiles (e.g. "us.<model>")
-            models += [
-                ModelInfo(
-                    id=p["inferenceProfileId"],
-                    name=p.get("inferenceProfileName"),
-                    context_window=known_context_window(p["inferenceProfileId"]),
-                )
-                for p in await asyncio.to_thread(self._inference_profiles)
-            ]
+            profiles = await asyncio.to_thread(self._inference_profiles)
         except Exception as exc:
             log.debug("Bedrock inference profiles unavailable: %s", type(exc).__name__)
-        return sorted(models, key=lambda m: m.id)
+        return collect_models(data.get("modelSummaries", []), profiles, self.region)
 
     def _inference_profiles(self) -> list[dict[str, Any]]:
         """Every system inference profile; the API pages its answer (``nextToken``)."""

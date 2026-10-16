@@ -14,6 +14,18 @@ class MyBackend:
     def context_window(self, model: str) -> int | None: ...    # sync; answer from a cache
     async def warm(self, model: str) -> None: ...              # fill that cache (best effort)
 ```
+`ModelInfo` (what `list_models` returns) also carries optional fields the pickers use; fill what your provider
+tells you and leave the rest `None`: `price_in` / `price_out` (USD per 1M tokens), `price_source` (`live` or `table`
+with `price_as_of`), `free`, `callable` (False for models that cannot be called on demand), `access`
+(`granted`/`denied`) and `text_only`. Return the id that can actually be called (Bedrock collapses a base model and its
+`us.`/`global.` inference profile into one entry, `bedrock.collect_models`).
+
+The **one filter** every picker uses is `templates/model_check.py:assess()` (generates text, text-only, callable,
+access, not in the `unsuitable` list of `cloud_recommendations.yaml`, workable context window); `usable()` and
+`suggest()` use it, and `templates/picker.py:build_picker()` turns a backend's models into the grouped, priced picker
+data served by both `/api/llm/backends/{name}/models` and `/settings/llm/{name}/models`. Local backends never show prices.
+Prices for a provider that does not report them belong in a dated table like `bedrock_models.yaml` (`llm/pricing.py`).
+
 Rules:
 - `is_local` is true only when data stays on this machine. It drives the consent check.
 - Raise `MM3Error` with the `E_LLM_*` codes from `base.py`. For httpx-based adapters use

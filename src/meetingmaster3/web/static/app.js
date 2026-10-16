@@ -22,6 +22,30 @@
   }
   window.mm3Toast = toast; // used by the review workspace (static/js/review.js)
 
+  // -- Model drop-down (Settings and New meeting): choosing an option fills the model input. The
+  // input stays the value that is saved or submitted, so a typed custom id still works. ----------
+  document.body.addEventListener("change", (evt) => {
+    const select = evt.target instanceof Element ? evt.target.closest("select[data-model-target]") : null;
+    if (!select || !select.value) return;
+    const input = document.getElementById(select.getAttribute("data-model-target") || "");
+    if (!input) return;
+    input.value = select.value;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+  // A freshly loaded drop-down starts on the model already in the input, if the list has it.
+  document.body.addEventListener("htmx:afterSwap", (evt) => {
+    const root = evt.target instanceof Element ? evt.target : null;
+    if (!root) return;
+    for (const select of root.querySelectorAll("select[data-model-target]")) {
+      const input = document.getElementById(select.getAttribute("data-model-target") || "");
+      if (input && Array.from(select.options).some((o) => o.value === input.value)) {
+        select.value = input.value;
+      }
+    }
+  });
+
   // -- Copy-path buttons (Settings > About): <button data-copy="text"> -------------------------------
   document.body.addEventListener("click", (evt) => {
     const button = evt.target instanceof Element ? evt.target.closest("[data-copy]") : null;
@@ -128,6 +152,7 @@
       modelProblem: "",
       models: {},
       suggestedModel: "",
+      audioMinutes: 0,
       templateHint: "",
 
       dateEdited: false,
@@ -221,6 +246,8 @@
       async loadHardware() {
         if (this.file === null) return;
         const duration = await this.audioDuration();
+        this.audioMinutes = duration ? duration / 60 : 0;
+        this.refreshPicker();
         const diarize = this.field("diarize").checked;
         let url = "/ui/hardware?diarize=" + diarize;
         if (duration) url += "&duration=" + duration.toFixed(1);
@@ -232,6 +259,7 @@
         const sel = this.field("template");
         const opt = sel.options[sel.selectedIndex];
         this.templateHint = opt ? opt.dataset.description || "" : "";
+        this.refreshPicker();
       },
 
       backendChanged() {
@@ -257,42 +285,48 @@
       },
 
       async listModels(name, isLocal) {
-        const list = document.getElementById("model-list");
-        list.replaceChildren();
         this.models = {};
         this.suggestedModel = "";
         this.modelNote = "";
         this.modelProblem = "";
-        if (!isLocal) {
-          this.modelNote = "Type the model id this provider should use.";
-          return;
-        }
+        this.refreshPicker(name);
         try {
           const res = await fetch("/api/llm/backends/" + encodeURIComponent(name) + "/models");
           const body = await res.json();
           if (!res.ok) throw new Error(body.hint || body.message);
-          for (const m of body.models) {
-            this.models[m.id] = m;
-            if (!m.usable) continue; // embedding models and tiny windows cannot write notes
-            const o = document.createElement("option");
-            o.value = m.id;
-            if (m.context_window) o.label = m.context_window.toLocaleString() + "-token context";
-            list.append(o);
-          }
+          if (this.backendName && this.backendName !== name) return; // the user moved on
+          for (const m of body.models) this.models[m.id] = m;
           this.suggestedModel = body.suggested || "";
           const input = this.field("model");
           const current = this.models[input.value];
           if ((!input.value || (current && !current.usable)) && this.suggestedModel) {
             input.value = this.suggestedModel;
           }
-          if (!body.models.length) this.modelNote = "No models are installed for this backend yet.";
+          if (!body.models.length) this.modelNote = "No models are listed for this backend yet.";
           else if (!this.suggestedModel) {
-            this.modelNote = "None of the installed models can write notes. Install a chat " +
-              "model, for example: ollama pull qwen3:8b";
+            this.modelNote = isLocal
+              ? "None of the installed models can write notes. Install a chat model, for " +
+                "example: ollama pull qwen3:8b"
+              : "None of the listed models can write notes. Type a model id, or choose " +
+                "Show all models.";
           } else this.modelChanged();
         } catch (e) {
           this.modelNote = "Could not list models (" + e.message + "). You can type a model name.";
         }
+      },
+
+      // The grouped drop-down (capable models, prices, recommendations) is rendered on the server.
+      refreshPicker(name) {
+        const slot = document.getElementById("model-picker");
+        if (!slot) return;
+        const backend = name || this.backendName || this.field("backend").value;
+        let url = "/settings/llm/" + encodeURIComponent(backend) + "/models?target=model";
+        if (this.audioMinutes) url += "&minutes=" + this.audioMinutes.toFixed(1);
+        const template = this.field("template").value;
+        if (template) url += "&template=" + encodeURIComponent(template);
+        clearTimeout(this.pickerTimer); // a backend and a template change arrive together
+        this.pickerTimer = setTimeout(
+          () => htmx.ajax("GET", url, { target: "#model-picker", swap: "innerHTML" }), 50);
       },
 
       modelChanged() {
@@ -301,13 +335,7 @@
         this.modelProblem = "";
         if (!m) { this.modelNote = ""; return; }
         const better = this.suggestedModel ? " Try " + this.suggestedModel + "." : "";
-        if (m.can_generate === false) {
-          this.modelProblem = id + " is an embedding model (used for search), so it cannot " +
-            "write notes." + better;
-        } else if (!m.usable) {
-          this.modelProblem = id + " can only read " + m.context_window.toLocaleString() +
-            " tokens at a time, too few to summarise a meeting." + better;
-        }
+        if (!m.usable) this.modelProblem = id + ": " + (m.reason || "cannot write notes.") + better;
         this.modelNote = this.modelProblem || (m.context_window
           ? "Reads up to " + m.context_window.toLocaleString() + " tokens at a time." : "");
       },

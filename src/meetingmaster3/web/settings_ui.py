@@ -40,6 +40,7 @@ from meetingmaster3.web import settings_fields as sf
 from meetingmaster3.web import views
 from meetingmaster3.web.api.jobs import get_runner
 from meetingmaster3.web.api.speakers import _store, _wipe_tokens
+from meetingmaster3.web.llm import picker_for
 from meetingmaster3.web.model_downloads import DownloadManager, build_plan
 from meetingmaster3.web.pages import render
 
@@ -506,23 +507,50 @@ async def backend_test(request: Request, name: str) -> HTMLResponse:
     )
 
 
+@router.get("/settings/llm/models", response_class=HTMLResponse)
+async def backend_models_for_form(
+    request: Request,
+    target: str,
+    backend: str = "",
+    show_all: bool = False,
+    minutes: float | None = None,
+    template: str | None = None,
+) -> HTMLResponse:
+    """The same drop-down for a form that has its own backend select (the review page)."""
+    name = backend or _registry(request).default_name
+    return await backend_models(request, name, target, show_all, minutes, template)
+
+
 @router.get("/settings/llm/{name}/models", response_class=HTMLResponse)
 async def backend_models(
-    request: Request, name: str, datalist: str = "model-options"
+    request: Request,
+    name: str,
+    target: str = "b-model",
+    show_all: bool = False,
+    minutes: float | None = None,
+    template: str | None = None,
 ) -> HTMLResponse:
+    """The model drop-down for the input ``target`` (Settings and New meeting). It lists the
+    capable models of the backend, the same set the JSON API reports."""
+    picker: dict[str, Any] | None = None
     try:
-        found = await _registry(request).get(name).list_models()
-        found = [m for m in found if m.can_generate is not False]  # not embedding models
+        picker = await picker_for(request, name, minutes, template)
         error = ""
     except MM3Error as exc:
-        found, error = [], exc.message
+        error = exc.message
+    default = _registry(request).config(name).default_model
     return render(
         request,
-        "settings/_model_options.html",
+        "settings/_model_picker.html",
         {
-            "models": found,
+            "p": picker,
             "error": error,
-            "datalist": datalist if re.fullmatch(r"[a-z0-9-]+", datalist) else "model-options",
+            "default_model": default or "",
+            "show_all": show_all,
+            "backend_name": name,
+            "minutes": minutes,
+            "template": template,
+            "target": target if re.fullmatch(r"[a-z0-9-]+", target) else "b-model",
         },
     )
 

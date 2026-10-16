@@ -8,7 +8,7 @@ from fastapi import APIRouter, Request
 
 from meetingmaster3.llm import recommendations
 from meetingmaster3.llm.registry import BackendRegistry
-from meetingmaster3.templates import model_check
+from meetingmaster3.templates.picker import build_picker, meeting_shape
 
 router = APIRouter(prefix="/api/llm", tags=["llm"])
 
@@ -30,28 +30,28 @@ async def test_backend(name: str, request: Request) -> dict[str, object]:
     return status.to_dict()
 
 
-@router.get("/backends/{name}/models")
-async def backend_models(name: str, request: Request) -> dict[str, Any]:
-    """Installed models; ``usable`` is false for ones that cannot write notes (embedding models,
-    or a context window too small), and ``suggested`` is the one to pre-select."""
+async def picker_for(
+    request: Request, name: str, minutes: float | None = None, template: str | None = None
+) -> dict[str, Any]:
+    """The grouped, filtered, priced model list of backend ``name`` (shared with Settings, so the
+    two pages always show the same capable set)."""
     backend = registry_for(request).get(name)
     models = await backend.list_models()
     cap = request.app.state.settings.generation.max_context
-    return {
-        "backend": name,
-        "suggested": model_check.suggest(models, backend, cap),
-        "models": [
-            {
-                "id": m.id,
-                "name": m.name,
-                "context_window": m.context_window,
-                "size_bytes": m.size_bytes,
-                "can_generate": m.can_generate,
-                "usable": model_check.usable(m, backend, cap),
-            }
-            for m in models
-        ],
-    }
+    return build_picker(backend, models, cap, meeting_shape(minutes, template))
+
+
+@router.get("/backends/{name}/models")
+async def backend_models(
+    name: str, request: Request, minutes: float | None = None, template: str | None = None
+) -> dict[str, Any]:
+    """Models of a backend. ``usable`` is false (with a ``reason``) for ones that cannot write
+    notes; ``recommended``/``other``/``hidden`` group them for a drop-down; ``suggested`` is the
+    one to pre-select. Cloud models carry their price and an estimated cost for ``minutes`` of
+    audio (default 60) with ``template``."""
+    picker = await picker_for(request, name, minutes, template)
+    models = [*picker["recommended"], *picker["other"], *picker["hidden"]]
+    return {"backend": name, **picker, "models": sorted(models, key=lambda m: m["id"])}
 
 
 @router.get("/recommendations")

@@ -45,7 +45,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0039 | 2026-10-14 | Default Notes: topic-based template and new default; template choice on New meeting sticks; `params.detail: high` for richer map-reduce notes | Accepted | 15e |
 | ADR-0040 | 2026-10-14 | Renaming a meeting: pure plan, journal with a database commit point, Obsidian-style backlink matching, folder-move rule, backups in app data | Accepted | 15d |
 | ADR-0041 | 2026-10-15 | Live cloud backend verification: IAM user access keys, synthetic plus one real meeting, Bedrock required and OpenRouter if keyed, about USD 5 per provider | Accepted (planning) | 15g |
-| ADR-0042 | 2026-10-15 | Cloud model picker: capable-model filter, live OpenRouter prices and a dated Bedrock price table, Best value / Best quality recommendations; split from 15g | Accepted (planning) | 15h |
+| ADR-0042 | 2026-10-15 | Cloud model picker: capable-model filter, live OpenRouter prices and a dated Bedrock price table, Best value / Best quality recommendations; split from 15g | Accepted | 15h |
 | ADR-0043 | 2026-10-15 | `num_ctx` is the note's largest real call plus a measured 10 % margin (no double-counted reserve); map chunks count timestamps; reduce notes counted at 1.15× density; Ollama flash attention + q8_0 cache recommended | Accepted | 15f |
 | ADR-0044 | 2026-10-15 | Bedrock context windows from a dated, family-level table (`bedrock_models.yaml`, longest prefix, geo profile ids stripped, Claude capped at 200k); unknown models keep 8192 with a visible hint | Accepted | 15g |
 | ADR-0045 | 2026-10-15 | Bedrock follows a model's own ValidationException advice once (drop `temperature`; thinking off as `disabled`/`between_tools`/effort `low`) and remembers it; an empty answer cut off by length or a filter is an `E_LLM_BAD_RESPONSE`; real Bedrock validation texts map to `E_LLM_CONFIG`; OpenRouter addendum: `reasoning` switch with a low-effort fallback, provider reasons on 4xx | Accepted | 15g |
@@ -1185,6 +1185,29 @@ taken from measured results (15g's eval quality and cost per note), at least **B
 provider, never computed from price alone. A recommended id that is no longer listed is dropped. (3) One filter
 decides "capable" for every picker. (4) The work is split: 15g verifies and measures, 15h builds the picker, so the
 recommendations rest on numbers.
+
+**Phase 15h implementation (2026-10-16).**
+- *Filter* (`templates/model_check.py:assess`, one rule for every picker): generates text (`can_generate`), text in and
+  out (`text_only`, OpenRouter `architecture`), callable as listed (`callable`: a Bedrock Provisioned-only model, or a
+  profile-only model without a profile, is hidden), account access not `denied` (the Bedrock listing does not report
+  access, so this stays unknown there), not in the `unsuitable` list of `cloud_recommendations.yaml` (15g's measured
+  failures), and a workable window after the local cap. Hidden models carry a reason and appear under "Show all".
+- *Data files.* `bedrock_models.yaml` gained `prices_as_of` and `prices` (longest prefix, as for context windows). Only
+  the Claude 5.5 family is priced (Anthropic list prices as used in ADR-0041); other families show no price rather than
+  an unverified one, and rows are added as they are checked. `cloud_recommendations.yaml` is version 2: `picks` per
+  backend kind (badge, model, why, measured date) and `unsuitable` (kinds, id prefix, reason); a file with another
+  version still serves the generic list. A Bedrock pick matches by base id, so it finds whichever `us.`/`eu.`/`global.`
+  profile the account lists; an unlisted pick is dropped; `suggest()` pre-selects Best value for a cloud backend.
+- *Tokens-per-minute source* (`llm/cost.py`): 300 transcript tokens per minute of meeting, 700 tokens of prompt overhead
+  per call and 350 output tokens per section, fitted to 15g's two measurements (about 80 000 input tokens for a 31-minute
+  real meeting through Default Notes' 8 sections; 2 500-3 000 output tokens per note). The estimate is one call per
+  section re-sending the transcript, or map-reduce (the generator's `map_budget`) when the window is too small. A
+  60-minute note estimates $0.016 with Haiku 5.5 and $0.33 with Sonnet 5.5, against 15g's measured $0.02 and $0.45 per hour.
+- *Listing and UI.* Bedrock collapses base and profile ids (`collect_models`; the Region's own profile before `global.`).
+  The picker is server-rendered (`templates/picker.py`, `settings/_model_picker.html`) as a native grouped `<select>` that
+  fills the model input (`app.js`, no inline script); the input stays the submitted value, so a custom id works.
+- *Deviation.* "Lists only models his account can call" is met as far as the API allows (on demand or via a profile);
+  checking entitlement would need one call per model.
 
 **Status.** Accepted (2026-10-15, planning). Phase 15h appends the filter rules and data-file formats.
 **Consequences.** Someone must refresh the Bedrock price table (and the recommendations) before each release;

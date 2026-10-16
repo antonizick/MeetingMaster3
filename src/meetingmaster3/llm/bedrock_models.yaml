@@ -11,7 +11,14 @@
 # long-context price tiers some models bill above 100k-200k input tokens.
 #
 # Checked against the AWS Bedrock model cards on 2026-10-15 (ADR-0044). Edit freely; this file is
-# data, not code. Phase 15h may add more fields per family (prices, on-demand support).
+# data, not code.
+#
+# `prices` (Phase 15h, ADR-0042): on-demand USD per 1M input and output tokens by the same
+# longest-prefix rule, in us-east-1, shown in the model pickers with the `prices_as_of` date and a
+# "may be out of date" note after 180 days. A family that is not listed simply shows no price.
+# To update: read the figures from https://aws.amazon.com/bedrock/pricing/, edit the rows, set
+# `prices_as_of` to the day you checked. Haiku 5.5 bills prompts above 100k tokens at the
+# long-context rate (0.50/2.50), which the app avoids by capping Claude windows at 200k.
 version: 1
 checked: 2026-10-15
 context_windows:
@@ -36,3 +43,8 @@ context_windows:
   deepseek: 128000
   openai.gpt-oss: 128000
   qwen: 32000
+prices_as_of: 2026-10-15
+prices:                             # USD per 1M tokens; Anthropic list prices, same on Bedrock
+  anthropic.claude-haiku-5-5: {in: 0.10, out: 0.50}
+  anthropic.claude-sonnet-5-5: {in: 2.00, out: 10.00}
+  anthropic.claude-opus-5-5: {in: 4.00, out: 20.00}

@@ -52,7 +52,8 @@ OpenRouter is one account and one key for many providers' models, paid from prep
      (write-only, stored in `config.yaml`, readable only by you);
    - or the environment: `export MM3_SECRETS__OPENROUTER_API_KEY=sk-or-...` (in Docker, the `.env`
      file; see [install-docker.md](install-docker.md#cloud-backends-bedrock-openrouter)).
-5. **Choose a model:** open the backend, press **Load models**, pick one, **Save backend**, then
+5. **Choose a model:** open the backend, press **Load models**, pick one from the drop-down (see
+   [Choosing a model](#choosing-a-model-the-picker-prices-and-recommendations)), **Save backend**, then
    **Test**. OpenRouter reports each model's context window, so long meetings are split correctly
    (Claude models are planned at 200k, as on Bedrock, to stay below the long-context price).
    A credit limit on the key (step 3's page) caps what it can ever spend. Under OpenRouter's
@@ -213,10 +214,12 @@ providers' models are left as they are. To choose yourself, set the backend's `p
 `additionalModelRequestFields`), for example `params: {output_config: {effort: high}}`; the app then leaves
 thinking alone. Newer models also refuse a `temperature`; the app notices and stops sending it to them.
 
-**Which model IDs work.** "Load models" lists every text model and inference profile in the region (188 in our
-test account). Use the inference profile ID (`us.…` or `global.…`) when the model card shows one: many current
-models cannot be called by their plain ID, and the app says so if you try. Provisioned-throughput-only models and a
-few older models without system-prompt support (Mistral 7B, Mixtral) cannot be used.
+**Which model IDs work.** The region lists about 190 text models and inference profiles in our test account. The model
+picker (next section) shows one entry per model, already using the ID that can be called: the on-demand ID, or the
+inference profile (`us.…` of your Region, else `global.…`). Provisioned-throughput-only models, and models measured
+as unsuitable (Mistral 7B and Mixtral reject system prompts; DeepSeek R1 and gpt-oss only reason), are hidden. The
+listing does not say whether your account has been given access to a model, so a model you may not call can still
+appear; using it fails with a message that says so.
 
 ```yaml
 llm:
@@ -228,6 +231,34 @@ llm:
       # profile: my-profile          # only when not using the AWS keys
       # context_window: 200000       # only for a model the table does not know
 ```
+
+## Choosing a model: the picker, prices and recommendations
+Wherever you choose a cloud model (**New meeting**, **Settings → Language models → Default model**, and the
+**Model** part of the review page's *Regenerate* and *Switch template* windows) there is a drop-down under the
+model box. It is built on the server, so every page shows the same list for the same backend.
+
+* **Only capable models.** The list keeps models that write text, take and give text only, can be called as listed,
+  have a context window big enough to summarise a meeting, and were not measured as unable to do the job. The
+  line under the drop-down says how many are hidden; **Show all models (N hidden)** lists them too, each with the reason.
+  The model box itself still accepts any id you type.
+* **Recommended** comes first, with two badges: **Best value** (the cheapest model that passed our test notes at an
+  acceptable level) and **Best quality** (the best measured notes, whatever the price). Each shows why and the date it
+  was measured. They come from our own runs ([`tests/eval/cloud-results.md`](../../tests/eval/cloud-results.md)), not
+  from price alone. A recommended model your provider does not list is left out. On a cloud backend with no default
+  model, **Best value** is filled in for you.
+* **Other capable models** follow, cheapest first (models without a known price last).
+* **Prices** are USD per 1M tokens in and out, with an **estimated cost** for a meeting of the audio's length
+  (60 minutes until you choose a file) and the chosen template. The estimate is built from what we measured in our
+  live runs (about 300 prompt tokens per minute of meeting, a call per template section, and splitting for long
+  meetings), so treat it as a rough guide; nothing is ever blocked by it. Local models show no price.
+  * **OpenRouter** prices are read live from OpenRouter's model list, so they are current. If the list cannot be
+    loaded the page says prices are unavailable and still offers your configured model.
+  * **Bedrock** does not report prices, so they come from a small dated table in the app
+    (`src/meetingmaster3/llm/bedrock_models.yaml`, `prices:`), shown with its date ("as of 2026-10-15; check AWS
+    pricing") and a "may be out of date" note after 180 days. Only the model families in the table have a price; others
+    show none. To update it, read the on-demand prices from <https://aws.amazon.com/bedrock/pricing/>, edit the rows and
+    set `prices_as_of`. The recommendations and the models known to be unsuitable are in
+    `src/meetingmaster3/llm/cloud_recommendations.yaml`.
 
 ## Checking it works
 ```bash

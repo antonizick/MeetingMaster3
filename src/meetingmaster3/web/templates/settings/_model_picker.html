@@ -1,0 +1,32 @@
+{# The capable-model drop-down (ADR-0042). Selecting an option copies its id into the input
+   #{{ target }} (app.js, data-model-target); that input stays the value that is saved or submitted,
+   and a typed custom id still works. #}
+<div class="model-picker stack">
+{% if error %}
+  <p class="hint error-text" role="status">Could not list models: {{ error }}. Prices are unavailable.</p>
+  {% if default_model %}<p class="hint">Your configured model is <code>{{ default_model }}</code>; you can also type any model id.</p>{% endif %}
+{% elif p %}
+  {% macro option(m) %}<option value="{{ m.id }}">{% if m.badge_label %}{{ m.badge_label }}: {% endif %}{{ m.summary }}{% if m.free %} · free tier, may be rate limited{% endif %}{% if m.reason %} — {{ m.reason }}{% endif %}</option>{% endmacro %}
+  <label for="picker-{{ target }}">Pick a model that can write notes</label>
+  <select id="picker-{{ target }}" data-model-target="{{ target }}" aria-describedby="picker-note-{{ target }}">
+    <option value="">Choose from the list…</option>
+    {% if p.recommended %}<optgroup label="Recommended">{% for m in p.recommended %}{{ option(m) }}{% endfor %}</optgroup>{% endif %}
+    {% if p.other %}<optgroup label="{{ 'Other capable models, cheapest first' if p.has_prices else 'Capable models' }}">{% for m in p.other %}{{ option(m) }}{% endfor %}</optgroup>{% endif %}
+    {% if show_all and p.hidden %}<optgroup label="Hidden by default (not recommended)">{% for m in p.hidden %}{{ option(m) }}{% endfor %}</optgroup>{% endif %}
+  </select>
+  <div id="picker-note-{{ target }}" class="stack">
+    {% for m in p.recommended %}<p class="hint"><strong>{{ m.badge_label }}: {{ m.name }}.</strong> {{ m.why }} <span class="muted">(measured {{ m.measured }})</span></p>{% endfor %}
+    <p class="hint">
+      {% if p.is_local %}{{ p.recommended|length + p.other|length }} model{{ '' if p.recommended|length + p.other|length == 1 else 's' }} can write notes; you can also type a model name.
+      {% else %}{{ p.recommended|length + p.other|length }} model{{ '' if p.recommended|length + p.other|length == 1 else 's' }} can write notes; you can also type any model id.
+      {% if p.has_prices %}Prices are USD per 1M tokens; the cost is an estimate for {{ p.minutes|round|int }} minutes of meeting.
+        {% if p.prices_as_of %}Table prices as of {{ p.prices_as_of }}; check <a href="{{ p.pricing_url }}" rel="noopener noreferrer" target="_blank">AWS pricing</a>.{% if p.prices_stale %} They may be out of date.{% endif %}{% elif p.pricing_url %} Live prices from <a href="{{ p.pricing_url }}" rel="noopener noreferrer" target="_blank">the provider</a>.{% endif %}
+      {% elif not p.is_local %}No prices are known for these models.{% endif %}
+      {% endif %}
+    </p>
+    {% if p.hidden_count and not show_all %}
+    <p><button type="button" class="link" hx-get="/settings/llm/{{ backend_name }}/models?target={{ target }}&amp;show_all=1{% if minutes %}&amp;minutes={{ minutes }}{% endif %}{% if template %}&amp;template={{ template|urlencode }}{% endif %}" hx-target="closest .model-picker" hx-swap="outerHTML">Show all models ({{ p.hidden_count }} hidden)</button></p>
+    {% elif p.hidden_count %}<p class="hint">Showing all {{ p.hidden_count + p.recommended|length + p.other|length }} models; the ones that cannot write notes say why.</p>{% endif %}
+  </div>
+{% endif %}
+</div>

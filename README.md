@@ -160,7 +160,9 @@ notes; with Ollama's default settings notes take about twice as long
 - **Cloud models vary.** Claude, Llama 4, Qwen3, GLM, Mistral Large and GPT-5.5 write good notes; models
   that only reason (DeepSeek R1, gpt-oss) often return nothing within a section's allowance, Mistral 7B/Mixtral on
   Bedrock reject system prompts, and some models are only callable through an inference profile. The model
-  pickers do not yet filter or price models (planned).
+  model pickers list only models that can write notes, with prices (live for OpenRouter, a dated table for
+  Bedrock), an estimated cost per meeting and Best value / Best quality picks; Bedrock prices exist only for the
+  model families in the table, and the listing cannot tell whether your account has access to a model.
 - Only measured on one 8 GB laptop GPU; tested in Chromium (Firefox and Safari not tested).
 
 ## FAQ

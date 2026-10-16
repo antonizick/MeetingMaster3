@@ -1,8 +1,65 @@
 # Cloud model suggestions shown next to the local (hardware-based) recommendations.
-# Deliberately contains NO prices: they change too often. `pricing_url` points at the
-# provider's own page. Model ids are not pinned here; pick from "List models" so a
-# retired id never breaks setup. Edit freely; this file is data, not code.
-version: 1
+#
+# `cloud` (unchanged since Phase 08): generic suggestions with a cost tier and the provider's own
+# pricing page. Model ids are not pinned there.
+#
+# `picks` (Phase 15h, ADR-0042): the dated, MEASURED recommendations per backend kind, from Phase
+# 15g's live eval (tests/eval/cloud-results.md). `best-value` is the cheapest model that passed the
+# eval at an acceptable level; `best-quality` the best measured notes whatever the price. They are
+# never computed from price alone. A pick the provider no longer lists is silently dropped, and a
+# Bedrock `model` matches whichever Region/global inference-profile id the account lists.
+# Re-measure and update `measured` before a release (Phase 16 checks the date).
+#
+# `unsuitable`: models measured as unable to write notes through MeetingMaster3 (15g). The pickers
+# hide them behind "Show all models" with this reason; a typed custom id still works. `match` is a
+# model-id prefix (Bedrock: without the us./eu./global. prefix).
+#
+# Prices are not here: OpenRouter reports its own live, and Bedrock's dated table is in
+# bedrock_models.yaml. Edit freely; this file is data, not code.
+version: 2
+picks:
+  bedrock:
+    - badge: best-value
+      model: anthropic.claude-haiku-5-5
+      why: Passed 73 of 75 test notes for about $0.003 a note (about $0.02 per hour of meeting).
+      measured: 2026-10-15
+    - badge: best-quality
+      model: anthropic.claude-sonnet-5-5
+      why: 71 of 75 test notes and the best-reading real-meeting notes, for about $0.07 a note
+        (about $0.45 per hour of meeting).
+      measured: 2026-10-15
+  openrouter:
+    - badge: best-value
+      model: anthropic/claude-haiku-5.5
+      why: Passed 74 of 75 test notes for about $0.003 a note (about $0.02 per hour of meeting).
+      measured: 2026-10-15
+    - badge: best-quality
+      model: anthropic/claude-sonnet-5.5
+      why: 71 of 75 test notes and the best-reading real-meeting notes, for about $0.07 a note
+        (about $0.45 per hour of meeting).
+      measured: 2026-10-15
+unsuitable:
+  - kinds: [bedrock, openrouter]
+    match: deepseek.r1
+    reason: Reasoning-only; most answers came back empty.
+  - kinds: [bedrock]
+    match: openai.gpt-oss
+    reason: Reasoning-only on Bedrock; most answers came back empty.
+  - kinds: [bedrock]
+    match: anthropic.claude-fable
+    reason: Needs a data-retention mode Bedrock does not allow by default.
+  - kinds: [bedrock]
+    match: mistral.mistral-7b
+    reason: Bedrock rejects the system prompt this model needs.
+  - kinds: [bedrock]
+    match: mistral.mixtral
+    reason: Bedrock rejects the system prompt this model needs.
+  - kinds: [openrouter]
+    match: deepseek/deepseek-r1
+    reason: Reasoning-only; most answers came back empty.
+  - kinds: [openrouter]
+    match: qwen/qwen3-32b
+    reason: Its provider ignores the reasoning switch, so answers came back empty.
 cloud:
   - backend_kind: openrouter
     label: OpenRouter, a frontier-class model for the best summaries

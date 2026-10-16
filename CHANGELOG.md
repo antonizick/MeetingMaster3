@@ -8,6 +8,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Cloud model picker** (New meeting, Settings, the review page's Regenerate and Switch template): a drop-down of
+  only the models that can write notes (text in and out, callable on demand or through an inference profile, workable
+  context window, not measured as unsuitable), with **Show all models (N hidden)** and the reason for each hidden
+  one; a typed id still works. Cloud models show the context size, price per 1M tokens (live from OpenRouter, a
+  dated table for Bedrock with a staleness note after 180 days) and an estimated cost for the meeting, and
+  **Best value** (Claude Haiku 5.5) and **Best quality** (Claude Sonnet 5.5) are marked from Phase 15g's
+  measurements. Bedrock lists one entry per model using the id that can be called. Settings and New meeting
+  now show the same set (Phase 15h, ADR-0042).
 - **AWS keys for Bedrock in Settings** (Settings → Language models): write-only fields for the access key ID and
   secret access key of an IAM user, saved as a pair, removed from logs; the `MM3_SECRETS__AWS_*` variables still
   win and the page says when they are set (Phase 15g, ADR-0041).
@@ -239,6 +247,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Frontmatter values PyYAML cannot build (an impossible date) gave HTTP 500 instead of a readable error.
 
 ### Changed
+- **Model lists (Phase 15h).** New meeting lists a cloud backend's models as soon as it is selected (this sends only your
+  API key to that provider, as Settings' Load models does, never the transcript); before, you had to type the id.
+  Settings and New meeting now agree on which models are usable (Settings applied only the embedding-model check).
+  `cloud_recommendations.yaml` is format version 2 (`picks`, `unsuitable`); its generic `cloud` list is unchanged.
 - The default template for a new install is **Default Notes** instead of Executive Summary (R29). A
   `default_template` already saved in `config.yaml` is kept.
 - The plain-text transcript export (`.txt`) uses the readable layout: time and name on one line, the text

@@ -6,10 +6,13 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 from meetingmaster3.config.settings import Settings
 from meetingmaster3.errors import MM3Error
 from meetingmaster3.llm.base import LLMBackend, ModelInfo
+from meetingmaster3.llm.bedrock import base_model_id
+from meetingmaster3.llm.recommendations import load_picks, load_unsuitable, unsuitable_reason
 from meetingmaster3.llm.registry import BackendRegistry
 from meetingmaster3.templates.generator import (
     can_generate,
@@ -60,19 +63,63 @@ async def preflight(
         raise problem
 
 
-def usable(model: ModelInfo, backend: LLMBackend, max_context: int | None) -> bool:
+@dataclass(frozen=True)
+class Verdict:
+    capable: bool
+    reason: str = ""
+    """Why the model is not capable, in words for the picker's "Show all models" list."""
+
+
+def assess(model: ModelInfo, backend: LLMBackend, max_context: int | None) -> Verdict:
+    """The one rule for "can this model write MeetingMaster3 notes" that every picker uses
+    (ADR-0042): it generates text, takes and gives text only, can be called as listed (not
+    Provisioned-only), is not known to be unsuitable, the account has access and its window is
+    workable after the local cap."""
     if model.can_generate is False:
-        return False
-    if model.context_window is None:
-        return True
-    return window_is_workable(effective_window(backend, model.context_window, max_context))
+        return Verdict(False, "An embedding model (used for search), not a text model.")
+    if model.text_only is False:
+        return Verdict(False, "Does not take text in and give text out.")
+    if model.callable is False:
+        return Verdict(
+            False,
+            "Cannot be called on demand here (Provisioned Throughput or no inference profile).",
+        )
+    if model.access == "denied":
+        return Verdict(False, "Your account has no access to this model.")
+    known = unsuitable_reason(model.id, load_unsuitable(backend.kind))
+    if known:
+        return Verdict(False, f"Measured as unsuitable: {known}")
+    if model.context_window is not None:
+        room = effective_window(backend, model.context_window, max_context)
+        if not window_is_workable(room):
+            return Verdict(
+                False, f"Reads only {room:,} tokens at a time, too few to summarise a meeting."
+            )
+    return Verdict(True)
+
+
+def usable(model: ModelInfo, backend: LLMBackend, max_context: int | None) -> bool:
+    return assess(model, backend, max_context).capable
+
+
+def normalized_id(kind: str, model_id: str) -> str:
+    """The id a recommendation is matched on: Bedrock ids lose their ``us.``/``global.`` prefix."""
+    return base_model_id(model_id).lower() if kind == "bedrock" else model_id.lower()
 
 
 def suggest(
     models: Sequence[ModelInfo], backend: LLMBackend, max_context: int | None
 ) -> str | None:
-    """The model to pre-select: a tested one if installed, else the first usable one."""
+    """The model to pre-select: for a cloud backend its measured Best value pick if listed;
+    otherwise a tested one if installed, else the first usable one."""
     ok = [m.id for m in models if usable(m, backend, max_context)]
+    if not backend.is_local:
+        for pick in load_picks(backend.kind):
+            if pick.badge != "best-value":
+                continue
+            for mid in ok:
+                if normalized_id(backend.kind, mid) == pick.model.lower():
+                    return mid
     for tested in TESTED_MODELS:
         for mid in ok:
             if mid in (tested, f"{tested}:latest"):

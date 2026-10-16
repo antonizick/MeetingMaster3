@@ -106,6 +106,24 @@ class ModelInfo:
     size_bytes: int | None = None
     can_generate: bool | None = None
     """False for models that cannot write text (embedding models); None when unknown."""
+    price_in: float | None = None
+    """USD per 1M input tokens, or None when the price is not known (local models have none)."""
+    price_out: float | None = None
+    """USD per 1M output tokens."""
+    price_source: Literal["live", "table"] | None = None
+    """``live`` when the provider reported the price in its model list (OpenRouter); ``table``
+    for the dated ``bedrock_models.yaml`` price table (see ``price_as_of``)."""
+    price_as_of: str | None = None
+    """ISO date a ``table`` price was checked."""
+    free: bool = False
+    """A free variant (OpenRouter ``:free``); usually rate limited and may log prompts."""
+    callable: bool | None = None
+    """Whether the id can be called as listed (Bedrock: on demand or an inference profile).
+    False for Provisioned-only models; None when the provider does not say."""
+    access: Literal["granted", "denied"] | None = None
+    """Account access where the provider reports it; None when unknown."""
+    text_only: bool | None = None
+    """True when the model takes text in and gives text out (OpenRouter ``architecture``)."""
 
 
 @dataclass(frozen=True)

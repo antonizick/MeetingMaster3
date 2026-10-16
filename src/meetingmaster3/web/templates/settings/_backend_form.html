@@ -28,7 +28,7 @@
   </div>
   <div class="grid">
     <div class="field"><label for="b-model">Default model</label>
-      <input id="b-model" name="default_model" type="text" list="model-options" value="{{ s.get('default_model', cfg.default_model or '') }}" spellcheck="false">
+      <input id="b-model" name="default_model" type="text" value="{{ s.get('default_model', cfg.default_model or '') }}" spellcheck="false">
       {% if not is_new %}<div id="model-slot" hx-get="/settings/llm/{{ orig_name }}/models" hx-trigger="load, click from:#load-models" hx-target="this" hx-swap="innerHTML"></div>
       <button type="button" id="load-models">Load models</button>{% else %}<p class="hint">Save the backend first to list its models.</p>{% endif %}</div>
     <div class="field{% if e.context_window %} has-error{% endif %}"><label for="b-ctx">Context window (tokens)</label>
