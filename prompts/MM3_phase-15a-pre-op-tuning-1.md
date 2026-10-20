@@ -7,13 +7,13 @@ through the app and asked for five changes before publication. Rounds are number
 one has its own prompt, row, Phase Log entry and branch. Phase 16 depends on every round.
 
 ## Read first
-- `CLAUDE.md`, `prompts/_shared-instructions.md`, `docs/SPECIFICATION.md` §15 (especially R9, R13, R24
+- `CLAUDE.md`, `prompts/MM3_shared-instructions.md`, `docs/MM3_SPECIFICATION.md` §15 (especially R9, R13, R24
   and the S1–S8 controls in §15.3).
 - Phase Log entries for Phases 03, 09, 10, 11, 13 and 15, and both "Pre-release fix" entries
   (2026-10-12).
 - `docs/dev-guide/template-format.md`, `docs/user-guide/getting-started.md`, ADR-0009 (companion
   transcript data block), ADR-0025 (review workspace writes), ADR-0029 (model check).
-- Owner question **Q6** (logo publication) in `IMPLEMENTATION_PLAN.md`. Ask Nick at the start of
+- Owner question **Q6** (logo publication) in `MM3_IMPLEMENTATION_PLAN.md`. Ask Nick at the start of
   the session if it is still open. Task 6 depends on the answer; the other tasks do not.
 
 ## Nick's feedback (verbatim intent, 2026-10-12)
@@ -297,7 +297,7 @@ not a one-off script:
   and the `mypy src tests` error count is no higher than on `main`.
 
 ## Phase-specific docs
-- `docs/SPECIFICATION.md` §15: R25.
+- `docs/MM3_SPECIFICATION.md` §15: R25.
 - ADR-0031: readable transcript name and format, date inference rules, the two summaries and the upgrade
   path. Add an ADR for the logo too if Q6 changes what is committed.
 - User guide: getting-started (readable transcript, leaving the page, the date hint, Update older notes),

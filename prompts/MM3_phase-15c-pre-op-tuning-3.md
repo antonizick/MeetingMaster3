@@ -9,7 +9,7 @@ it touches the same review files) and **15e** (a new topic-based template, which
 phase). See ADR-0037. Phase 16 depends on all three.
 
 ## Read first
-- `CLAUDE.md`, `prompts/_shared-instructions.md`, `docs/SPECIFICATION.md` §15 (R8 retention, R23 review
+- `CLAUDE.md`, `prompts/MM3_shared-instructions.md`, `docs/MM3_SPECIFICATION.md` §15 (R8 retention, R23 review
   workspace, R26, and the S1–S8 controls in §15.3, especially S2 CSRF/Origin, S3 sanitised rendering and S4 vault
   path confinement).
 - Phase Log entries for Phases 10 (job progress, SSE), 11 (review workspace), 15b, the pre-release fix
@@ -198,7 +198,7 @@ keyboard and focus behaviour. Update `review.js` and every test or e2e that clic
   `mypy src tests` error count is no higher than on `main`.
 
 ## Phase-specific docs
-- `docs/SPECIFICATION.md` §15: amendment **R27** (switch/regenerate progress with ETA; recording size and
+- `docs/MM3_SPECIFICATION.md` §15: amendment **R27** (switch/regenerate progress with ETA; recording size and
   download on the review page; the action-labelled Preview/Edit toggle; Meetings page, Open-a-note merged, and
   pagination). If 15e has already used R27 on `main`, take the next free number.
 - ADR (next free number on `main` at close-out; 15e may run in parallel, so re-check after rebasing): background
@@ -206,8 +206,8 @@ keyboard and focus behaviour. Update `review.js` and every test or e2e that clic
 - User guide: `reviewing-and-editing.md` (progress, size, download, toggle) and `getting-started.md` (Meetings
   replaces Recent and Open a note). README feature list if it names Recent. `docs/ARCHITECTURE.md` if modules
   change. `CHANGELOG.md`.
-- `prompts/phase-15d-rename-meeting.md`: check that its "What exists" still matches (review toolbar, Meetings
+- `prompts/MM3_phase-15d-rename-meeting.md`: check that its "What exists" still matches (review toolbar, Meetings
   page) and correct it if this phase changed something it relies on.
-- `prompts/phase-16-release.md`: screenshots show Meetings (not Recent) and the review header with size/download.
+- `prompts/MM3_phase-16-release.md`: screenshots show Meetings (not Recent) and the review header with size/download.
 
 Then the standard close-out checklist.

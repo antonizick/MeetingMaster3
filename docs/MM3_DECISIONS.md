@@ -51,6 +51,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0045 | 2026-10-15 | Bedrock follows a model's own ValidationException advice once (drop `temperature`; thinking off as `disabled`/`between_tools`/effort `low`) and remembers it; an empty answer cut off by length or a filter is an `E_LLM_BAD_RESPONSE`; real Bedrock validation texts map to `E_LLM_CONFIG`; OpenRouter addendum: `reasoning` switch with a low-effort fallback, provider reasons on 4xx | Accepted | 15g |
 | ADR-0046 | 2026-10-16 | Logging never blocks the event loop: all records, uvicorn's included, go through a bounded queue to a writer thread; a stalled terminal drops (and later reports) log lines instead of freezing the web app | Accepted | fix |
 | ADR-0047 | 2026-10-16 | Meetings entries stranded by a vault move are re-linked by `mm3-id` (found in the current vault, matched only when unambiguous), on request from the Meetings page or `mm3 notes relink`; only the list entry changes | Accepted | fix |
+| ADR-0048 | 2026-10-20 11:08 CDT | Project documents carry the prefix `MM3_` and every recorded date becomes a timestamp (`YYYY-MM-DD HH:MM TZ`); files renamed, references rewritten | Accepted | docs |
 
 ---
 
@@ -94,7 +95,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 ## ADR-0008: Phases are claimed on `main` and run in per-phase worktrees
 **Context.** Several agents run phases at once (for example 03, 05 and 08 on 2026-10-11). The old rule ("set `🔄 In progress`, then create the branch") left the status change on the phase branch, or uncommitted in a worktree, so `main` still showed `⬜ Not started` and other sessions could not tell which phases were taken. Agents sharing one checkout also risk switching branches under each other.
 **Options considered.** (A) Keep the rule and just emphasise it; (B) claim with a status-only commit on `main` before branching; (C) a separate lock file or a hook that blocks edits until a claim exists.
-**Decision.** B, plus one worktree per phase (`../MeetingMaster3-phase-NN`) with the main checkout always on `main`. `/phase` will not start a phase's Tasks until the claim is visible in `git show main:IMPLEMENTATION_PLAN.md`; `⛔ Blocked` is committed to `main` the same way; `/phase status` reports drift between the table and live branches or worktrees. C was rejected as heavier than needed; revisit it if claims are still skipped.
+**Decision.** B, plus one worktree per phase (`../MeetingMaster3-phase-NN`) with the main checkout always on `main`. `/phase` will not start a phase's Tasks until the claim is visible in `git show main:MM3_IMPLEMENTATION_PLAN.md`; `⛔ Blocked` is committed to `main` the same way; `/phase status` reports drift between the table and live branches or worktrees. C was rejected as heavier than needed; revisit it if claims are still skipped.
 **Consequences.** `main` gains small `chore(plan): start phase NN` commits. Merges of parallel phases may conflict in the plan and changelog; the close-out checklist says to keep both sides. Each worktree needs its own `uv sync`.
 
 ## ADR-0009: LLM adapter implementation choices
@@ -678,9 +679,9 @@ The phase table had integer IDs only, and `/phase`, the claim protocol and branc
 | Renumber 16 and insert new integer phases | No new ID shape | Rewrites history and every reference to Phase 16 |
 
 **Decision.** A phase ID is two digits plus an optional lower-case letter. An interim round is a normal
-phase: its row sits between 15 and 16, its prompt is `prompts/phase-15x-pre-op-tuning-N.md`, its branch
+phase: its row sits between 15 and 16, its prompt is `prompts/MM3_phase-15x-pre-op-tuning-N.md`, its branch
 `phase-15x-pre-op-tuning`, and its worktree `../MeetingMaster3-phase-15x`. Each round depends on the
-previous one, and Phase 16 depends on the last round. `/phase` and `prompts/_shared-instructions.md`
+previous one, and Phase 16 depends on the last round. `/phase` and `prompts/MM3_shared-instructions.md`
 document the ID shape and the ordering (`15` < `15a` < `15b` < `16`).
 **Status.** Accepted (2026-10-12).
 **Consequences.** Adding a round means adding a row and a prompt, and moving Phase 16's "Depends on" to the
@@ -801,10 +802,10 @@ request into a planned phase: grounding in the code, one batched round of owner 
 ADRs), placement, model choice, the prompt, the plan row and Phase Log planning entry, rewired dependents, edits
 to later prompts, the vault note, and one `docs(plan): add phase <ID> …` commit on `main`. It never claims and
 never pushes. **IDs:** a phase inserted after phase P is P plus the next free letter (`09` → `09a`; `15a` → `15b`),
-for any P, never decimals and never renumbering. The intake template is `prompts/_change-request-template.md`
+for any P, never decimals and never renumbering. The intake template is `prompts/MM3_change-request-template.md`
 (optional; free text works).
 **Status.** Accepted (2026-10-14).
-**Consequences.** `/phase`, `prompts/_shared-instructions.md`, the skill's templates and the method note use the
+**Consequences.** `/phase`, `prompts/MM3_shared-instructions.md`, the skill's templates and the method note use the
 general wording. Phase 15b is the first phase planned this way.
 
 ## ADR-0035: The logo and hero picture are released under CC0 1.0 (supersedes the licence in ADR-0032 and ADR-0033)
@@ -1371,3 +1372,9 @@ only a target the search itself returns, so a forged request cannot point an ent
 
 **Consequences.** Nothing happens automatically, so an unexpected match can never silently change the list; the cost is
 one click. Other absolute paths (job audio, review sessions) were not stranded by this move and are out of scope.
+
+## ADR-0048: Project prefix `MM3_` and timestamps (adopted 2026-10-20 11:08 CDT)
+**Context.** Nick reads and searches project documents without their folder path, and `IMPLEMENTATION_PLAN.md` from MeetingMaster3 and ChessLoop were indistinguishable. Bare dates also lose the order of events within a day, and timestamps are needed to draw phase timelines later.
+**Options considered.** Keep names and rely on folders; prefix with a space (`MM3 IMPLEMENTATION_PLAN.md`); prefix with an underscore.
+**Decision.** Underscore prefix on the project's own documents only: `MM3_IMPLEMENTATION_PLAN.md`, `docs/MM3_SPECIFICATION.md`, `docs/MM3_DECISIONS.md`, `prompts/MM3_shared-instructions.md`, `prompts/MM3_phase-NN-<slug>.md` and `prompts/MM3_change-request-template.md`. Convention-bound files (`CLAUDE.md`, `README.md`, `LICENSE`, `CHANGELOG.md`, `.claude/commands/*`) and branch and worktree names are unchanged. The vault note is now `02 Projects/MM3 Implementation Plan.md`. New records use `YYYY-MM-DD HH:MM TZ` from `date`; earlier entries keep their dates.
+**Consequences.** Git follows the renames (`git log --follow`). References inside the repo were rewritten in the same commit; commit messages and anything outside the repo that links the old names (older notes) are not. The other docs (`docs/ARCHITECTURE.md`, `PERFORMANCE.md`, `PRIVACY.md`, `THREAT_MODEL.md`) were not renamed.

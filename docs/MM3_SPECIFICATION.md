@@ -7,7 +7,7 @@ Status: Implementation-ready specification. **This is the canonical spec for the
 > **§15 Amendments** records decisions and refinements made during planning; **where §15 conflicts
 > with §1–14, §15 wins.** Appendix A is the full template catalogue and Appendix B the common note
 > header, both from the design pre-notes. Change this document only through §15 (add an amendment)
-> and record the decision in `docs/DECISIONS.md`.
+> and record the decision in `docs/MM3_DECISIONS.md`.
 
 ### 1. Product Vision, Goals, and Non-Goals
 
@@ -273,7 +273,7 @@ Assumptions flagged
 
 ### 15. Amendments (v1.1, 2026-10-11)
 
-These amendments supersede conflicting text in §1–14. Each amendment that records a decision has an entry in `docs/DECISIONS.md`.
+These amendments supersede conflicting text in §1–14. Each amendment that records a decision has an entry in `docs/MM3_DECISIONS.md`.
 
 #### 15.1 Decisions confirmed by the project owner
 

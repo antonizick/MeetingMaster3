@@ -8,10 +8,10 @@
 > ⚠️ **Pre-alpha.** The whole flow works in the browser, headlessly and in Docker (audio →
 > transcript → named speakers → structured note in your vault → review, edit and regenerate), and it
 > has had a security review (Phase 15). The first release is Phase 16 of the
-> [plan](IMPLEMENTATION_PLAN.md).
+> [plan](MM3_IMPLEMENTATION_PLAN.md).
 
 ## Status
-Built in phases (see [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-13 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, transcription and diarization, speaker naming and voiceprints, LLM backends, templates and note generation, the web UI's core flow, and the review workspace: synced audio and transcript, note editor, per-section regeneration with diffs and archives, template switching, renaming speakers and re-opening notes from the vault (see [reviewing and editing](docs/user-guide/reviewing-and-editing.md)), the Settings screen, template library management, local feedback ratings and export, and all 22 built-in templates), Docker images (Phase 14), and hardening: a [threat model](docs/THREAT_MODEL.md), a security review with fixes, fuzzing, end-to-end and accessibility tests, a licence audit and [measured performance](docs/PERFORMANCE.md) (Phase 15). Tuning round 15a added a readable transcript in the vault, two summaries per note (Summary Succinct and Summary Detailed) with an "Update older notes" action, dates from month-day file names, a "can I leave this page?" line and a logo.
+Built in phases (see [`MM3_IMPLEMENTATION_PLAN.md`](MM3_IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-13 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, transcription and diarization, speaker naming and voiceprints, LLM backends, templates and note generation, the web UI's core flow, and the review workspace: synced audio and transcript, note editor, per-section regeneration with diffs and archives, template switching, renaming speakers and re-opening notes from the vault (see [reviewing and editing](docs/user-guide/reviewing-and-editing.md)), the Settings screen, template library management, local feedback ratings and export, and all 22 built-in templates), Docker images (Phase 14), and hardening: a [threat model](docs/THREAT_MODEL.md), a security review with fixes, fuzzing, end-to-end and accessibility tests, a licence audit and [measured performance](docs/PERFORMANCE.md) (Phase 15). Tuning round 15a added a readable transcript in the vault, two summaries per note (Summary Succinct and Summary Detailed) with an "Update older notes" action, dates from month-day file names, a "can I leave this page?" line and a logo.
 The CI badge above is a placeholder until the repository is published (Phase 16).
 
 ## Planned features (MVP)
@@ -169,8 +169,8 @@ notes; with Ollama's default settings notes take about twice as long
 _Coming in Phase 16._
 
 ## Documentation and project files
-- [Specification](docs/SPECIFICATION.md) (section 15 amendments override sections 1-14)
-- [Implementation plan](IMPLEMENTATION_PLAN.md) and [decision log](docs/DECISIONS.md)
+- [Specification](docs/MM3_SPECIFICATION.md) (section 15 amendments override sections 1-14)
+- [Implementation plan](MM3_IMPLEMENTATION_PLAN.md) and [decision log](docs/MM3_DECISIONS.md)
 - [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md)
 - [Changelog](CHANGELOG.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 

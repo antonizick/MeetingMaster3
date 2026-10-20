@@ -1,7 +1,7 @@
 # Architecture
 
 > **Status:** skeleton from Phase 01. Expanded by every phase that adds a component. The canonical
-> design is [`SPECIFICATION.md`](SPECIFICATION.md) (section 15 amendments win over sections 1-14).
+> design is [`MM3_SPECIFICATION.md`](MM3_SPECIFICATION.md) (section 15 amendments win over sections 1-14).
 
 ## System shape
 Single-user, local-first web app. A FastAPI backend serves server-rendered Jinja2 pages with HTMX and
@@ -35,7 +35,7 @@ src/meetingmaster3/
   config/ domain/ markdown/ vault/ storage/ jobs/ audio/ hardware/
   transcription/ speakers/ llm/ templates/ feedback/ web/ starter_templates/
 ```
-Full tree: `prompts/_shared-instructions.md` section 2. ML imports are lazy, inside
+Full tree: `prompts/MM3_shared-instructions.md` section 2. ML imports are lazy, inside
 `transcription/` and `speakers/` only.
 
 ## Deployment (Phase 14)

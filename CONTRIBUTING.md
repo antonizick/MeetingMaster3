@@ -1,7 +1,7 @@
 # Contributing to MeetingMaster3
 
 Thanks for your interest. The project is pre-alpha and is being built in numbered phases; read
-[`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) and [`CLAUDE.md`](CLAUDE.md) first.
+[`MM3_IMPLEMENTATION_PLAN.md`](MM3_IMPLEMENTATION_PLAN.md) and [`CLAUDE.md`](CLAUDE.md) first.
 
 ## Development setup
 Python 3.12 is managed by [uv](https://docs.astral.sh/uv/) (install it first):
@@ -28,7 +28,7 @@ Never commit real recordings, vault content, tokens or `.env`.
 ## Docs are part of "done"
 A change is not complete until the affected docs are updated: README, CHANGELOG (`[Unreleased]`),
 SECURITY, ARCHITECTURE, guides, `THIRD_PARTY_NOTICES.md` for any new dependency or vendored asset,
-and an ADR in [`docs/DECISIONS.md`](docs/DECISIONS.md) for non-trivial choices.
+and an ADR in [`docs/MM3_DECISIONS.md`](docs/MM3_DECISIONS.md) for non-trivial choices.
 
 ## Secret scanning
 A `gitleaks` pre-commit hook (and a CI job) scans for secrets, and another hook blocks audio files

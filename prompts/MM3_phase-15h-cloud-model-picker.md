@@ -11,7 +11,7 @@ hundreds. The app shows no prices. This phase builds the filter, the prices and 
 15g's measured results.
 
 ## Read first
-- `CLAUDE.md`, `prompts/_shared-instructions.md`, `docs/SPECIFICATION.md` §6 ("UI suggests … cloud models by
+- `CLAUDE.md`, `prompts/MM3_shared-instructions.md`, `docs/MM3_SPECIFICATION.md` §6 ("UI suggests … cloud models by
   capability, with clear cost/privacy notes") and §15.
 - **The Phase 15g Phase Log entry and ADR-0041 "Results"**: which models were callable, measured eval quality, time,
   tokens and cost per note, model-list quirks. This phase's recommendations come from those numbers, not from

@@ -3,7 +3,7 @@
 **Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 00 · **Branch:** `phase-01-repo-foundation`
 
 ## Read first
-`CLAUDE.md`, `prompts/_shared-instructions.md`, `IMPLEMENTATION_PLAN.md`, and `docs/SPECIFICATION.md` §1, §2, §11, §15 (especially §15.3 and §15.4).
+`CLAUDE.md`, `prompts/MM3_shared-instructions.md`, `MM3_IMPLEMENTATION_PLAN.md`, and `docs/MM3_SPECIFICATION.md` §1, §2, §11, §15 (especially §15.3 and §15.4).
 
 ## Goal
 Make the repository ready to publish on GitHub from day one, with no application code yet. Every governance, licensing, security and contribution file exists, is accurate for the current state ("pre-alpha, under construction"), and is structured so that later phases only append to it.
@@ -32,4 +32,4 @@ Any Python code, pyproject or Docker files.
 - First commit(s) on the phase branch: `chore: initial repository governance`.
 
 ## Phase-specific docs
-Everything above is the deliverable. Then apply the standard close-out checklist in `_shared-instructions.md`.
+Everything above is the deliverable. Then apply the standard close-out checklist in `MM3_shared-instructions.md`.

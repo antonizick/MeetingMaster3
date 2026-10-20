@@ -3,7 +3,7 @@
 **Model:** Opus 5.5 (`/model claude-opus-5-5`) · **Depends on:** 03 · **Branch:** `phase-04-jobs-orchestration`
 
 ## Read first
-`CLAUDE.md`, `prompts/_shared-instructions.md`, and `docs/SPECIFICATION.md` §3 (flow step 4, job controls), §4, §10, §15.2 (R3–R5, R7, R8) and §15.3 (S4). Audio retention is decided (Q1, ADR-0006, spec R8): Opus re-encode at `written`, 90-day default, per-meeting pin.
+`CLAUDE.md`, `prompts/MM3_shared-instructions.md`, and `docs/MM3_SPECIFICATION.md` §3 (flow step 4, job controls), §4, §10, §15.2 (R3–R5, R7, R8) and §15.3 (S4). Audio retention is decided (Q1, ADR-0006, spec R8): Opus re-encode at `written`, 90-day default, per-meeting pin.
 
 **Phase 03 interfaces you will use:** `meetingmaster3.domain.transcript.Transcript` (serialise artifacts with `model_dump_json()` / `Transcript.model_validate_json()`), `domain.filenames.parse_filename` for upload pre-fill, and `vault.io.atomic_write_text` for any atomic file write. Domain models are frozen pydantic models; `model_copy(update=...)` skips validation, so build new instances when values come from outside.
 

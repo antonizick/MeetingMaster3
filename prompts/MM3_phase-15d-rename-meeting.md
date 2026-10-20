@@ -19,7 +19,7 @@ only redirects to Meetings; the audio route has `?download=1&name=<note stem>`, 
 title once the note is renamed.
 
 ## Read first
-- `CLAUDE.md`, `prompts/_shared-instructions.md`, `docs/SPECIFICATION.md` §5 (naming), §15 (R11 damaged
+- `CLAUDE.md`, `prompts/MM3_shared-instructions.md`, `docs/MM3_SPECIFICATION.md` §5 (naming), §15 (R11 damaged
   sections, R12 archive, R13 file names, R18 note format, R23, R25(a) readable transcript, and S3/S4/S8 in
   §15.3: sanitised rendering, **vault path confinement**, **atomic writes**).
 - `docs/dev-guide/note-format.md` (normative note, companion and readable-transcript format).
@@ -177,13 +177,13 @@ or rolled back.
   `mypy src tests` error count is no higher than on `main`.
 
 ## Phase-specific docs
-- `docs/SPECIFICATION.md` §15: amendment **R28** (renaming and re-dating a meeting: what changes, what never
+- `docs/MM3_SPECIFICATION.md` §15: amendment **R28** (renaming and re-dating a meeting: what changes, what never
   changes, backlinks, the journal). Take the next free number if R28 is already used on `main`.
 - ADR (next free number): the plan/journal design, the backlink matching rules, the folder-move rule, and the
   backup location.
 - `docs/dev-guide/note-format.md` (what a rename touches), `docs/user-guide/reviewing-and-editing.md` (Title &
   date), the CLI reference, `docs/THREAT_MODEL.md` (a new write path across the whole vault), `docs/ARCHITECTURE.md`,
   `CHANGELOG.md`.
-- `prompts/phase-16-release.md` if screenshots or the feature list should mention it.
+- `prompts/MM3_phase-16-release.md` if screenshots or the feature list should mention it.
 
 Then the standard close-out checklist.

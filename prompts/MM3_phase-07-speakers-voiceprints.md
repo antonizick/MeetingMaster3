@@ -3,7 +3,7 @@
 **Model:** Opus 5.5 (`/model claude-opus-5-5`) · **Depends on:** 06 · **Branch:** `phase-07-speakers-voiceprints`
 
 ## Read first
-`CLAUDE.md`, `prompts/_shared-instructions.md`, and `docs/SPECIFICATION.md` §3 (flow step 5), §7 (speaker persistence), §13 (voiceprint risk), §15.3 (S7, biometric data). Phase Log entries for 04 and 06.
+`CLAUDE.md`, `prompts/MM3_shared-instructions.md`, and `docs/MM3_SPECIFICATION.md` §3 (flow step 5), §7 (speaker persistence), §13 (voiceprint risk), §15.3 (S7, biometric data). Phase Log entries for 04 and 06.
 
 **Phase 03 interfaces:** `domain.transcript.SpeakerMap` (labels to confirmed names; `display_name` gives stable `Speaker N` placeholders; `apply(transcript)` returns a named copy), `CompanionTranscript`, and `markdown.transcript_format.rename_speakers(text, speaker_map)`, which rewrites the companion's frontmatter and turn-heading names in place and refuses (`transcript_turns_mismatch`) when the readable turns were restructured. `MeetingMeta.speakers` and `participants` feed the note frontmatter. Labels must match `[A-Za-z0-9_-]{1,64}`.
 

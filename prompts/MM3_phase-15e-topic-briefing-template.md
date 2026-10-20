@@ -9,7 +9,7 @@ and owned action items. Everything MM3 already does for metadata and naming stay
 template library and its tests and docs, so **it can run in parallel with 15c and 15d**.
 
 ## Read first
-- `CLAUDE.md`, `prompts/_shared-instructions.md`, `docs/SPECIFICATION.md` §15 (A3 template count, R22 templates
+- `CLAUDE.md`, `prompts/MM3_shared-instructions.md`, `docs/MM3_SPECIFICATION.md` §15 (A3 template count, R22 templates
   and generation, R25(c) the two summaries).
 - `docs/dev-guide/template-format.md` (whole file; §10 lists the conventions every built-in follows).
 - Phase Log entries for Phases 09, 13, 15 (eval baseline), 15a (two summaries, eval word targets) and the
@@ -154,13 +154,13 @@ frontmatter, header, file names, section markers, timestamps and task format.
   tests` error count is no higher than on `main`.
 
 ## Phase-specific docs
-- `docs/SPECIFICATION.md` §15: amendment **R29** (a 23rd built-in template, amending A3's count, and its
+- `docs/MM3_SPECIFICATION.md` §15: amendment **R29** (a 23rd built-in template, amending A3's count, and its
   structure). Take the next free number if it is used.
 - ADR (next free number on `main` at close-out; 15c may run in parallel): the template's design, the anonymised
   sample analysis, the targets and the prompt iterations.
 - README (template count and list), `docs/ARCHITECTURE.md`, `docs/dev-guide/template-format.md` §10, the generated
   catalogue, `docs/user-guide/README.md`, `docs/PERFORMANCE.md`, `CHANGELOG.md`, and the MVP definition-of-done line
-  in `IMPLEMENTATION_PLAN.md` ("22 templates" → "23").
-- `prompts/phase-16-release.md` if it names a template count.
+  in `MM3_IMPLEMENTATION_PLAN.md` ("22 templates" → "23").
+- `prompts/MM3_phase-16-release.md` if it names a template count.
 
 Then the standard close-out checklist.

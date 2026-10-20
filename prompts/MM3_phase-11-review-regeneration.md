@@ -3,7 +3,7 @@
 **Model:** Opus 5.5 (`/model claude-opus-5-5`) · **Depends on:** 10 · **Branch:** `phase-11-review-regeneration`
 
 ## Read first
-`CLAUDE.md`, `prompts/_shared-instructions.md`, and `docs/SPECIFICATION.md` §2 (JTBD 2 and 4), §3 (flow steps 6–8, re-open, partial regeneration, edge cases), §5, §9, §13 (round-trip fragility), §15.2 (R11, R12). `docs/dev-guide/note-format.md` (Phase 03).
+`CLAUDE.md`, `prompts/MM3_shared-instructions.md`, and `docs/MM3_SPECIFICATION.md` §2 (JTBD 2 and 4), §3 (flow steps 6–8, re-open, partial regeneration, edge cases), §5, §9, §13 (round-trip fragility), §15.2 (R11, R12). `docs/dev-guide/note-format.md` (Phase 03).
 
 **Phase 03 interfaces:** `markdown.note_parser.parse_note(text)` → `ParsedNote` (`.note`, `.marker_errors`, `.warnings`); edit with `note.with_section(...)` / `with_meta(...)` and save with `render_note(note, base=parsed)`, which keeps every unchanged byte; or work on text with `markdown.sections.replace_section` / `append_section` (R11 refusals raise `SectionMarkerError`, code `section_markers_invalid`, with `.errors`). Archives: `vault.archive.archive_section(...)` and `archive_note(...)`. External-modification detection: `vault.io.fingerprint(path)`. Companion: `markdown.transcript_format.parse_transcript` (`.doc`, `.body_matches_data`), `rename_speakers`. Read vault files with `vault.io.read_text` (keeps CRLF). The vault picker must **skip files with an `mm3-archived` property** (and may skip `Archive/` folders): whole-note archives keep their `mm3-id`.
 

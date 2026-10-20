@@ -3,7 +3,7 @@
 **Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 01 · **Branch:** `phase-02-python-scaffold`
 
 ## Read first
-`CLAUDE.md`, `prompts/_shared-instructions.md`, and `docs/SPECIFICATION.md` §4, §11, §14, §15.2 (R1–R3) and §15.3 (S1, S2, S5). Also ADR-0005 in `docs/DECISIONS.md`.
+`CLAUDE.md`, `prompts/MM3_shared-instructions.md`, and `docs/MM3_SPECIFICATION.md` §4, §11, §14, §15.2 (R1–R3) and §15.3 (S1, S2, S5). Also ADR-0005 in `docs/MM3_DECISIONS.md`.
 
 ## Goal
 A running, empty-but-real application skeleton: `uv run mm3 serve` starts a FastAPI app on `127.0.0.1:8765` with security middleware, config loading and a health page. CI enforces lint, types, tests and security checks.

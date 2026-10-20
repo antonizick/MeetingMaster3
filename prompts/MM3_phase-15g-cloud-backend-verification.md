@@ -13,7 +13,7 @@ picker, prices and recommendations follow in **15h**, which uses this phase's me
 **can run in parallel with 15f** (expect `CHANGELOG.md` / `docs/PERFORMANCE.md` merge conflicts; keep both sides).
 
 ## Read first
-- `CLAUDE.md`, `prompts/_shared-instructions.md`, `docs/SPECIFICATION.md` §6 (LLM backends, "clear cost/privacy
+- `CLAUDE.md`, `prompts/MM3_shared-instructions.md`, `docs/MM3_SPECIFICATION.md` §6 (LLM backends, "clear cost/privacy
   notes") and §15 (§15.3 security baseline: masked secrets, cloud egress consent).
 - Phase Log entries for Phase 08 (adapters, "a live Bedrock/OpenRouter check needs Nick's keys"), Phase 12 (Settings
   backends UI), Phase 14 (Docker), Phase 15 (consent-bypass fix, "Deferred to the roadmap") and the 2026-10-12

@@ -3,7 +3,7 @@
 **Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 02 (can run in parallel with 03–07) · **Branch:** `phase-08-llm-backends`
 
 ## Read first
-`CLAUDE.md`, `prompts/_shared-instructions.md`, and `docs/SPECIFICATION.md` §8, §12 (extensibility), §15.1 (A4), §15.2 (R5, R6) and §15.3 (S5, S6). ADR-0004.
+`CLAUDE.md`, `prompts/MM3_shared-instructions.md`, and `docs/MM3_SPECIFICATION.md` §8, §12 (extensibility), §15.1 (A4), §15.2 (R5, R6) and §15.3 (S5, S6). ADR-0004.
 
 ## Goal
 A thin, uniform interface over Ollama, AWS Bedrock and OpenAI-compatible endpoints (with an OpenRouter preset). Adding a backend means one new module plus a registry entry. Every backend declares whether data leaves the machine.

@@ -22,7 +22,7 @@ Out of scope: vulnerabilities in third-party models or dependencies (report upst
 that require an attacker who already has local shell access as the same user.
 
 ## Security model summary
-The full baseline is in [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) section 15.3. The threat model
+The full baseline is in [`docs/MM3_SPECIFICATION.md`](docs/MM3_SPECIFICATION.md) section 15.3. The threat model
 (assets, trust boundaries, STRIDE per boundary, mitigations mapped to code and tests, residual risks)
 is [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 

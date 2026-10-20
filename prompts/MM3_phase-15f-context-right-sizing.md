@@ -10,7 +10,7 @@ documented). This phase fixes the app side, re-measures, recalibrates the time e
 settings for other users. It touches the generator's budgeting and docs only, so it **can run in parallel with 15d**.
 
 ## Read first
-- `CLAUDE.md`, `prompts/_shared-instructions.md`, `docs/SPECIFICATION.md` §15 (R5 VRAM hand-off, R6 context handling,
+- `CLAUDE.md`, `prompts/MM3_shared-instructions.md`, `docs/MM3_SPECIFICATION.md` §15 (R5 VRAM hand-off, R6 context handling,
   R17 performance, R29 Default Notes).
 - The Phase 15, 15a and 15e Phase Log entries (measurements, the 15e follow-up about `num_ctx`).
 - ADR-0016 (map-reduce), ADR-0017 (one `num_ctx` per note so a local Ollama never reloads the model), ADR-0039

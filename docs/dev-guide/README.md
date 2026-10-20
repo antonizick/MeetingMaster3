@@ -14,5 +14,5 @@ Pages are added as the code lands. Planned index:
 | `web-ui.md` (HTMX/Alpine conventions, vendored assets) | 10 |
 | `release-process.md` | 16 |
 
-See also [`../ARCHITECTURE.md`](../ARCHITECTURE.md), [`../DECISIONS.md`](../DECISIONS.md) and
+See also [`../ARCHITECTURE.md`](../ARCHITECTURE.md), [`../MM3_DECISIONS.md`](../MM3_DECISIONS.md) and
 [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md).

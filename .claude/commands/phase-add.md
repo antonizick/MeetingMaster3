@@ -8,11 +8,11 @@ a planning Phase Log entry, ADRs for any decisions made now, the vault note, and
 **Write no product code, and do not claim the phase.** Its status stays `⬜ Not started`.
 
 ## 0. Preconditions
-- The main checkout (`/home/nick/Work/MeetingMaster3`) is on `main` and `git status --short IMPLEMENTATION_PLAN.md prompts docs/DECISIONS.md`
+- The main checkout (`/home/nick/Work/MeetingMaster3`) is on `main` and `git status --short MM3_IMPLEMENTATION_PLAN.md prompts docs/MM3_DECISIONS.md`
   prints nothing. If not, stop and tell Nick (another agent may be mid-claim).
-- Read `CLAUDE.md`, `IMPLEMENTATION_PLAN.md` (from `main`, including the Phase Log and owner questions),
-  `prompts/_shared-instructions.md`, `docs/DECISIONS.md` (the list of ADR titles plus any the request touches),
-  `docs/SPECIFICATION.md` §15 (amendments), and the **most recent phase prompt** as a style reference.
+- Read `CLAUDE.md`, `MM3_IMPLEMENTATION_PLAN.md` (from `main`, including the Phase Log and owner questions),
+  `prompts/MM3_shared-instructions.md`, `docs/MM3_DECISIONS.md` (the list of ADR titles plus any the request touches),
+  `docs/MM3_SPECIFICATION.md` §15 (amendments), and the **most recent phase prompt** as a style reference.
 
 ## 1. Intake
 **No argument (`$ARGUMENTS` is empty): interview Nick before anything else.** Never guess the request.
@@ -20,7 +20,7 @@ a planning Phase Log entry, ADRs for any decisions made now, the vault note, and
    phase that is not complete.
 2. Ask, in plain text, for **what the new phase must deliver**: one bullet per change, ideally "today: … →
    want: …", plus the reason and how he will check it is done. Say that he can instead paste a filled
-   `prompts/_change-request-template.md` or give its path. Wait for the answer.
+   `prompts/MM3_change-request-template.md` or give its path. Wait for the answer.
 3. Ask **where it goes** with AskUserQuestion, giving 2-4 options derived from the table:
    - your recommendation first: usually after the last completed or last inserted phase, so it runs next
      and before release;
@@ -30,7 +30,7 @@ a planning Phase Log entry, ADRs for any decisions made now, the vault note, and
 4. Read the answers back as numbered items with the proposed ID, and continue with the steps below.
 
 1. The request is either a file path (read it in full, plus everything it attaches or links) or pasted text.
-   The recommended shape is `prompts/_change-request-template.md`, but any free text works.
+   The recommended shape is `prompts/MM3_change-request-template.md`, but any free text works.
 2. Split it into numbered items. Keep Nick's wording: the prompt will quote it under "Nick's request (verbatim intent, DATE)".
 3. **Ground every item in the code.** Find the files, functions, routes, templates, settings, ADRs and docs
    it touches, and note what already exists, what is half-built, and anything that contradicts the request
@@ -63,11 +63,11 @@ a planning Phase Log entry, ADRs for any decisions made now, the vault note, and
   security, prompt engineering or complex interactive UI; the balanced model for well-specified UI, CRUD,
   content, packaging and docs. State the reason in one line in the Phase Log planning entry.
 - One focused session: one goal and about 5-10 tasks. If it is bigger, split it.
-- Slug: short and kebab-case. File `prompts/phase-<ID>-<slug>.md`, branch `phase-<ID>-<slug>`, worktree
+- Slug: short and kebab-case. File `prompts/MM3_phase-<ID>-<slug>.md`, branch `phase-<ID>-<slug>`, worktree
   `../MeetingMaster3-phase-<ID>`.
 
 ## 4. Write
-1. **Prompt** `prompts/phase-<ID>-<slug>.md`, in the same structure as the other prompts:
+1. **Prompt** `prompts/MM3_phase-<ID>-<slug>.md`, in the same structure as the other prompts:
    - header line (model and `/model` command, Depends on, branch, worktree);
    - context (one paragraph: why this phase exists);
    - **Read first**;
@@ -81,18 +81,18 @@ a planning Phase Log entry, ADRs for any decisions made now, the vault note, and
    - **Acceptance criteria**, verifiable in the real app;
    - **Phase-specific docs**;
    - "Then the standard close-out checklist."
-2. **`IMPLEMENTATION_PLAN.md`:**
+2. **`MM3_IMPLEMENTATION_PLAN.md`:**
    - add the row in ID order with `⬜ Not started`;
    - rewire dependents;
    - update the dependency graph and the "Last updated" line;
    - add any owner questions;
    - add a Phase Log entry `### DATE: Planning: phase <ID> inserted (Planned)`: the request in brief, the
      scope, the placement and model rationale, the decisions taken, and the other files changed.
-3. **ADRs** in `docs/DECISIONS.md` for decisions made during intake (append, add the row to the index table at the top, and mark any ADR it supersedes).
+3. **ADRs** in `docs/MM3_DECISIONS.md` for decisions made during intake (append, add the row to the index table at the top, and mark any ADR it supersedes).
    Spec amendments are normally left to the phase; add one now only if Nick changed the product definition.
 4. **Later prompts:** edit any not-started prompt whose assumptions change (at least the release phase's
    "depends on" and anything about screenshots, notices or docs).
-5. **Vault note** `/home/nick/Documents/02 Projects/Meeting Master 3 Implementation Plan.md`: add the row (`⬜ Not started`) and a dated log line.
+5. **Vault note** `/home/nick/Documents/02 Projects/MM3 Implementation Plan.md`: add the row (`⬜ Not started`) and a timestamped log line.
 
 ## 5. Verify and commit
 - Every link in the new row and prompt resolves (`ls`); each table row has exactly one status icon; each
@@ -100,6 +100,9 @@ a planning Phase Log entry, ADRs for any decisions made now, the vault note, and
   in the right order.
 - Commit only the planning files to `main`: `git commit -m "docs(plan): add phase <ID> (<title>)" -- <files>`.
   This is **not** a claim. **Never push.**
+
+## Naming and timestamps
+Use the project prefix `MM3_` on every new project document (the prompt file is `prompts/MM3_phase-<ID>-<slug>.md`). Every date you write (Phase Log heading, ADR rows and a **Recorded** line, "Last updated", the prompt's "verbatim intent" and "verified" lines, the vault log) is a timestamp, `YYYY-MM-DD HH:MM TZ` (from `date '+%Y-%m-%d %H:%M %Z'`, never a bare or guessed date).
 
 ## 6. Report to Nick
 - The new row (ID, name, model, depends on).

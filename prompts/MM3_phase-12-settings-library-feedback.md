@@ -3,7 +3,7 @@
 **Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 10 (can run in parallel with 11 and 13) · **Branch:** `phase-12-settings-library-feedback`
 
 ## Read first
-`CLAUDE.md`, `prompts/_shared-instructions.md`, and `docs/SPECIFICATION.md` §3 (template library, feedback), §6, §8, §11 (config file reveal), §15.2 (R3, R8) and §15.3 (S1, S5, S6, S7). `docs/user-guide/configuration.md`.
+`CLAUDE.md`, `prompts/MM3_shared-instructions.md`, and `docs/MM3_SPECIFICATION.md` §3 (template library, feedback), §6, §8, §11 (config file reveal), §15.2 (R3, R8) and §15.3 (S1, S5, S6, S7). `docs/user-guide/configuration.md`.
 
 **Phase 04 settings already exist** (`docs/user-guide/configuration.md`): `privacy.audio_retention` (`forever`/`days`/`delete_after_write`), `privacy.audio_retention_days`, `audio.max_upload_mb`, `audio.opus_bitrate_kbps`, `jobs.max_concurrent`, `jobs.prune_interval_hours`. Retention is applied by the pruner using the current setting (ADR-0013); after changing it, call `JobRunner.prune()` (or show `prune(dry_run=True)` as a preview of what will be deleted). Per-meeting pin: `POST /api/jobs/{id}/pin|unpin`. The JobRunner reads `settings` at start-up for `max_concurrent`; a change needs a restart (say so in the UI).
 

@@ -3,7 +3,7 @@
 **Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 11, 12 · **Branch:** `phase-14-docker-deployment`
 
 ## Read first
-`CLAUDE.md`, `prompts/_shared-instructions.md`, and `docs/SPECIFICATION.md` §11, §15.2 (R3, R15, R16) and §15.3 (S1, S5). The Phase 06 ADR (ML pins and CUDA/cuDNN requirements). Nick's OSMods README at `/home/nick/Documents/04 Resources/OSMods/README.md` (host changes must be documented there).
+`CLAUDE.md`, `prompts/MM3_shared-instructions.md`, and `docs/MM3_SPECIFICATION.md` §11, §15.2 (R3, R15, R16) and §15.3 (S1, S5). The Phase 06 ADR (ML pins and CUDA/cuDNN requirements). Nick's OSMods README at `/home/nick/Documents/04 Resources/OSMods/README.md` (host changes must be documented there).
 
 ## Goal
 `docker compose up` gives a working MeetingMaster3 on Linux, with GPU (NVIDIA) and CPU variants, persistent volumes, connectivity to the host's Ollama, no models baked in, and a lean, secure image.

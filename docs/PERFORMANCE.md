@@ -192,7 +192,7 @@ meeting. Re-run and compare after changing prompts, templates or the model:
 uv run python -m tests.eval.run_eval --model qwen3:8b --json /tmp/results.json
 uv run python -m tests.eval.baseline /tmp/results.json        # exits 1 on a regression
 ```
-Results of the Phase 15 run are in the Phase Log of `IMPLEMENTATION_PLAN.md`.
+Results of the Phase 15 run are in the Phase Log of `MM3_IMPLEMENTATION_PLAN.md`.
 
 ## Not measured
 16 GB and 24 GB profiles, CPU-only transcription speed and Apple hardware (no such machine was

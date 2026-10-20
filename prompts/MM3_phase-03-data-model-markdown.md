@@ -3,7 +3,7 @@
 **Model:** Opus 5.5 (`/model claude-opus-5-5`) · **Depends on:** 02 · **Branch:** `phase-03-data-model-markdown`
 
 ## Read first
-`CLAUDE.md`, `prompts/_shared-instructions.md`, and `docs/SPECIFICATION.md` §3 (edge cases), §5, §9, §13 (risks), §15.2 (R9–R13) and §15.3 (S4), plus Appendix B.
+`CLAUDE.md`, `prompts/MM3_shared-instructions.md`, and `docs/MM3_SPECIFICATION.md` §3 (edge cases), §5, §9, §13 (risks), §15.2 (R9–R13) and §15.3 (S4), plus Appendix B.
 
 ## Goal
 A pure-Python, exhaustively tested core that represents meetings and **writes and parses** Obsidian notes and companion transcripts losslessly. It replaces only marker-delimited sections and preserves everything the user wrote outside them. Every later phase depends on this being correct.

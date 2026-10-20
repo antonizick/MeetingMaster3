@@ -3,7 +3,7 @@
 **Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 09 · **Branch:** `phase-10-web-ui-core`
 
 ## Read first
-`CLAUDE.md`, `prompts/_shared-instructions.md`, and `docs/SPECIFICATION.md` §3 (core flow steps 1–5 and 8), §10, §15.1 (A2), §15.3 (S2, S3, S6). ADR-0002. The API surfaces from Phases 04–09 (read the routers).
+`CLAUDE.md`, `prompts/MM3_shared-instructions.md`, and `docs/MM3_SPECIFICATION.md` §3 (core flow steps 1–5 and 8), §10, §15.1 (A2), §15.3 (S2, S3, S6). ADR-0002. The API surfaces from Phases 04–09 (read the routers).
 
 **Phase 04 API** (`docs/dev-guide/jobs-and-stages.md` has the full table and the SSE format): `POST /api/jobs` (multipart `file` + JSON `options`; title and date are pre-filled server-side from the filename, but the UI should pre-fill too so the user sees them before upload), `GET /api/jobs[?status=]`, `GET /api/jobs/{id}` (stages with `display_name`, `fraction`, `message`, `eta_seconds`; `waiting_for` with the question), `POST …/cancel`, `POST …/resume` (`{"overrides": {...}}`), `POST …/input` (the speaker mapping; Phase 07 may add `/speakers`), `DELETE /api/jobs/{id}`, `POST …/pin|unpin`, `GET …/audio` (Range; `410 E_AUDIO_EXPIRED`), `GET …/events` (SSE: `snapshot`, then `stage` and `job` events with increasing `seq`, `: heartbeat` every 15 s; the stream closes after `written`/`failed`/`cancelled`, so reconnect after a resume). A stage event with status `pending` and message "Waiting for the GPU" means another job holds the GPU. Errors are `{code, message, hint}`. All POST/DELETE need the `X-CSRF-Token` header. Develop against `MM3_FAKE_PIPELINE=1` (`MM3_FAKE_STAGE_SECONDS` sets the pace).
 

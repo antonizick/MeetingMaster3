@@ -2,7 +2,7 @@
 """Pre-commit hook: refuse audio/video files unless they are tiny test fixtures.
 
 Allowed: ``tests/fixtures/audio/<name>.fixture.<ext>``. Everything else is rejected so that
-recordings never reach the repository (CLAUDE.md, SPECIFICATION §15.4).
+recordings never reach the repository (CLAUDE.md, MM3_SPECIFICATION §15.4).
 """
 
 from __future__ import annotations

@@ -3,7 +3,7 @@
 **Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 02 (can run in parallel with 03, 04 and 08) · **Branch:** `phase-05-hardware-awareness`
 
 ## Read first
-`CLAUDE.md`, `prompts/_shared-instructions.md`, and `docs/SPECIFICATION.md` §3 (flow step 3), §7 (hardware table), §8 (model recommendations), §10 and §15.2 (R5, R17). Also design pre-notes §4, via spec Appendix A context.
+`CLAUDE.md`, `prompts/MM3_shared-instructions.md`, and `docs/MM3_SPECIFICATION.md` §3 (flow step 3), §7 (hardware table), §8 (model recommendations), §10 and §15.2 (R5, R17). Also design pre-notes §4, via spec Appendix A context.
 
 ## Goal
 The app knows what hardware it is running on and turns that into concrete, explained recommendations for transcription settings and local LLM models. It works without torch installed, so detection must not depend on the ML extras.

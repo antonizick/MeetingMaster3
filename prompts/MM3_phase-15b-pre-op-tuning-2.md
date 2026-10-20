@@ -7,7 +7,7 @@ used the review screen day to day and asked for three changes before publication
 round.
 
 ## Read first
-- `CLAUDE.md`, `prompts/_shared-instructions.md`, `docs/SPECIFICATION.md` §15 (R8 retention, R19, R25 and
+- `CLAUDE.md`, `prompts/MM3_shared-instructions.md`, `docs/MM3_SPECIFICATION.md` §15 (R8 retention, R19, R25 and
   the S1–S8 controls in §15.3, especially S2 CSRF/Origin and S3 sanitised rendering).
 - Phase Log entries for Phases 04 (retention, pin API), 11 (review workspace), 12 (Settings → Privacy),
   15a and the 15b planning entry (2026-10-14).
@@ -60,7 +60,7 @@ and lets the user keep it forever, or undo that, in one click. The logo can be r
   unpin a meeting's audio on the meeting's own page", and the `E_AUDIO_EXPIRED` hint says "Pin a meeting to
   keep its audio".
 - **Logo notices:** `NOTICE` (lines ~10-13), `THIRD_PARTY_NOTICES.md` "Project logo (Phase 15a)",
-  `README.md` licence section ("forks must replace it"), ADR-0032/0033, `prompts/phase-16-release.md`
+  `README.md` licence section ("forks must replace it"), ADR-0032/0033, `prompts/MM3_phase-16-release.md`
   line ~8, and possibly `scripts/make_logo.py`'s docstring and `docs/` pages. `grep -rn -i "all rights
   reserved\|must replace" .` lists every place.
 
@@ -124,7 +124,7 @@ and lets the user keep it forever, or undo that, in one click. The logo can be r
 2. Do **not** add the CC0 legal text as a new top-level `LICENSE` (the code stays Apache-2.0). Putting a
    short `src/meetingmaster3/web/static/brand/LICENSE.md` (CC0 statement) next to the images is
    recommended, so a fork that copies the folder carries it.
-3. Update `prompts/phase-16-release.md`: replace "all rights reserved … forks must replace it" with CC0, and
+3. Update `prompts/MM3_phase-16-release.md`: replace "all rights reserved … forks must replace it" with CC0, and
    keep "the original `wiz.jpg` is never added".
 
 ## Out of scope
@@ -164,14 +164,14 @@ and lets the user keep it forever, or undo that, in one click. The logo can be r
   and the `mypy src tests` error count is no higher than on `main`.
 
 ## Phase-specific docs
-- `docs/SPECIFICATION.md` §15: amendment **R26** (review opens in preview; per-meeting keep-forever with a
+- `docs/MM3_SPECIFICATION.md` §15: amendment **R26** (review opens in preview; per-meeting keep-forever with a
   visible countdown; the logo licence, amending R25(f)'s "all rights reserved").
 - ADR (next free number): the preview-first default and mode-switch rules, the retention-status function
   shared with the pruner, and the wording choices.
 - User guide: `reviewing-and-editing.md` (Preview/Edit, Keep forever, the countdown) and `configuration.md`
   (how the countdown relates to `privacy.audio_retention`).
 - `docs/ARCHITECTURE.md` if modules change; `CHANGELOG.md`; `NOTICE`, `THIRD_PARTY_NOTICES.md`, `README.md`.
-- `prompts/phase-16-release.md`: screenshots show the review screen in Preview with the retention line; the
+- `prompts/MM3_phase-16-release.md`: screenshots show the review screen in Preview with the retention line; the
   logo is CC0.
 
 Then the standard close-out checklist.
