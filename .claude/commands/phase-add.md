@@ -86,7 +86,7 @@ a planning Phase Log entry, ADRs for any decisions made now, the vault note, and
    - rewire dependents;
    - update the dependency graph and the "Last updated" line;
    - add any owner questions;
-   - add a Phase Log entry `### DATE: Planning: phase <ID> inserted (Planned)`: the request in brief, the
+   - add a Phase Log entry `### DATE: Planning: phase <ID> inserted (Planned)`: a first bullet `- **Timeline:** started <TS> · finished <TS>` (*started* is `date` taken at the beginning of this planning session, *finished* is `date` taken just before the commit), then the request in brief, the
      scope, the placement and model rationale, the decisions taken, and the other files changed.
 3. **ADRs** in `docs/MM3_DECISIONS.md` for decisions made during intake (append, add the row to the index table at the top, and mark any ADR it supersedes).
    Spec amendments are normally left to the phase; add one now only if Nick changed the product definition.

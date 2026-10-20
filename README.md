@@ -47,7 +47,7 @@ physically erased when deleted. See [`docs/PRIVACY.md`](docs/PRIVACY.md).
         v
  Markdown writer/parser ──> your Obsidian vault (source of truth)
 ```
-Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Details: [`docs/MM3_ARCHITECTURE.md`](docs/MM3_ARCHITECTURE.md).
 
 ## Installation
 **Docker (recommended):**

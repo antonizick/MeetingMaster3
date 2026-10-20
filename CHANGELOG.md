@@ -374,5 +374,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `.editorconfig`, `.gitattributes`, `.env.example`.
 - GitHub scaffolding: issue forms, pull request template, Dependabot config and a Markdown link
   check workflow.
-- Documentation skeleton: `docs/ARCHITECTURE.md`, `docs/PRIVACY.md`, user and developer guide indexes.
+- Documentation skeleton: `docs/MM3_ARCHITECTURE.md`, `docs/PRIVACY.md`, user and developer guide indexes.
 - Planning artifacts from Phase 00: specification v1.1, ADR log, implementation plan and phase prompts.

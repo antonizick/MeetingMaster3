@@ -16,13 +16,13 @@ Nick and other agents read the Status column from `main`. A status change made o
 1. In the main checkout (`/home/nick/Work/MeetingMaster3`), check that `git branch --show-current` prints `main` and that `git status --short MM3_IMPLEMENTATION_PLAN.md` prints nothing. If either check fails, stop and tell Nick. Never commit another agent's uncommitted changes.
 2. Look for an existing claim: the phase's row on `main`, `git branch --list 'phase-NN-*'` and `git worktree list`. If the row is already `🔄 In progress`, or a branch or worktree exists, do not claim again; follow the resume rules in `/phase`.
 3. Set the phase's Status cell to `🔄 In progress`, then commit **only that file** to `main`: `git commit -m "chore(plan): start phase NN" -- MM3_IMPLEMENTATION_PLAN.md`.
-4. In the Obsidian note `02 Projects/MM3 Implementation Plan.md`, set the phase's row to `🔄 In progress` and add a timestamped log line: "Phase NN started (branch `phase-NN-<slug>`, worktree `../MeetingMaster3-phase-NN`)".
+4. In the Obsidian note `02 Projects/MM3 Implementation Plan.md`, set the phase's row to `🔄 In progress` and add a timestamped log line: "Phase NN started (claim commit `<hash>`, branch `phase-NN-<slug>`, worktree `../MeetingMaster3-phase-NN`)".
 5. Create the worktree and branch from that commit: `git worktree add ../MeetingMaster3-phase-NN -b phase-NN-<slug> main`, then run `uv sync` inside it. Do all of the phase's work in the worktree, using absolute paths or `cd /home/nick/Work/MeetingMaster3-phase-NN && …` in every command, because the shell may reset to the main checkout between commands. Never switch the main checkout off `main`: other agents commit their claims there.
 6. Verify: `git show main:MM3_IMPLEMENTATION_PLAN.md | grep '^| NN '` must show `🔄 In progress`.
 
 If the phase ends `⛔ Blocked`, commit that status to `main` the same way (`chore(plan): phase NN blocked`) so that `main` doesn't show a stale `🔄`. A `✅ Complete` status reaches `main` through the merge.
 
-## 2. Target repository layout (evolves; keep `docs/ARCHITECTURE.md` in sync)
+## 2. Target repository layout (evolves; keep `docs/MM3_ARCHITECTURE.md` in sync)
 ```
 MeetingMaster3/
 ├── CLAUDE.md  MM3_IMPLEMENTATION_PLAN.md  README.md  LICENSE  NOTICE  THIRD_PARTY_NOTICES.md
@@ -31,7 +31,7 @@ MeetingMaster3/
 ├── .gitignore  .dockerignore  .editorconfig  .env.example
 ├── .github/ (workflows/, ISSUE_TEMPLATE/, PULL_REQUEST_TEMPLATE.md, dependabot.yml)
 ├── docker/ (Dockerfile, compose.yaml, compose.cpu.yaml)
-├── docs/ (MM3_SPECIFICATION.md, MM3_DECISIONS.md, ARCHITECTURE.md, user-guide/, dev-guide/)
+├── docs/ (MM3_SPECIFICATION.md, MM3_DECISIONS.md, MM3_ARCHITECTURE.md, user-guide/, dev-guide/)
 ├── prompts/ (phase prompts)
 ├── src/meetingmaster3/
 │   ├── __init__.py  __main__.py  cli.py  app.py          # app factory, `mm3` CLI
@@ -68,6 +68,7 @@ MeetingMaster3/
 - [ ] All acceptance criteria in the phase prompt are met, with a short verification note for each.
 - [ ] `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .` and `uv run mypy src` all pass (from Phase 02 onward).
 - [ ] `MM3_IMPLEMENTATION_PLAN.md`: Status set (`✅ Complete` or `⛔ Blocked`, icon plus word; a `⛔ Blocked` status is also committed to `main` per §1a), Phase Log entry added (timestamp, summary, deviations, follow-ups, test counts).
+- [ ] **Timeline bullet written** as the first bullet of the Phase Log entry: *started* = the claim commit's time (`git log -1 --format=%cd --date=format-local:'%Y-%m-%d %H:%M %Z' <claim hash>`), *finished* = `date '+%Y-%m-%d %H:%M %Z'` taken as the last step before the final commit, *merged* = the merge time or `not merged yet`, plus `blocked <TS> to <TS>` for any `⛔` interval. Never reuse an earlier timestamp.
 - [ ] `CHANGELOG.md` `[Unreleased]` updated.
 - [ ] README, SECURITY, ARCHITECTURE, user and dev guides, THIRD_PARTY_NOTICES, .gitignore and .dockerignore updated where affected.
 - [ ] ADR added to `docs/MM3_DECISIONS.md` for any notable choice, **with its row in the index table at the top**; spec amendment added if the spec changed.

@@ -303,7 +303,7 @@ not a one-off script:
 - User guide: getting-started (readable transcript, leaving the page, the date hint, Update older notes),
   configuration (`notes.readable_transcript`, `branding.logo_path` if added), template-format (two
   summaries).
-- `docs/ARCHITECTURE.md`: new modules.
+- `docs/MM3_ARCHITECTURE.md`: new modules.
 - `docs/PERFORMANCE.md`: extra generation time.
 - `CHANGELOG.md`, `THIRD_PARTY_NOTICES.md` / `NOTICE` (logo).
 - Phase 16 prompt: screenshots now show the logo, the two summaries and the readable transcript; and

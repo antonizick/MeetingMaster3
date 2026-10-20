@@ -51,7 +51,7 @@ list on every WhisperX upgrade). Phase 15 also ran `uvx bandit -r src`, gitleaks
 and trivy on both images (`docker run aquasec/trivy image meetingmaster3:gpu`); repeat before a release.
 
 ## Layout
-See [`../ARCHITECTURE.md`](../ARCHITECTURE.md). Tests live in `tests/unit/` (including `test_fuzz.py`, Hypothesis fuzzing of
+See [`../MM3_ARCHITECTURE.md`](../MM3_ARCHITECTURE.md). Tests live in `tests/unit/` (including `test_fuzz.py`, Hypothesis fuzzing of
 every parser of vault files, and `test_security_controls.py`), `tests/integration/` (GPU), `tests/e2e/`
 (Playwright) and `tests/eval/` (generation quality with a real model); `tests/conftest.py` isolates XDG directories into a temp path so tests never touch your real
 config.

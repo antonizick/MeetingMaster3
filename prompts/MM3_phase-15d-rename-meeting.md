@@ -182,7 +182,7 @@ or rolled back.
 - ADR (next free number): the plan/journal design, the backlink matching rules, the folder-move rule, and the
   backup location.
 - `docs/dev-guide/note-format.md` (what a rename touches), `docs/user-guide/reviewing-and-editing.md` (Title &
-  date), the CLI reference, `docs/THREAT_MODEL.md` (a new write path across the whole vault), `docs/ARCHITECTURE.md`,
+  date), the CLI reference, `docs/THREAT_MODEL.md` (a new write path across the whole vault), `docs/MM3_ARCHITECTURE.md`,
   `CHANGELOG.md`.
 - `prompts/MM3_phase-16-release.md` if screenshots or the feature list should mention it.
 

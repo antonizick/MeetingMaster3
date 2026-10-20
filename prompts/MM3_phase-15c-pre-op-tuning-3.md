@@ -204,7 +204,7 @@ keyboard and focus behaviour. Update `review.js` and every test or e2e that clic
 - ADR (next free number on `main` at close-out; 15e may run in parallel, so re-check after rebasing): background
   switch task and its transport, the ETA model, the download route, and the pagination and Open-page choices.
 - User guide: `reviewing-and-editing.md` (progress, size, download, toggle) and `getting-started.md` (Meetings
-  replaces Recent and Open a note). README feature list if it names Recent. `docs/ARCHITECTURE.md` if modules
+  replaces Recent and Open a note). README feature list if it names Recent. `docs/MM3_ARCHITECTURE.md` if modules
   change. `CHANGELOG.md`.
 - `prompts/MM3_phase-15d-rename-meeting.md`: check that its "What exists" still matches (review toolbar, Meetings
   page) and correct it if this phase changed something it relies on.

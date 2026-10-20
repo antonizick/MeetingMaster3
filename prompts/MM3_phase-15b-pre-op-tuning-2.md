@@ -170,7 +170,7 @@ and lets the user keep it forever, or undo that, in one click. The logo can be r
   shared with the pruner, and the wording choices.
 - User guide: `reviewing-and-editing.md` (Preview/Edit, Keep forever, the countdown) and `configuration.md`
   (how the countdown relates to `privacy.audio_retention`).
-- `docs/ARCHITECTURE.md` if modules change; `CHANGELOG.md`; `NOTICE`, `THIRD_PARTY_NOTICES.md`, `README.md`.
+- `docs/MM3_ARCHITECTURE.md` if modules change; `CHANGELOG.md`; `NOTICE`, `THIRD_PARTY_NOTICES.md`, `README.md`.
 - `prompts/MM3_phase-16-release.md`: screenshots show the review screen in Preview with the retention line; the
   logo is CC0.
 

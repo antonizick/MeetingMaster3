@@ -79,7 +79,7 @@ frontmatter, header, file names, section markers, timestamps and task format.
 - **Eval:** `tests/eval/` (`run_eval.py`, `checker.py`, `baseline.json`, synthetic meetings in `tests/eval/meetings/*.yaml`),
   run with `MM3_EVAL_MODEL=qwen3:8b uv run pytest tests/eval -s`. Checks include `detailed_paragraphs`,
   `detailed_prose`, `detailed_length`, `succinct_short`.
-- **Counts that say 22:** spec §15.1 A3, README (lines ~14, 20, 111), `docs/ARCHITECTURE.md` (~198),
+- **Counts that say 22:** spec §15.1 A3, README (lines ~14, 20, 111), `docs/MM3_ARCHITECTURE.md` (~198),
   `docs/dev-guide/template-format.md` §10, `docs/user-guide/template-catalogue.md`, `docs/user-guide/README.md`,
   `tests/unit/templates/test_cli.py` (`count(" ok ") == 22`), the plan's MVP definition of done ("22 templates").
   `grep -rn "22" --include=*.md --include=*.py` to find the rest.
@@ -158,7 +158,7 @@ frontmatter, header, file names, section markers, timestamps and task format.
   structure). Take the next free number if it is used.
 - ADR (next free number on `main` at close-out; 15c may run in parallel): the template's design, the anonymised
   sample analysis, the targets and the prompt iterations.
-- README (template count and list), `docs/ARCHITECTURE.md`, `docs/dev-guide/template-format.md` §10, the generated
+- README (template count and list), `docs/MM3_ARCHITECTURE.md`, `docs/dev-guide/template-format.md` §10, the generated
   catalogue, `docs/user-guide/README.md`, `docs/PERFORMANCE.md`, `CHANGELOG.md`, and the MVP definition-of-done line
   in `MM3_IMPLEMENTATION_PLAN.md` ("22 templates" → "23").
 - `prompts/MM3_phase-16-release.md` if it names a template count.
