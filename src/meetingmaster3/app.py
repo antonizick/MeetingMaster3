@@ -23,6 +23,7 @@ from meetingmaster3.web.api.feedback import router as feedback_router
 from meetingmaster3.web.api.jobs import router as jobs_router
 from meetingmaster3.web.api.speakers import speakers_router, voiceprints_router
 from meetingmaster3.web.api.templates import router as templates_router
+from meetingmaster3.web.ask_ui import router as ask_router
 from meetingmaster3.web.feedback_ui import router as feedback_ui_router
 from meetingmaster3.web.hardware import router as hardware_router
 from meetingmaster3.web.llm import router as llm_router
@@ -68,6 +69,17 @@ def _search_service(app: FastAPI, settings: Settings, paths: AppPaths, runner: A
     return SearchService(settings, paths, registry.names, lookup, RunnerGate(runner))
 
 
+def _ask_service(app: FastAPI, settings: Settings, db: Any, search: Any, runner: Any) -> Any:
+    """The Ask agent (Phase 15j), with the same model lookup as search (the offline fake with
+    ``MM3_FAKE_PIPELINE=1``)."""
+    from meetingmaster3.ask.service import AskService
+    from meetingmaster3.search.service import RunnerGate
+
+    return AskService(
+        settings, db, search, search._lookup, app.state.llm_registry.names, RunnerGate(runner)
+    )
+
+
 def create_app(settings: Settings | None = None, paths: AppPaths | None = None) -> FastAPI:
     settings = settings or load_settings()
     app_paths = paths or resolve_paths()
@@ -90,6 +102,7 @@ def create_app(settings: Settings | None = None, paths: AppPaths | None = None) 
         search = _search_service(app, settings, app_paths, runner)
         await search.start()  # the start-up scan runs in the background
         app.state.search = search
+        app.state.ask = _ask_service(app, settings, db, search, runner)
         try:
             yield
         finally:
@@ -113,6 +126,7 @@ def create_app(settings: Settings | None = None, paths: AppPaths | None = None) 
     app.include_router(router)
     app.include_router(review_router)
     app.include_router(search_router)
+    app.include_router(ask_router)
     app.include_router(hardware_router)
     app.include_router(llm_router)
     app.include_router(jobs_router)

@@ -1,0 +1,14 @@
+{% if error %}
+<p class="hint error-text" role="status">{{ error }}</p>
+{% elif choice.is_local %}
+<p class="hint"><span class="badge local">local</span> Runs on this computer: nothing leaves it.</p>
+{% else %}
+<div class="alert {{ 'info' if choice.remembered else 'warn' }} stack">
+  <p><span class="badge cloud">cloud: {{ provider }}</span> Excerpts from up to <strong>{{ max_meetings }} meetings</strong> (their matching passages, names and dates) and your question are sent to <strong>{{ provider }}</strong> (backend “{{ choice.name }}”) to answer.{% if estimate %} Estimated cost: {{ estimate }}.{% endif %}</p>
+  {% if choice.remembered %}
+  <p class="hint">You allowed Ask to send excerpts to this backend without asking (Settings → Language models).</p>
+  {% else %}
+  <label class="check"><input type="checkbox" name="cloud_consent" value="1" id="ask-cloud-consent" required> Send the excerpts to {{ provider }} for this question</label>
+  {% endif %}
+</div>
+{% endif %}

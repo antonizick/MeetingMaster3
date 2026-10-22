@@ -4,7 +4,8 @@ To change the schema, **append** a new :class:`Migration` to :data:`MIGRATIONS` 
 version number. Never edit or reorder a migration that has shipped. A migration is either SQL
 (run with ``executescript`` semantics, statement by statement) or a Python callable for data
 moves. Each migration runs in its own transaction together with its ``schema_version`` row.
-Later phases add their tables here (voiceprints in Phase 07, feedback in Phase 12).
+Later phases add their tables here (voiceprints in Phase 07, feedback in Phase 12, answers in
+Phase 15j).
 """
 
 from __future__ import annotations
@@ -119,11 +120,38 @@ _V4_RECENT_JOB = """
 ALTER TABLE recent_meetings ADD COLUMN job_id TEXT;
 """
 
+_V5_ANSWERS = """
+CREATE TABLE answers (
+    id            TEXT PRIMARY KEY,
+    question      TEXT NOT NULL,
+    asked_at      TEXT NOT NULL,
+    backend       TEXT NOT NULL DEFAULT '',
+    model         TEXT NOT NULL DEFAULT '',
+    vault_path    TEXT,
+    status        TEXT NOT NULL DEFAULT 'done',
+    duration_s    REAL,
+    input_tokens  INTEGER,
+    output_tokens INTEGER,
+    relevant      INTEGER NOT NULL DEFAULT 0,
+    parent_id     TEXT,
+    sources_json  TEXT NOT NULL DEFAULT '[]'
+);
+CREATE INDEX answers_asked_at ON answers (asked_at);
+
+CREATE TABLE answer_sources (
+    answer_id TEXT NOT NULL REFERENCES answers (id) ON DELETE CASCADE,
+    mm3_id    TEXT NOT NULL,
+    PRIMARY KEY (answer_id, mm3_id)
+);
+CREATE INDEX answer_sources_mm3_id ON answer_sources (mm3_id);
+"""
+
 MIGRATIONS: list[Migration] = [
     Migration(1, "jobs, job stages and recent meetings", sql=_V1_JOBS),
     Migration(2, "voiceprints (opt-in speaker recognition)", sql=_V2_VOICEPRINTS),
     Migration(3, "feedback ratings (local only)", sql=_V3_FEEDBACK),
     Migration(4, "recent meetings remember their job (review audio)", sql=_V4_RECENT_JOB),
+    Migration(5, "Ask AI agent answer history (Phase 15j)", sql=_V5_ANSWERS),
 ]
 
 

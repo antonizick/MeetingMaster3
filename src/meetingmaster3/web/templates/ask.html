@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Ask · MeetingMaster3{% endblock %}
+{% block content %}
+<h1>Ask your meetings</h1>
+{% if deleted %}<div class="alert info" role="status"><p>The answer was deleted, with its note in the vault.</p></div>{% endif %}
+{% if not search_enabled %}
+<div class="alert warn" role="alert"><p><strong>Search is switched off</strong>, so there is nothing to answer from. Turn it on in <a href="/settings/search">Settings → Search &amp; Ask</a>.</p></div>
+{% endif %}
+<form id="ask-form" class="card stack" novalidate data-running="{{ running.id if running else '' }}">
+  {% if previous %}
+  <div class="alert info"><p><strong>Follow-up to:</strong> {{ previous.question }} <a href="/ask/{{ previous.id }}">(answer)</a> · <a href="/ask">ask a new question instead</a></p></div>
+  <input type="hidden" name="previous_id" value="{{ previous.id }}">
+  {% endif %}
+  <div class="field">
+    <label for="ask-q">Your question</label>
+    <textarea id="ask-q" name="question" rows="3" maxlength="2000" required aria-describedby="ask-q-hint"
+              placeholder="e.g. How many times did we discuss the budget overrun? Who led those discussions, in what role? Make a table of the meetings, dates and attendees.">{{ question }}</textarea>
+    <p class="hint" id="ask-q-hint">Ask in your own words. The agent searches your meetings by meaning and by words, reads each meeting that matches and answers with links to them. Counts, dates and attendees come from the meeting files, not from the model.</p>
+  </div>
+  <div class="grid">
+    <div class="field"><label for="ask-backend">Language model</label>
+      <div class="row">
+        <select id="ask-backend" name="backend">
+          {% for b in backends %}
+          <option value="{{ b.name }}" data-model="{{ b.model or '' }}" data-badge="{{ b.badge }}"{% if b.error %} disabled{% endif %}{% if b.name == chosen.name %} selected{% endif %}>{{ b.name }} ({{ b.badge }}){% if b.error %} · {{ b.error }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="ask-model">Model</label>
+      <input id="ask-model" name="model" type="text" autocomplete="off" spellcheck="false" value="{{ model }}" aria-describedby="ask-model-hint">
+      <p class="hint" id="ask-model-hint">qwen3:8b suits an 8 GB GPU. Reading each meeting is one call.</p>
+      <div id="ask-model-picker" class="stack" hx-get="/settings/llm/models?target=ask-model" hx-include="#ask-backend" hx-trigger="load, change from:#ask-backend" hx-swap="innerHTML"></div>
+    </div>
+  </div>
+  <details>
+    <summary>Limit to dates or a person</summary>
+    <div class="row">
+      <div class="field"><label for="ask-from">From</label><input id="ask-from" type="date" name="date_from"></div>
+      <div class="field"><label for="ask-to">To</label><input id="ask-to" type="date" name="date_to"></div>
+      <div class="field"><label for="ask-person">Person</label><input id="ask-person" type="text" name="person" maxlength="100" autocomplete="off" placeholder="a participant or speaker"></div>
+    </div>
+  </details>
+  <div id="ask-consent" aria-live="polite" hx-get="/ask/consent" hx-include="#ask-backend, #ask-model" hx-trigger="load, change from:#ask-backend, change from:#ask-model delay:300ms" hx-swap="innerHTML"></div>
+  <p class="hint">Up to {{ max_meetings }} meetings are read per question. {% if keep_history %}Every answer is saved as a note in <code>{{ answers_folder }}</code> in your vault, linked to the meetings it used.{% else %}Answers are not kept (Settings → Search &amp; Ask).{% endif %}</p>
+  <div class="row"><button type="submit" class="primary" id="ask-submit"{% if not search_enabled %} disabled{% endif %}>Ask</button></div>
+  <div id="ask-progress" class="stack" aria-live="polite"></div>
+  <div id="ask-inline" class="stack"></div>
+</form>
+
+{% include "partials/ask_history.html" %}
+{% endblock %}
+{% block scripts %}<script defer src="{{ url_for('static', path='js/progress.js') }}"></script>
+<script defer src="{{ url_for('static', path='js/ask.js') }}"></script>{% endblock %}

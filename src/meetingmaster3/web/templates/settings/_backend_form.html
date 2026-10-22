@@ -38,6 +38,8 @@
   </div>
   <label class="check"><input type="checkbox" name="consent_remembered" value="1"{% if (s.get('consent_remembered') if s else cfg.consent_remembered) %} checked{% endif %}> Remember my consent to send transcripts to this backend</label>
   <p class="hint">For cloud backends only. Without it, each meeting asks before the transcript leaves this computer.</p>
+  <label class="check"><input type="checkbox" name="ask_consent_remembered" value="1"{% if (s.get('ask_consent_remembered') if s else cfg.ask_consent_remembered) %} checked{% endif %} aria-describedby="b-ask-hint"> Always allow Ask AI agent to send meeting excerpts to this backend</label>
+  <p class="hint" id="b-ask-hint">For cloud backends only. Without it, each question on the <a href="/ask">Ask</a> page needs its own tick before excerpts of the matching meetings (up to the “most meetings read” setting) are sent. Remembering consent for notes does not cover Ask.</p>
   <label class="check"><input type="checkbox" name="cloud_embedding_consent" value="1"{% if (s.get('cloud_embedding_consent') if s else cfg.cloud_embedding_consent) %} checked{% endif %} aria-describedby="b-embed-hint"> Allow search indexing with this backend's embeddings</label>
   <p class="hint warn-text" id="b-embed-hint">⚠ For cloud backends only, and only if you choose this backend in Settings → Search &amp; Ask. Indexing sends the full text of every meeting (notes and transcripts) to the provider, and every search sends your query. Remembering consent above does not cover this. The local Ollama embedder sends nothing.</p>
   <div class="row"><button type="submit" class="primary">Save backend</button>

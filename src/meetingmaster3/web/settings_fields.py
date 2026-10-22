@@ -176,12 +176,30 @@ SEARCH_FIELDS = (
           advanced=True),
 )  # fmt: skip
 
+ASK_FIELDS = (
+    Field("ask.default_backend", "Backend that answers", "select",
+          "auto uses the backend that writes your notes. A cloud backend asks for consent on "
+          "every question unless “Always allow Ask AI agent” is ticked in its settings."),
+    Field("ask.default_model", "Model that answers", "opt_text",
+          "Empty uses the backend's default model. You can pick another on the Ask page.",
+          placeholder="the backend's default"),
+    Field("ask.max_meetings", "Most meetings read per question", "int",
+          "Each meeting read is one model call (about 10-40 s with a local model). For a cloud "
+          "backend, excerpts of at most this many meetings are sent."),
+    Field("ask.keep_history", "Keep every answer", "bool",
+          "Saves each answer as a note in the vault (linked to the meetings it used) and lists "
+          "it on the Ask page. Off: answers are shown once and not kept."),
+    Field("ask.answers_subfolder", "Answers folder in the vault", "text",
+          "Where answer notes are written. Existing answers are not moved when you change it.",
+          placeholder="MM3 Answers/", advanced=True),
+)  # fmt: skip
+
 TABS: dict[str, tuple[str, tuple[Field, ...]]] = {
     "vault": ("Vault", VAULT_FIELDS),
     "transcription": ("Transcription", TRANSCRIPTION_FIELDS),
     "notes": ("Notes & jobs", NOTES_FIELDS),
     "llm": ("Language models", AWS_FIELDS),
-    "search": ("Search & Ask", SEARCH_FIELDS),
+    "search": ("Search & Ask", SEARCH_FIELDS + ASK_FIELDS),
     "privacy": ("Privacy", PRIVACY_FIELDS),
     "about": ("About & diagnostics", ()),
 }

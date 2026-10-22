@@ -108,6 +108,9 @@ class BackendConfig(BaseModel):
     """Allow search indexing with this (cloud) backend's embeddings: the full text of every
     indexed meeting, and every search query, is sent to the provider (ADR-0049, S6). Separate
     from ``consent_remembered``, which covers writing one meeting's notes."""
+    ask_consent_remembered: bool = False
+    """Always allow the Ask AI agent to send meeting excerpts to this (cloud) backend, without a
+    tick per question (Phase 15j, ADR-0049, S6). Separate from ``consent_remembered``."""
 
 
 class LLMSettings(BaseModel):
@@ -150,6 +153,22 @@ class SearchSettings(BaseModel):
     """Index companion transcripts as well as notes."""
     rescan_minutes: int = Field(default=10, ge=1, le=1440)
     """How often the vault is checked for notes changed outside MeetingMaster3 (Obsidian)."""
+
+
+class AskSettings(BaseModel):
+    """The Ask AI agent: questions answered from the meetings on file (Phase 15j, R31)."""
+
+    default_backend: str | None = Field(default=None, pattern=r"^[a-z0-9][a-z0-9_-]{0,31}$")
+    """Backend that answers; ``None`` uses the note-writing default (``llm.default_backend``)."""
+    default_model: str | None = Field(default=None, pattern=MODEL_NAME_PATTERN)
+    """Model that answers; ``None`` uses that backend's default model."""
+    max_meetings: int = Field(default=25, ge=1, le=200)
+    """Most meetings read for one question (one model call each)."""
+    answers_subfolder: str = "MM3 Answers/"
+    """Vault folder the answer notes are written to."""
+    keep_history: bool = True
+    """Save every answer as a vault note and list it on the Ask page. Off: answers are shown
+    once and not kept anywhere."""
 
 
 class AudioSettings(BaseModel):
@@ -197,6 +216,7 @@ class Settings(BaseSettings):
     llm: LLMSettings = Field(default_factory=LLMSettings)
     generation: GenerationSettings = Field(default_factory=GenerationSettings)
     search: SearchSettings = Field(default_factory=SearchSettings)
+    ask: AskSettings = Field(default_factory=AskSettings)
     audio: AudioSettings = Field(default_factory=AudioSettings)
     jobs: JobsSettings = Field(default_factory=JobsSettings)
     privacy: PrivacySettings = Field(default_factory=PrivacySettings)

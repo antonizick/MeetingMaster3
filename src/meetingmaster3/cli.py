@@ -1018,5 +1018,150 @@ def search(
             typer.echo(f"  - {h.label()}: {h.snippet_text()}")
 
 
+# -- ask (Phase 15j) ---------------------------------------------------------------------------
+
+
+def _ask_json(result: Any, record: Any) -> dict[str, Any]:
+    t = result.trace
+    return {
+        "question": result.question,
+        "answer": result.answer,
+        "count": result.count,
+        "meetings": [
+            {
+                "mm3_id": r.mm3_id,
+                "title": r.title,
+                "date": r.date,
+                "note_path": r.note_path,
+                "link": f"[[{r.stem}]]",
+                "relevance": r.relevance,
+                "attendees": list(r.attendees),
+                "took_part": list(r.spoke),
+                "roles": dict(r.roles),
+            }
+            for r in result.rows
+        ],
+        "people": [
+            {"name": p.name, "meetings": p.meetings, "roles": list(p.roles)} for p in result.people
+        ],
+        "backend": result.backend,
+        "model": result.model,
+        "trace": {
+            "queries": [q for plan in t.plans for q in plan.queries],
+            "read": t.read,
+            "candidates": t.candidates,
+            "follow_up": t.follow_up,
+            "removed_links": t.stripped,
+            "calls": t.calls,
+            "input_tokens": t.input_tokens,
+            "output_tokens": t.output_tokens,
+            "seconds": round(t.seconds, 1),
+        },
+        "saved": record.vault_path if record is not None else None,
+        "answer_id": record.id if record is not None else None,
+    }
+
+
+@app.command("ask")
+def ask(
+    words: list[str] = typer.Argument(  # noqa: B008 - typer's declaration style
+        None, help="Your question about the meetings, in your own words."
+    ),
+    backend: str | None = typer.Option(None, help="Backend that answers (default: Settings)."),
+    model: str | None = typer.Option(None, help="Model that answers (default: Settings)."),
+    date_from: str | None = typer.Option(None, "--from", help="Only meetings on or after."),
+    date_to: str | None = typer.Option(None, "--to", help="Only meetings on or before."),
+    person: str | None = typer.Option(None, "--person", help="Only meetings with this person."),
+    allow_cloud: bool = typer.Option(
+        False,
+        "--allow-cloud",
+        help="Allow a cloud backend to receive meeting excerpts for this question.",
+    ),
+    no_save: bool = typer.Option(False, "--no-save", help="Do not save the answer note."),
+    as_json: bool = typer.Option(False, "--json", help="Print the result as JSON."),
+) -> None:
+    """Answer a broad question from the meetings on file (`mm3 ask "<question>"`): searches the
+    index, reads each matching meeting with the model and prints a cited answer with a table of
+    the meetings, dates and attendees, saved as a note in the vault's answers folder."""
+    import asyncio
+    import datetime as dt
+    import json
+
+    from meetingmaster3.ask.notes import render_people, render_table
+    from meetingmaster3.ask.service import AskService
+    from meetingmaster3.llm.registry import BackendRegistry
+    from meetingmaster3.search.query import SearchFilters
+    from meetingmaster3.search.service import JobsTableGate
+    from meetingmaster3.storage.db import Database
+
+    configure_logging()
+    settings = load_settings()
+    question = " ".join(words or []).strip()
+    if not question:
+        typer.secho('Give a question, e.g. mm3 ask "who discussed the budget?"', err=True)
+        raise typer.Exit(2)
+    try:
+        filters = SearchFilters(
+            date_from=dt.date.fromisoformat(date_from).isoformat() if date_from else None,
+            date_to=dt.date.fromisoformat(date_to).isoformat() if date_to else None,
+            people=(person,) if person else (),
+        )
+    except ValueError:
+        _fail(MM3Error("E_BAD_DATE", "--from and --to take a date like 2026-10-22.", ""))
+
+    def progress(fraction: float, message: str) -> None:
+        if not as_json:
+            typer.echo(f"  {message}", err=True)
+
+    async def run() -> Any:
+        paths = resolve_paths()
+        search = _search_service(settings)
+        db = Database.open(paths.database)
+        registry = BackendRegistry(settings)
+        service = AskService(
+            settings, db, search, registry.get, registry.names, JobsTableGate(paths.database)
+        )
+        try:
+            return await service.ask(
+                question,
+                backend=backend,
+                model=model,
+                cloud_consent=allow_cloud,
+                filters=filters,
+                save=False if no_save else None,
+                progress=progress,
+            )
+        finally:
+            await search.stop()
+            db.close()
+
+    try:
+        result, record = asyncio.run(run())
+    except MM3Error as exc:
+        _fail(exc)
+    if as_json:
+        typer.echo(json.dumps(_ask_json(result, record), indent=2, ensure_ascii=False))
+        return
+    typer.echo("")
+    typer.echo(result.answer)
+    if result.rows:
+        typer.echo("")
+        typer.echo(render_table(result.rows))
+    if result.people:
+        typer.echo("")
+        typer.echo(render_people(result.people))
+    t = result.trace
+    typer.echo("")
+    typer.echo(
+        f"{t.read} meeting(s) read, {result.count} relevant · {result.model} on "
+        f"{result.backend} · {t.seconds:.0f} s",
+        err=True,
+    )
+    if record is not None:
+        typer.secho(f"Saved: {record.vault_path}", fg=typer.colors.GREEN)
+    elif not no_save and not settings.ask.keep_history:
+        typer.echo("Not saved (ask.keep_history is off).", err=True)
+
+
 def main() -> None:
     app()

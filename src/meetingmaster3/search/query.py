@@ -243,6 +243,23 @@ class MeetingFacts:
         }
 
 
+@dataclass(frozen=True)
+class ContextPassage:
+    """A passage with its place in its file, for reading a meeting around its hits (15j)."""
+
+    passage_id: int
+    doc_id: int
+    ord: int
+    mm3_id: str
+    kind: str
+    heading: str | None
+    section_id: str | None
+    start_s: float | None
+    end_s: float | None
+    speakers: tuple[str, ...]
+    body: str
+
+
 # -- FTS5 ------------------------------------------------------------------------------------
 
 
@@ -584,6 +601,48 @@ class Searcher:
             embedder=badge,
             timings_ms=timings,
         )
+
+    # -- context -----------------------------------------------------------------------------
+
+    def passages_around(
+        self, passage_ids: Sequence[int], radius: int = 1
+    ) -> dict[int, list[ContextPassage]]:
+        """For each passage id: the passage and up to ``radius`` neighbours on each side in the
+        same file, in file order. Unknown ids are left out."""
+        ids = list(dict.fromkeys(passage_ids))
+        if not ids:
+            return {}
+        marks = ",".join("?" * len(ids))
+        places = self.store.fetchall(
+            f"SELECT id, doc_id, ord FROM passages WHERE id IN ({marks})",  # noqa: S608
+            ids,
+        )
+        out: dict[int, list[ContextPassage]] = {}
+        for place in places:
+            rows = self.store.fetchall(
+                "SELECT p.id, p.doc_id, p.ord, p.text, p.body, p.heading, p.section_id, "
+                "p.start_s, p.end_s, p.speakers, d.mm3_id, d.kind FROM passages p "
+                "JOIN documents d ON d.id = p.doc_id WHERE p.doc_id = ? AND p.ord BETWEEN ? AND ? "
+                "ORDER BY p.ord",
+                (place["doc_id"], place["ord"] - radius, place["ord"] + radius),
+            )
+            out[int(place["id"])] = [
+                ContextPassage(
+                    passage_id=int(r["id"]),
+                    doc_id=int(r["doc_id"]),
+                    ord=int(r["ord"]),
+                    mm3_id=r["mm3_id"],
+                    kind=r["kind"],
+                    heading=r["heading"],
+                    section_id=r["section_id"],
+                    start_s=r["start_s"],
+                    end_s=r["end_s"],
+                    speakers=tuple(json.loads(r["speakers"])),
+                    body=r["body"] or passage_body(r["text"]),
+                )
+                for r in rows
+            ]
+        return out
 
     # -- facts -------------------------------------------------------------------------------
 

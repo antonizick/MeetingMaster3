@@ -156,6 +156,11 @@ def test_saving_the_tab_maps_auto_to_the_default(sui: TestClient) -> None:
         "search.chunk_tokens": "300",
         "search.chunk_overlap": "40",
         "search.rescan_minutes": "15",
+        "ask.default_backend": "auto",
+        "ask.default_model": "",
+        "ask.max_meetings": "25",
+        "ask.keep_history": "1",
+        "ask.answers_subfolder": "MM3 Answers/",
     }
     page = sui.post("/settings/search", data=form)
     assert page.status_code == 200 and "Saved" in page.text

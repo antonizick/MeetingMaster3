@@ -35,7 +35,7 @@ from meetingmaster3.llm.registry import BackendRegistry, kinds
 from meetingmaster3.speakers.store import VoiceprintStore
 from meetingmaster3.templates.stages import template_library
 from meetingmaster3.transcription import hf_check, models
-from meetingmaster3.vault.paths import confine
+from meetingmaster3.vault.paths import confine, resolve_vault_root
 from meetingmaster3.web import settings_fields as sf
 from meetingmaster3.web import views
 from meetingmaster3.web.api.jobs import get_runner
@@ -135,9 +135,12 @@ async def _tab_context(request: Request, tab: str, state: State) -> dict[str, An
         current_backend = settings.search.embedding_backend
         extra = (current_backend,) if current_backend and current_backend not in names else ()
         choices["search.embedding_backend"] = (AUTO, *names, *extra)
+        current_ask = settings.ask.default_backend
+        extra = (current_ask,) if current_ask and current_ask not in names else ()
+        choices["ask.default_backend"] = (AUTO, *names, *extra)
     views_list = _views(settings, fields, state, choices)
     for v in views_list:
-        if v.spec.path == "search.embedding_backend" and v.value == "":
+        if v.spec.path in ("search.embedding_backend", "ask.default_backend") and v.value == "":
             v.value = AUTO
     ctx["views"] = [v for v in views_list if not v.spec.advanced]
     ctx["advanced_views"] = [v for v in views_list if v.spec.advanced]
@@ -277,7 +280,19 @@ async def save_search(request: Request) -> HTMLResponse:
     form = await _form(request)
     if form.get("search.embedding_backend", "").strip() in ("", AUTO):
         override["search.embedding_backend"] = None
-    state, ok = await _save_fields(request, "search", {}, override)
+    if form.get("ask.default_backend", "").strip() in ("", AUTO):
+        override["ask.default_backend"] = None
+    errors: dict[str, str] = {}
+    folder = form.get("ask.answers_subfolder", "").strip()
+    root = _settings(request).vault.path
+    if not folder:
+        errors["ask.answers_subfolder"] = "Enter a folder inside the vault, e.g. MM3 Answers/."
+    elif root is not None:
+        try:
+            confine(resolve_vault_root(root), folder)
+        except MM3Error as exc:
+            errors["ask.answers_subfolder"] = f"{exc.message} {exc.hint}".strip()
+    state, ok = await _save_fields(request, "search", errors, override)
     if ok:
         service = _search_or_none(request)
         if service is not None and _settings(request).search.enabled:
@@ -522,6 +537,7 @@ async def backend_save(request: Request) -> HTMLResponse:
         "default_model": form.get("default_model", "").strip() or None,
         "consent_remembered": bool(form.get("consent_remembered")),
         "cloud_embedding_consent": bool(form.get("cloud_embedding_consent")),
+        "ask_consent_remembered": bool(form.get("ask_consent_remembered")),
         "params": existing.params if existing else {},
         "headers": existing.headers if existing else {},
     }
@@ -588,6 +604,7 @@ async def backend_revoke(request: Request, name: str) -> HTMLResponse:
         raise MM3Error("E_LLM_UNKNOWN_BACKEND", f"No backend named '{name}'.", "", 404)
     cfg.consent_remembered = False
     cfg.cloud_embedding_consent = False
+    cfg.ask_consent_remembered = False
     _persist(request)
     return await _show(request, "llm", State(saved=True))
 

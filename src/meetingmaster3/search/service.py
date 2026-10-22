@@ -36,7 +36,15 @@ from meetingmaster3.llm.base import LLMBackend
 from meetingmaster3.review.progress import LongTask, TaskState
 from meetingmaster3.search.embedder import EmbedderChoice, resolve
 from meetingmaster3.search.index import GpuGate, Indexer, UpdateReport
-from meetingmaster3.search.query import Hit, MeetingFacts, Searcher, SearchFilters, SearchResult
+from meetingmaster3.search.query import (
+    VECTOR_MARGIN,
+    ContextPassage,
+    Hit,
+    MeetingFacts,
+    Searcher,
+    SearchFilters,
+    SearchResult,
+)
 from meetingmaster3.search.store import SearchStore, delete_index_files
 from meetingmaster3.vault import changes
 from meetingmaster3.vault.paths import is_inside, resolve_vault_root
@@ -60,6 +68,10 @@ class RunnerGate:
     def hold(self) -> AbstractAsyncContextManager[None]:
         held: AbstractAsyncContextManager[None] = self.runner.background_gpu()
         return held
+
+    def busy(self) -> bool:
+        """A job is running or queued, so :meth:`hold` would wait."""
+        return not self.runner.gpu_idle()
 
 
 class JobsTableGate:
@@ -301,8 +313,16 @@ class SearchService:
     # -- searching ---------------------------------------------------------------------------
 
     async def query(
-        self, text: str, *, limit: int = 20, filters: SearchFilters | None = None
+        self,
+        text: str,
+        *,
+        limit: int = 20,
+        filters: SearchFilters | None = None,
+        candidates: int | None = None,
+        vector_margin: float | None = VECTOR_MARGIN,
     ) -> SearchResult:
+        """See :meth:`Searcher.query`; the Ask agent widens ``candidates`` and
+        ``vector_margin`` for recall (Phase 15j)."""
         if not self.settings.search.enabled:
             raise MM3Error(
                 E_SEARCH_OFF,
@@ -312,7 +332,9 @@ class SearchService:
             )
         await asyncio.to_thread(self._open)
         self._refresh_if_stale()
-        return await self.searcher.query(text, limit=limit, filters=filters)
+        return await self.searcher.query(
+            text, limit=limit, filters=filters, candidates=candidates, vector_margin=vector_margin
+        )
 
     def _refresh_if_stale(self) -> None:
         if self.running() or self._loop is None:
@@ -326,6 +348,12 @@ class SearchService:
     ) -> dict[str, MeetingFacts]:
         await asyncio.to_thread(self._open)
         return await asyncio.to_thread(self.searcher.meeting_facts, mm3_ids, hits or [])
+
+    async def passages_around(
+        self, passage_ids: list[int], radius: int = 1
+    ) -> dict[int, list[ContextPassage]]:
+        await asyncio.to_thread(self._open)
+        return await asyncio.to_thread(self.searcher.passages_around, passage_ids, radius)
 
     # -- status ------------------------------------------------------------------------------
 

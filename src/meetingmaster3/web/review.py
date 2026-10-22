@@ -91,6 +91,7 @@ from meetingmaster3.vault.picker import browse, find_companions, read_identity
 from meetingmaster3.vault.readable import readable_link, refresh_readable
 from meetingmaster3.web import views
 from meetingmaster3.web.api.jobs import get_runner
+from meetingmaster3.web.ask_ui import answers_for_meeting
 from meetingmaster3.web.pages import render, templates
 from meetingmaster3.web.paging import page_params, picker_context, with_params
 from meetingmaster3.web.render import render_markdown
@@ -337,6 +338,7 @@ async def workspace_page(request: Request, mm3_id: str, path: str | None = None)
             else None,
             "retention": _retention_view(runner, ws.job_id) if ws.audio == "ok" else None,
             "obsidian_link": views.obsidian_link(str(note)),
+            "cited_by": await asyncio.to_thread(answers_for_meeting, request, mm3_id),
             "templates_list": [e.to_dict() for e in library.listing() if e.valid],
             "backends": _backends(request),
             "note_backend": (meta.backend if meta else None)

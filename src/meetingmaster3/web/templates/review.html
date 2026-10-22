@@ -53,6 +53,12 @@
   </header>
   {% if fb_note %}<div class="feedback-slot" data-feedback-scope="note" data-mm3-id="{{ ws.mm3_id }}">{% set fb = fb_note %}{% include "partials/feedback.html" %}</div>{% endif %}
 
+  {% if cited_by %}
+  <details class="card ask-cited" id="cited-by">
+    <summary>Answers that cite this meeting ({{ cited_by|length }})</summary>
+    <ul class="plain ask-cites">{% for a in cited_by %}<li><a href="{{ a.url }}">{{ a.question }}</a> <span class="muted">{{ a.asked }}</span></li>{% endfor %}</ul>
+  </details>
+  {% endif %}
   {% if ws.readonly %}<p class="alert info">{{ ws.readonly_reason }}</p>{% endif %}
   {% for w in ws.warnings %}<p class="alert warn">{{ w }}</p>{% endfor %}
 

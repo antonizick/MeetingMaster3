@@ -66,6 +66,7 @@ NAV = (
     ("new", "/", "New meeting"),
     ("recent", "/meetings", "Meetings"),
     ("search", "/search", "Search"),
+    ("ask", "/ask", "Ask"),
     ("templates", "/templates", "Templates"),
     ("settings", "/settings", "Settings"),
 )

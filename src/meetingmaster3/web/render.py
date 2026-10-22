@@ -40,8 +40,11 @@ def _build() -> MarkdownIt:
         self: RendererHTML, tokens: list[Token], idx: int, options: OptionsDict, env: EnvType
     ) -> str:
         token = tokens[idx]
-        token.attrSet("rel", "noopener noreferrer")
-        token.attrSet("target", "_blank")
+        href = token.attrGet("href")
+        internal = isinstance(href, str) and href.startswith(("/", "#")) and href[:2] != "//"
+        if not internal:  # links into the app open in place
+            token.attrSet("rel", "noopener noreferrer")
+            token.attrSet("target", "_blank")
         return self.renderToken(tokens, idx, options, env)
 
     def text(

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ record.question[:80] }} · Ask · MeetingMaster3{% endblock %}
+{% block content %}
+<p><a href="/ask">← Ask</a></p>
+<header class="stack">
+  <h1 class="ask-question">{{ record.question }}</h1>
+  <p class="muted">Asked <time datetime="{{ record.asked_at.isoformat() }}">{{ asked }}</time> · {{ record.model }} on {{ record.backend }} · {{ record.relevant }} meeting{{ '' if record.relevant == 1 else 's' }}{% if record.duration_s %} · {{ record.duration_s|round|int }} s{% endif %}</p>
+  <div class="row">
+    {% if obsidian_link %}<a class="button" href="{{ obsidian_link }}">Open in Obsidian</a>{% endif %}
+    <a class="button" href="/ask?again={{ record.id }}">Ask again</a>
+    <a class="button" href="/ask?follow={{ record.id }}">Ask a follow-up</a>
+    <details class="danger-zone">
+      <summary class="button">Delete…</summary>
+      <div class="stack">
+        {% if missing %}
+        <p>Remove this answer from the list? Its note is no longer in the vault.</p>
+        <button type="button" class="danger" hx-post="/ask/{{ record.id }}/forget">Forget it</button>
+        {% else %}
+        <p>Delete the note <code>{{ vault_path }}</code> from your vault and remove the answer from the list? This cannot be undone.</p>
+        <button type="button" class="danger" hx-post="/ask/{{ record.id }}/delete">Delete the answer</button>
+        {% endif %}
+      </div>
+    </details>
+  </div>
+</header>
+{% if moved %}<div class="alert info" role="status"><p>The note had moved in the vault; it was found by its answer id at <code>{{ vault_path }}</code>.</p></div>{% endif %}
+{% if missing %}
+<div class="alert warn" role="alert">
+  <p><strong>File not found.</strong> The answer note <code>{{ vault_path }}</code> is not in the vault any more (deleted, or moved out of it), and no note with this answer's id was found.</p>
+  <div class="row"><button type="button" hx-post="/ask/{{ record.id }}/forget">Forget</button></div>
+</div>
+{% if sources %}
+<section class="card stack" aria-labelledby="h-sources">
+  <h2 id="h-sources">Meetings it cited</h2>
+  <ul>{% for s in sources %}<li>{% if s.link %}<a href="{{ s.link }}">{{ s.title }}</a>{% else %}{{ s.title }}{% endif %} <span class="muted">{{ s.date or '' }}</span></li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% else %}
+<article class="card note ask-answer">{{ rendered }}</article>
+{% endif %}
+{% endblock %}

@@ -131,6 +131,49 @@ def fake_embedding(text: str, dims: int = FAKE_DIMENSIONS) -> list[float]:
     return [v / norm for v in vec]
 
 
+ASK_MARK = "MM3 Ask agent · step: "
+_SPOKEN_RE = re.compile(r"^(?P<name>[A-Z][\w.'-]*(?: [A-Z][\w.'-]*){0,3}): (?P<text>.+)$", re.M)
+_CITED_RE = re.compile(r"^(\[\[[^\]]+\]\]) \((?P<date>[^,)]*)", re.M)
+
+
+def _concepts(text: str) -> set[int]:
+    words = set(_WORD_RE.findall(text.lower()))
+    return {i for i, group in enumerate(_CONCEPTS) if words & group}
+
+
+def _ask(step: str, prompt: str) -> str:
+    """Answers for the Ask agent (Phase 15j): the topic is the question's toy concepts, and a
+    meeting is relevant when its excerpts share one."""
+    question = prompt.split("Question:\n", 1)[-1].split("\n\n", 1)[0].strip()
+    if step == "plan":
+        return json.dumps(
+            {"topic": question[:60], "queries": [question], "wants": ["count", "people", "table"]}
+        )
+    if step == "read":
+        excerpts = prompt.split("<meeting>", 1)[-1].split("</meeting>", 1)[0]
+        topic = _concepts(question)
+        spoken = [
+            (m["name"], m["text"].strip())
+            for m in _SPOKEN_RE.finditer(excerpts)
+            if topic & _concepts(m["text"])
+        ]
+        if not topic or not (topic & _concepts(excerpts.split("\n\n", 1)[-1])):
+            return json.dumps({"relevant": "no", "finding": "", "people": [], "quotes": []})
+        people = [{"name": n, "role": "", "contribution": t[:120]} for n, t in dict(spoken).items()]
+        quotes = [{"text": t, "time": None} for _, t in spoken[:2]]
+        first = next((ln for ln in excerpts.splitlines() if topic & _concepts(ln)), "")
+        finding = "The meeting discusses it: " + first.strip("- ").strip()[:160]
+        return json.dumps(
+            {"relevant": "yes", "finding": finding, "people": people, "quotes": quotes}
+        )
+    cited = [m.group(1) for m in _CITED_RE.finditer(prompt.split("Findings", 1)[-1])]
+    return (
+        f"The topic came up in {len(cited)} meeting{'' if len(cited) == 1 else 's'}: "
+        + ", ".join(cited)
+        + ".\n\nThis answer was written by the offline fake model."
+    )
+
+
 @dataclass
 class FakeLLMBackend:
     """Implements :class:`~meetingmaster3.llm.base.LLMBackend` without any network."""
@@ -155,8 +198,12 @@ class FakeLLMBackend:
         self.calls.append(req)
         if self.delay:
             await asyncio.sleep(self.delay)
+        system = req.system_text() or ""
         if self.responder is not None:
             text = self.responder(req)
+        elif system.startswith(ASK_MARK):
+            step = system[len(ASK_MARK) :].split("\n", 1)[0].strip()
+            text = _ask(step, "\n".join(m.content for m in req.chat()))
         else:
             prompt = "\n".join(m.content for m in req.chat())
             text = _extraction(prompt) if req.json_mode else _section(prompt)

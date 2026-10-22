@@ -1,0 +1,17 @@
+{% from "partials/pager.html" import pager as pager_nav %}
+<section id="ask-history" class="card stack" aria-labelledby="h-ask-history">
+  <h2 id="h-ask-history" tabindex="-1">Answers</h2>
+  {% if history %}
+  <ol class="plain ask-history">
+    {% for a in history %}
+    <li>
+      <a href="/ask/{{ a.id }}">{{ a.question }}</a>
+      <span class="muted"><time datetime="{{ a.asked_iso }}">{{ a.asked }}</time> · {{ a.relevant }} meeting{{ '' if a.relevant == 1 else 's' }} · {{ a.model }}</span>
+    </li>
+    {% endfor %}
+  </ol>
+  {{ pager_nav(pager, "#ask-history", "h-ask-history") }}
+  {% else %}
+  <p class="muted">No answers yet. They are listed here, newest first, and kept as notes in your vault.</p>
+  {% endif %}
+</section>

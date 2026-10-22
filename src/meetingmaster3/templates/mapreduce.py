@@ -268,6 +268,18 @@ def _candidates(text: str) -> list[str]:
     return out
 
 
+def json_candidates(text: str) -> list[str]:
+    """The texts in a model reply that may be its JSON object, most likely first (reasoning
+    blocks dropped, code fences and the outermost braces tried, a cut-off object closed), each
+    also without trailing commas. Shared with the Ask agent (Phase 15j)."""
+    out: list[str] = []
+    for candidate in _candidates(text):
+        for attempt in (candidate, _TRAILING_COMMA_RE.sub(r"\1", candidate)):
+            if attempt not in out:
+                out.append(attempt)
+    return out
+
+
 def close_truncated(text: str, max_tries: int = 60) -> str | None:
     """Salvage a JSON object cut off by the output limit: drop the unfinished tail after the
     last complete ``}``/``]`` and close the open brackets. ``None`` if nothing parses."""
