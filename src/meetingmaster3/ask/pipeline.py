@@ -79,10 +79,16 @@ FOLLOW_UP_BELOW = 2
 """Fewer relevant meetings than this allow the one follow-up planning round."""
 FOLLOW_UP_QUERIES = 4
 REQUEST_TIMEOUT_S = 600.0
+_MONTHS = (
+    "january|february|march|april|june|july|august|september|october|november|december|"
+    "jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec"
+)
 TIME_WORDS_RE = re.compile(
-    r"\b(?:19|20)\d\d\b|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\b|"
-    r"\b(?:today|yesterday|week|weeks|month|months|quarter|year|years|since|before|after|"
-    r"between|until|recent|recently|last|past|ago)\b",
+    rf"\b(?:19|20)\d\d\b|\b\d{{4}}-\d{{2}}(?:-\d{{2}})?\b|\b(?:{_MONTHS})\b|"
+    r"\b(?:in|since|before|after|until|during) may\b|\bmay \d|"
+    r"\b(?:today|yesterday|ago|since|between|until)\b|"
+    r"\b(?:last|past|this|previous|next) (?:week|month|quarter|year|few weeks|few months)\b|"
+    r"\bq[1-4]\b",
     re.I,
 )
 """The plan's date range is used only when the question talks about time (a small model may
@@ -91,6 +97,7 @@ _WIKI_RE = re.compile(r"\[\[([^\[\]|#\n]+)((?:#[^\[\]|\n]*)?)(?:\\?\|([^\[\]\n]*
 _NOTE_TIME_RE = re.compile(r"\[(\d{1,2}:\d{2}(?::\d{2})?)\]")
 _NORM_RE = re.compile(r"[^\w\s]")
 _TAG_RE = re.compile(r"<(?=[A-Za-z!/?])")
+_TABLE_RULE_RE = re.compile(r"^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?$")
 
 ProgressFn = Callable[[float, str], None]
 Relevance = Literal["yes", "partly", "no"]
@@ -237,6 +244,8 @@ class PlanRecord:
     date_from: str | None = None
     date_to: str | None = None
     dates_ignored: bool = False
+    dates_dropped: bool = False
+    """The plan's dates found nothing, so the archive was searched without them."""
     error: str | None = None
 
 
@@ -254,6 +263,7 @@ class Trace:
     stripped: list[str] = field(default_factory=list)
     fixed: list[str] = field(default_factory=list)
     findings_trimmed: bool = False
+    tables_dropped: int = 0
     calls: int = 0
     input_tokens: int = 0
     output_tokens: int = 0
@@ -583,6 +593,26 @@ def clean_answer(text: str) -> str:
     return _TAG_RE.sub("&lt;", text)
 
 
+def drop_tables(text: str) -> tuple[str, int]:
+    """Remove Markdown tables the model drew anyway (the table of meetings is built from the
+    files and added after the answer). Returns the text and how many tables were removed."""
+    lines = text.split("\n")
+    out: list[str] = []
+    dropped = 0
+    i = 0
+    while i < len(lines):
+        j = i
+        while j < len(lines) and lines[j].lstrip().startswith("|"):
+            j += 1
+        if j - i >= 2 and _TABLE_RULE_RE.match(lines[i + 1].strip()):
+            dropped += 1
+            i = j
+            continue
+        out.append(lines[i])
+        i += 1
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip(), dropped
+
+
 def nothing_found(question: str, plans: Sequence[PlanRecord], read: int, candidates: int) -> str:
     searched = "; ".join(f"“{q}”" for p in plans for q in p.queries)
     if not candidates:
@@ -749,8 +779,20 @@ class AskAgent:
             kinds=base.kinds,
             mm3_ids=base.mm3_ids,
         )
+        found = await self._search_all(plan.queries, filters, round_no)
+        planned_dates = (plan.date_from, plan.date_to) != (None, None)
+        if not found and planned_dates and not (base.date_from or base.date_to):
+            # The model's date range (not the user's) left nothing: search the whole archive.
+            self.trace.plans[-1].dates_dropped = True
+            filters = SearchFilters(people=base.people, kinds=base.kinds, mm3_ids=base.mm3_ids)
+            found = await self._search_all(plan.queries, filters, round_no)
+        return found
+
+    async def _search_all(
+        self, queries: Sequence[str], filters: SearchFilters, round_no: int
+    ) -> list[Candidate]:
         results: list[tuple[str, SearchResult]] = []
-        for query in plan.queries:
+        for query in queries:
             result = await self.retriever.search(query, filters)
             self.trace.search_modes[query] = result.mode
             if result.reason and self.trace.search_reason is None:
@@ -869,7 +911,8 @@ class AskAgent:
             max_tokens=ANSWER_MAX_TOKENS,
             json_mode=False,
         )
-        text = clean_answer(text)
+        text, tables = drop_tables(clean_answer(text))
+        self.trace.tables_dropped += tables
         stems = [r.stem for r in rows]
         titles = {r.title: r.stem for r in rows}
         text, stripped, fixed = check_citations(text, stems, titles)

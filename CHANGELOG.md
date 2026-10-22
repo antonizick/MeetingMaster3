@@ -8,6 +8,29 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Ask AI agent** (Phase 15j, R31, ADR-0049, ADR-0051): an **Ask** page (`/ask`) and `mm3 ask "<question>"`
+  answer broad questions from the meetings on file ("how many times did we discuss X, who led it and in what role,
+  and a table of the meetings, dates and attendees"). A fixed, bounded pipeline: the model plans 2-6 searches,
+  15i's hybrid search finds the meetings, the model reads each one (its header, Meeting Context and matching
+  passages with neighbours, fitted to the window), one more search round if few are relevant, then answers from
+  the findings. **Facts come from the files**: which meetings and how many, their dates, links and attendees are
+  computed by code; people and quotes the model gives are kept only if they are in what it read; links to meetings
+  it was not shown and tables it draws are removed. Local `qwen3:8b` by default (each call waits for the GPU
+  between jobs), Bedrock or OpenRouter after consent. Progress with steps, ETA and Cancel; date and person filters.
+- **Answers are kept and linked**: each answer is written to `MM3 Answers/YYYY-MM-DD HHMM - <question>.md` in the
+  vault (atomic, never overwrites; `mm3-kind: answer`, `mm3-answer-id`, `mm3-sources` wikilinks, `#mm3/answer`),
+  with the answer, a table of meetings, a People table, Sources with links to the moments, and how it was answered.
+  The Ask page lists every answer (paged) with **Open in Obsidian**, **Ask again**, **Ask a follow-up** and
+  **Delete** (note and record); a moved answer note is found again by its id, a deleted one offers **Forget**. A
+  meeting's review page lists **Answers that cite this meeting**; Obsidian's backlinks show them too, and renaming
+  a meeting updates the links. History in `mm3.db` (migration 5: `answers`, `answer_sources`).
+- **Ask consent switch** (S6): a cloud backend needs a tick for each question (`mm3 ask --allow-cloud`) unless its
+  new **Always allow Ask AI agent to send meeting excerpts to this backend** (`ask_consent_remembered`) is on; the
+  note-writing consent does not cover Ask. The Ask page says what is sent where and shows an estimated cost.
+- Settings → Search & Ask gains the **Ask AI agent** section: backend and model, most meetings read per question
+  (`ask.max_meetings`, 25), keep every answer (`ask.keep_history`) and the answers folder (`ask.answers_subfolder`).
+- `tests/eval/ask_eval.py`: scores the agent on a synthetic eight-meeting corpus (`tests/ask_corpus.py`) for the
+  meeting set, count, table rows, people and roles, and citations, with time, tokens and cost per question.
 - **Search your meetings by meaning and by words** (Phase 15i, R30, ADR-0049, ADR-0050): a **Search** page
   (`/search`) and `mm3 search "<question>"` find the passages most related to a question in every meeting note and
   companion transcript, grouped by meeting, with the matched words highlighted, date and person filters, and links

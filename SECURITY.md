@@ -70,7 +70,7 @@ workspace's endpoints (threat model T-XSS, T-CSRF, T-PATH): unchanged, no findin
 |---|---|---|
 | Strict CSP | `web/security.py` | `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; media-src 'self' blob:; connect-src 'self'; ...`. No inline script or style, no `eval`: Alpine.js is the CSP build (`@alpinejs/csp`), HTMX is configured with `allowEval: false`, `allowScriptTags: false`, `selfRequestsOnly: true` and no injected indicator styles (`<meta name="htmx-config">`). `blob:` is only for reading the duration of the chosen file in the browser. |
 | CSRF in the UI | `base.html`, `app.js` | `<body hx-headers>` adds `X-CSRF-Token` to every HTMX request and the upload `XMLHttpRequest` reads it from a meta tag. There are no plain HTML forms that post, so the header-only check stands and no form-field fallback was added. |
-| Sanitised rendering (S3) | `web/render.py` | The preview uses markdown-it with `html: False` (raw HTML is escaped), images disabled, links limited to `http`, `https`, `mailto` and in-page/relative ones (`target=_blank`, `rel=noopener noreferrer`); frontmatter and section-marker comments are hidden. Jinja autoescape is on for everything else, including transcript-derived text. |
+| Sanitised rendering (S3) | `web/render.py` | The preview uses markdown-it with `html: False` (raw HTML is escaped), images disabled, links limited to `http`, `https`, `mailto` and in-page/relative ones (external links get `target=_blank`, `rel=noopener noreferrer`; links into the app open in place since Phase 15j); frontmatter and section-marker comments are hidden. Jinja autoescape is on for everything else, including transcript-derived text. |
 | Preview confinement (S4) | `web/pages.py` | `/preview?path=` opens only an absolute `.md` file that resolves (symlinks included) inside the vault root. |
 | No third-party requests | tests, e2e | The Playwright smoke test fails if the browser requests any host other than the app. |
 | Errors | `errors.py` | HTMX requests get an escaped toast fragment; browsers get the error page; API clients get JSON. |
@@ -195,6 +195,13 @@ model links every mitigation to its code.
 | Template files are untrusted input | `templates/schema.py` | Parsed with `yaml.safe_load`/`compose`, size-limited (256 KiB), strictly validated; an invalid template is reported, never executed. Template text only becomes prompt text. |
 | Model output is untrusted | `templates/postprocess.py` | Marker-like lines and `mm3` HTML comments are stripped before a section is built (a model cannot forge section markers), headings demoted; the note is otherwise plain Markdown. Rendering it in the browser must sanitise it (S3, Phases 10/11). A transcript could contain instructions aimed at the model (prompt injection); the worst outcome is wrong note text in your own vault, which you review. Phase 15 threat model. |
 | No transcript text in logs | `templates/generator.py` | Prompts and answers are not logged; the owner guard logs only the changed task line at INFO. |
+
+### Implemented in Phase 15j (Ask AI agent, S3, S4, S6)
+| Control | Where | Behaviour |
+|---|---|---|
+| Ask consent (S6) | `ask/pipeline.py` `enforce_ask_consent`, `ask/service.py` | A cloud backend answers only with this question's consent (the Ask page's box, `mm3 ask --allow-cloud`) or the backend's own `ask_consent_remembered`; note writing's `consent_remembered` does not count. Checked before the task starts and before the first call: a refused question sends nothing. Threat model T-ASK-EGRESS. |
+| Prompt injection contained | `ask/pipeline.py`, `ask/prompts.py` | The agent only reads the index and vault and writes one new answer note; meeting text is fenced as material, not instructions; counts, dates, links and attendees are computed from the files; unknown people, quotes and links are dropped; model tables are removed. Threat model T-ASK. |
+| Answer notes (S3, S4) | `ask/notes.py`, `web/ask_ui.py` | Written atomically inside the vault (confined answers folder, never overwriting); HTML tags in model text and the question are defused for Obsidian; the app renders answers with the sanitising renderer. Delete removes a note only if its `mm3-answer-id` matches; Delete and Forget need the CSRF token. Threat model T-ANSWERS. |
 
 ## Data the app stores and where
 Final inventory (Phase 15); the user-facing version is [`docs/PRIVACY.md`](docs/PRIVACY.md).

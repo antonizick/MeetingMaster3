@@ -21,6 +21,7 @@ leave your machine. Final inventory as of Phase 15 (2026-10-12); the threat mode
 | Copy of the audio in the vault (optional, off by default) | Your vault's attachments folder, linked from the note (`mm3-audio`); never replaces an existing file |
 | Logs | The terminal (stderr) of `mm3 serve`; secrets are redacted and transcript text is not logged at the default level. Nothing is written to a log file unless you redirect it |
 | Search index (Phase 15i) | `$XDG_DATA_HOME/meetingmaster3/search.db` (mode `0600`, never in the vault): a copy of the text of every meeting note (by section, AI Recommendations left out) and companion transcript (in windows with times and speaker names), each meeting's title, date, participants and named speakers, file paths and hashes, and the passages' meaning vectors (float numbers from the embedding model). Derived from the vault, so it can be deleted at any time: Settings → Search & Ask → **Delete index** removes the file and its `-wal`/`-shm` files and turns indexing off; deleting the file by hand works too. SQLite `secure_delete` overwrites the text of meetings dropped from the index. |
+| Ask answers (Phase 15j) | In the vault, `MM3 Answers/` by default (`ask.answers_subfolder`): one note per answer with the question, the answer, a table of the cited meetings (dates, attendees, people and stated roles), short findings and quotes from them, and how it was answered (searches, model, time). In `mm3.db` (`answers` and `answer_sources` tables): the question, when it was asked, backend and model, the note's path, the cited meeting ids, titles and dates, and the short findings. Delete an answer from the app (removes both) or delete the note in Obsidian and press *Forget*. *Keep every answer* off (`ask.keep_history`) keeps nothing. Answers are not indexed for search. |
 | Templates | Your vault's templates folder (`MeetingMaster3/templates/`); `templates.installed.json` in the app data folder records only file hashes, to avoid overwriting your edits. |
 
 ## Exports
@@ -49,6 +50,12 @@ leave your machine. Final inventory as of Phase 15 (2026-10-12); the threat mode
   sends its query text. Note writing's remembered consent does not cover this. Without the switch nothing is sent
   and search works by words only. The default embedder is the local Ollama (`nomic-embed-text`), which sends
   nothing; the Search page shows a "local" or "cloud: <provider>" badge for the embedder.
+- **Meeting excerpts sent to a cloud model by Ask** (Phase 15j), only if you choose a cloud backend on the Ask page
+  **and** tick *Send the excerpts … for this question* (or `mm3 ask --allow-cloud`), or turned on that backend's
+  separate *Always allow Ask AI agent* switch (`ask_consent_remembered`). Then the question and the matching
+  passages of up to `ask.max_meetings` (25) meetings, with their titles, dates, participants, named speakers and
+  Meeting Context sections, are sent to the provider. Consent for writing notes does not cover Ask. The default is the
+  local model, which sends nothing.
 - **Your vault**, if you sync it (Obsidian Sync, cloud drives). That is outside this app's control.
   If you enable the optional "copy audio to vault" setting, the audio syncs too.
 

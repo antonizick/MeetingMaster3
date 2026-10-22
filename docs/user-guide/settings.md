@@ -44,14 +44,16 @@ The backends that write your notes, their connection tests and the recommendatio
 * **Test** tries the connection. In the form, **Load models** shows a drop-down of the models that can write notes (cloud backends with prices, an estimated cost and Best value / Best quality badges; **Show all models** reveals the rest). Choosing one fills the **Default model** box, which still accepts any id you type. See [Choosing a model](llm-backends.md#choosing-a-model-the-picker-prices-and-recommendations).
 * **Remember my consent** (cloud backends) skips the per-meeting question. **Revoke consent** brings the question back (and also withdraws the search-indexing permission below).
 * **Allow search indexing with this backend's embeddings** (cloud backends, Phase 15i): only matters if you pick this backend as the embedder in *Search & Ask*. Indexing then sends the full text of every meeting, and each search sends the query, to the provider. Off by default and separate from the consent above. The backend list says *Search indexing allowed* when it is on.
+* **Always allow Ask AI agent to send meeting excerpts to this backend** (cloud backends, Phase 15j): skips the per-question tick on the Ask page (and `--allow-cloud` for `mm3 ask`). Each question then sends excerpts of up to *Most meetings read per question* meetings to the provider. Off by default; neither switch above covers it, and it covers nothing else. The backend list says *Ask always allowed*. *Revoke consent* turns it off with the others.
 * The **default backend** is what a new meeting uses. You cannot remove the default; choose another first.
 
 ## Search & Ask
-The meeting index behind the **Search** page (and, from Phase 15j, Ask). Details: [search-and-ask.md](search-and-ask.md).
+The meeting index behind the **Search** and **Ask** pages, and the Ask AI agent's settings. Details: [search-and-ask.md](search-and-ask.md).
 
 * **Index meetings for search** (on by default), the **embedding backend** (`auto` = the local Ollama) and **model** (`nomic-embed-text`), and **Index the transcripts too**. *Advanced:* passage size and overlap (apply to all meetings after *Rebuild index*) and how often the vault is checked for edits made in Obsidian.
 * The **Meeting index** card shows the embedder (with a *local* or *cloud* badge), the number of meetings, notes, transcripts and passages, how many passages have meaning vectors, the file size and location, the last update, files that could not be indexed, and why meaning vectors are missing if they are (for example "run `ollama pull nomic-embed-text`"). While an update runs it shows a progress bar, the elapsed time and the time left, and a **Stop** button.
 * **Update index** reads what changed; **Rebuild index** starts from scratch; **Delete index** removes `search.db` (and its `-wal`/`-shm` files) and turns indexing off until you press Update again. Notes are never touched.
+* **Ask AI agent:** the **backend** and **model** that answer (`auto` = the note-writing backend and its default model; the Ask page lets you pick another per question), **Most meetings read per question** (25; each is one model call, and the most a cloud backend receives excerpts of) and **Keep every answer** (saves each answer as a note in the vault and lists it on the Ask page). *Advanced:* the **answers folder** (`MM3 Answers/`, inside the vault).
 
 ## Privacy
 * **Audio retention**: keep forever, for N days (default 90), or delete right after the note is written. Under the form, the page lists

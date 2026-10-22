@@ -88,6 +88,8 @@ def _with_context(m: sc.Meeting) -> sc.Meeting:
     return dataclasses.replace(m, sections=((CONTEXT_ID, CONTEXT_TITLE, body), *m.sections))
 
 
+STATED_ROLES = frozenset({*_CONTEXTS, "offsite"})
+"""Meetings whose Meeting Context states people's roles (the eval checks roles only there)."""
 MEETINGS: tuple[sc.Meeting, ...] = (*(_with_context(m) for m in sc.MEETINGS), DECOY)
 TOPIC = sc.TOPIC
 """The meetings about money spent beyond the plan (finance, platform, vendor)."""

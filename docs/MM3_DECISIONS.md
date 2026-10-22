@@ -54,6 +54,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0048 | 2026-10-20 11:08 CDT | Project documents carry the prefix `MM3_` and every recorded date becomes a timestamp (`YYYY-MM-DD HH:MM TZ`); files renamed, references rewritten | Accepted | docs |
 | ADR-0050 | 2026-10-22 14:56 CDT | Meeting index layout and retrieval tuning: separate rebuildable `search.db` (not an `mm3.db` migration); FTS5 over passage body plus heading lines weighted 0.3; word candidates within 30 % of the best BM25 and vector candidates within 0.08 cosine of the best, fused by RRF (k = 60); pure-Python cosine over cached float32 arrays; vectors tagged with one model id; vault-change hook in `atomic_write_text`; GPU only while no job is active | Accepted | 15i |
 | ADR-0049 | 2026-10-22 13:47 CDT | Ask AI agent: hybrid (FTS5 + embeddings) retrieval with embeddings through the backends (local `nomic-embed-text` default, cloud only with its own consent); a JSON-driven pipeline with code-built facts, not tool-calling; per-question cloud consent or a separate sticky Ask switch; every answer saved as a linked vault note; split into 15i and 15j | Accepted (planning) | 15i, 15j |
+| ADR-0051 | 2026-10-22 15:44 CDT | Ask agent details: plan queries only (never the raw question) with dates used only when the question talks about time; Ask's own vector margin 0.12; quotes and people verified against the excerpts; model tables dropped and HTML defused; one question at a time holding the GPU per call; answers in `mm3.db` (migration 5) with the note as the answer; `keep_history` off keeps nothing; Obsidian links by path | Accepted | 15j |
 
 ---
 
@@ -1492,3 +1493,45 @@ the default). A note deleted in Obsidian stays searchable until the next check (
 any search). The fake embedder (deterministic toy vectors) is not calibrated like a real model, so ranking tests that
 use it switch the margin off.
 
+## ADR-0051: Ask agent details (Phase 15j)
+**Recorded:** 2026-10-22 15:44 CDT
+
+**Context.** ADR-0049 fixed the Ask agent's shape (a JSON-driven pipeline with code-built facts, per-question cloud
+consent or a sticky Ask switch, answers saved as vault notes). Building it raised smaller choices that change what
+the user sees or what is sent.
+
+**Decisions.**
+1. **Search with the plan's queries, not the raw question.** A long question ("how many times… who… make a table of
+   meetings, dates and attendees") put words such as *role*, *table* and *attendees* into the word search, which
+   matched the Meeting Context section of every meeting. The question is searched only when the plan falls back.
+2. **Dates from the plan apply only if the question talks about time** (a year, a month, "last", "since",
+   "quarter"…) and the user gave no dates. A small model otherwise invents a range and hides meetings. The user's own
+   date and person filters always apply; the plan's people are not used as a filter (they would drop meetings where
+   the person spoke but is not listed).
+3. **Recall over ranking:** Ask asks the index for 120 candidates per query with a 0.12 cosine margin (Search uses
+   0.08), because the read step decides relevance. `ask.max_meetings` (25) bounds the reads and the excerpts a cloud
+   model receives.
+4. **More facts by code than planned:** a person the model names is kept only if they match a participant, a named
+   speaker or a name in the excerpts (a first name alone resolves to the one full name it fits); a quote only if it is
+   in the passages shown (word for word, or all but one word of a longer quote), its time taken from the passage, not
+   the model. Tables the model draws are dropped (qwen3:8b drew one despite the instruction), so the only table is the
+   code's. A link to a meeting's title is corrected to the note's name; other unknown links become text.
+5. **HTML is defused in answer notes** (model text, findings, roles and the question): Obsidian renders raw HTML.
+6. **One question at a time** (409 for a second), each call to a local model holding the job runner's GPU between jobs
+   (R5), one `num_ctx` per question so Ollama never reloads.
+7. **History in `mm3.db`** (migration 5, `answers` + `answer_sources` for "answers that cite this meeting"), not in
+   `search.db` (derived data that can be deleted) and not only in the vault (the review page needs a fast lookup).
+   The vault note is the answer; the row stores its path, cited ids and short findings (for follow-ups).
+8. **`ask.keep_history: false` keeps nothing** (no note, no row; the answer is shown once), so the setting is a real
+   privacy choice. Every answer is saved by default, as Nick asked.
+9. **Ask's consent error names Ask** ("would send excerpts of your meetings", with the three ways to allow it)
+   instead of note writing's "transcript… this job".
+10. **"Open in Obsidian" uses `obsidian://open?path=<absolute path>`**, the form the review page already uses and
+    Nick's Obsidian opens, instead of `vault=…&file=…` (which depends on the vault's display name).
+11. **Internal links in rendered Markdown open in place** (no `target=_blank` for `/…` and `#…`), so a cited meeting
+    opens in the same tab and Back returns to the answer.
+
+**Consequences.** Answers are more conservative (a person or quote the model saw only in its own reasoning is lost),
+in exchange for tables and counts that match the files. The eval (`tests/eval/ask_eval.py`) measures recall,
+precision, counts, rows, people, roles and citations per backend (results in ADR-0049 "Phase 15j implementation" and
+`docs/PERFORMANCE.md`).

@@ -54,8 +54,8 @@ file-only protocol whitelist. Measured speed and memory on the 8 GB reference GP
 ## Implemented so far (Phases 02 to 11)
 | Module | Responsibility |
 |---|---|
-| `app.py` | `create_app(settings, paths)` factory. Middleware order (outermost first): TrustedHost, security headers, CSRF. The lifespan opens `mm3.db`, starts/stops the `JobRunner` and the `SearchService` (Phase 15i; its start-up scan runs in the background). |
-| `cli.py` | Typer CLI `mm3`: `serve`, `version`, `doctor`, `process`, `config path`, `config show`, `llm list`, `llm test`, `jobs list`, `jobs prune [--dry-run]`, `models status`, `models download`, `voiceprints list|delete|wipe`, `templates list|validate|install`, `search "<text>"|index [--rebuild]|status` (Phase 15i). |
+| `app.py` | `create_app(settings, paths)` factory. Middleware order (outermost first): TrustedHost, security headers, CSRF. The lifespan opens `mm3.db`, starts/stops the `JobRunner` and the `SearchService` (Phase 15i; its start-up scan runs in the background), and creates the `AskService` (`app.state.ask`, Phase 15j). |
+| `cli.py` | Typer CLI `mm3`: `serve`, `version`, `doctor`, `process`, `config path`, `config show`, `llm list`, `llm test`, `jobs list`, `jobs prune [--dry-run]`, `models status`, `models download`, `voiceprints list|delete|wipe`, `templates list|validate|install`, `search "<text>"|index [--rebuild]|status` (Phase 15i), `ask "<question>" [--backend --model --from --to --person --allow-cloud --no-save --json]` (Phase 15j). |
 | `headless.py` | `mm3 process`: runs a `JobRunner` in its own event loop for one recording and answers its questions from arguments or the terminal. |
 | `config/paths.py` | XDG directories with `MM3_*_DIR` overrides; created `0700`. |
 | `config/settings.py` | Pydantic `Settings`. Precedence: defaults < `config.yaml` < `MM3_*` env. Atomic `0600` save. Secrets are `SecretStr`. |
@@ -271,4 +271,39 @@ writers ──────────────────────▶ Se
   the same GPU rule by reading `mm3.db`.
 - **Pages:** `/search` (`web/search_ui.py`), Settings → Search & Ask (`web/settings_ui.py`, `/settings/search/*`).
   Decision records: ADR-0049, ADR-0050.
+
+### Ask AI agent (Phase 15j)
+```
+/ask (ask.js) · mm3 ask ─▶ AskService (app.state.ask) ── consent (S6: the question's tick, or ask_consent_remembered)
+                             │ one question at a time, as a LongTask (progress, ETA, cancel)
+                             ▼
+                          AskAgent (ask/pipeline.py), every call through backend.generate(), think off
+   1 plan ── JSON: queries, dates, wants ── 1 repair ── fallback: the question itself
+   2 retrieve ── SearchService.query per query (margin 0.12, 120 candidates) ── merge by meeting ── cap max_meetings
+   3 read × N ── header facts + Meeting Context + hits with neighbours (passages_around), fitted to the window
+                 ── JSON: relevant, finding, people, quotes ── people/quotes checked against what was shown
+   4 follow-up ── at most one more plan + retrieve + read when fewer than 2 meetings are relevant
+   5 facts (code) ── rows: date, [[note stem]], attendees (participants + mm3-speakers), took part, stated role
+   6 answer ── findings + facts only ── citations checked, tables dropped, HTML defused
+                             │
+                             ▼
+   ask/notes.py ── <vault>/MM3 Answers/YYYY-MM-DD HHMM - <question>.md (atomic, never overwrites, no mm3-id)
+   ask/store.py ── mm3.db answers + answer_sources (migration 5) ── Ask history, review page "Answers that cite"
+```
+- **Pipeline** (`ask/pipeline.py`, pure apart from the injected `Retriever` and backend): the prompts are in
+  `ask/prompts.py` (the first line of each system prompt names the step, which the offline fake model keys on),
+  the JSON shapes and their tolerant validation in `ask/schema.py`. One `num_ctx` for every call of a question
+  (local models: room for the largest read call, at most `generation.max_context`), so Ollama never reloads. With a
+  local backend each call holds the job runner's GPU between jobs (`RunnerGate`; the CLI uses `JobsTableGate`).
+- **Facts by code:** the count and the table rows come from `MeetingFacts` and the reading's verdict; the model's
+  people are kept only if they match a participant, speaker or name in the excerpts; quotes only if they are in the
+  passages shown (their time is the transcript passage's start or the note line's own timestamp).
+- **Answer notes** (`ask/notes.py`): frontmatter `mm3-kind: answer`, `mm3-answer-id`, `question`, `asked`,
+  `mm3-backend`, `mm3-model`, `mm3-sources` (wikilinks), `tags: [mm3/answer]`; body: answer, *Meetings* table,
+  *People*, *Sources* (with links to moments in the app), *How this was answered*. A moved note is re-found by
+  `mm3-answer-id`; a meeting rename rewrites the wikilinks (R28).
+- **Pages** (`web/ask_ui.py`): `/ask` (form, consent and cost partial `/ask/consent`, history `/ask/history`),
+  `/ask/start`, `/ask/task/{id}` (+ `/cancel`, `/result`), `/ask/{answer-id}` (the note rendered by the sanitising
+  renderer with meeting links rewritten to `/meetings/{mm3-id}`), `/ask/{id}/delete|forget`. The review page lists
+  answers citing the meeting. Decision records: ADR-0049, ADR-0051.
 

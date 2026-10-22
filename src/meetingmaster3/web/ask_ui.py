@@ -47,6 +47,8 @@ EST_ANSWER = (6000, 900)
 estimate (measured on the synthetic corpus and Nick's vault, ``docs/PERFORMANCE.md``)."""
 _H1_RE = re.compile(r"^# .*\n", re.M)
 """The note's title line (the question), already the page's heading."""
+_CALLOUT_RE = re.compile(r"^> \[!question\] Question\n(?:> .*\n)+", re.M)
+"""Obsidian's callout with the full question, also the page's heading."""
 _WIKI_RE = re.compile(r"(?<!!)\[\[([^\[\]|#\n]+)(#[^\[\]|\n]*)?(?:\\?\|([^\[\]\n]*))?\]\]")
 
 
@@ -381,7 +383,8 @@ async def answer_page(request: Request, answer_id: str) -> HTMLResponse:
     rendered = None
     obsidian = None
     if located.path is not None:
-        text = _H1_RE.sub("", await asyncio.to_thread(read_text, located.path), count=1)
+        text = await asyncio.to_thread(read_text, located.path)
+        text = _CALLOUT_RE.sub("", _H1_RE.sub("", text, count=1), count=1)
         links = await asyncio.to_thread(_links_for, request, ask, record)
         rendered = render_markdown(_internal_links(text, links, ask))
         obsidian = obsidian_link(str(located.path))

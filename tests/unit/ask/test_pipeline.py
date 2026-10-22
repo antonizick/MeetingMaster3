@@ -307,3 +307,37 @@ async def test_cloud_backend_is_refused_without_consent_and_nothing_is_sent(
     assert exc.value.code == "E_CONSENT_REQUIRED" and cloud_llm.calls == []
     result = await agent(search, cloud_llm, cloud_consent=True).run("budget?")
     assert cloud_llm.calls and result.is_local is False
+
+
+def test_a_table_the_model_draws_is_dropped() -> None:
+    text = "Three times.\n\n| A | B |\n|---|:---:|\n| 1 | 2 |\n\nDana led them.\n| not a table"
+    out, n = pl.drop_tables(text)
+    assert n == 1 and out == "Three times.\n\nDana led them.\n| not a table"
+
+
+@pytest.mark.parametrize(
+    ("question", "timed"),
+    [
+        ("What did we decide about the launch?", False),  # "decide" is not December
+        ("When did we last discuss the budget?", False),
+        ("Who may have discussed hiring?", False),
+        ("Budget talks since September?", True),
+        ("Anything in Q3 or last month?", True),
+        ("What happened on 2026-09-02?", True),
+        ("Meetings in May about hiring", True),
+    ],
+)
+def test_time_words(question: str, timed: bool) -> None:
+    assert pl.question_mentions_time(question) is timed
+
+
+async def test_dates_that_hide_everything_are_dropped(
+    search: SearchService, llm: FakeLLMBackend
+) -> None:
+    dated = plan_reply("certificate expiry outage", date_from="2025-01-01", date_to="2025-01-31")
+    llm.responder = Script(plan=dated, read=read_by_title({}))
+    agent_ = agent(search, llm)
+    await agent_.run("What caused the outage since January 2025?")
+    plan = agent_.trace.plans[0]
+    assert plan.date_from == "2025-01-01" and plan.dates_dropped
+    assert agent_.trace.read >= 1  # the incident meeting was found without the dates

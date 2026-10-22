@@ -125,7 +125,8 @@ def render_trace(result: AskResult) -> list[str]:
         lines.append(f"- {label}{how[plan.source]}: {queries}")
         if plan.date_from or plan.date_to:
             dates = f"{plan.date_from or '…'} to {plan.date_to or '…'}"
-            lines.append(f"  - Dates from the question: {dates}")
+            note = " (nothing in them, so all dates were searched)" if plan.dates_dropped else ""
+            lines.append(f"  - Dates from the question: {dates}{note}")
     if t.search_reason:
         lines.append(f"- Search: words only ({t.search_reason})")
     relevant = len(result.rows)
@@ -139,6 +140,8 @@ def render_trace(result: AskResult) -> list[str]:
         lines.append(f"- Not read: {unread}")
     if t.stripped:
         lines.append(f"- Links removed (not among the meetings read): {', '.join(t.stripped)}")
+    if t.tables_dropped:
+        lines.append("- A table the model drew was replaced by the one built from the files")
     if t.fixed:
         lines.append(f"- Links corrected to the note's name: {', '.join(t.fixed)}")
     if t.previous_question:
