@@ -1,6 +1,6 @@
 # Phase 16: Release v0.1.0 & GitHub Publication
 
-**Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 15, 15a, 15b, 15c, 15d, 15e, 15f, 15g, 15h (and any later inserted phase, ADR-0030, ADR-0034) · **Branch:** `phase-16-release`
+**Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 15, 15a, 15b, 15c, 15d, 15e, 15f, 15g, 15h, 15i, 15j (and any later inserted phase, ADR-0030, ADR-0034) · **Branch:** `phase-16-release`
 
 ## Read first
 `CLAUDE.md`, `prompts/MM3_shared-instructions.md`, `MM3_IMPLEMENTATION_PLAN.md` (the MVP definition of done and all Phase Log entries), and `docs/MM3_SPECIFICATION.md` §1, §12 and §15.4. Open question Q3 (GitHub owner, name and visibility).
@@ -21,7 +21,7 @@ prompts, and Fable 5.1 on Bedrock needs a data-retention setting the app does no
 `tests/integration/test_live_cloud.py` before tagging only if Nick has new test keys (he was asked to revoke the 15g
 ones). **15h** added the filtered
 cloud model picker with prices and Best value / Best quality badges (ADR-0042): refresh the Bedrock price table's
-`as_of` date and the recommendations if they are older than about 90 days, and add a picker screenshot. The quality baseline is `tests/eval/baseline.json` (`tests/eval/baseline.py` flags
+`as_of` date and the recommendations if they are older than about 90 days, and add a picker screenshot. **15i/15j** (ADR-0049) add a **Search** page and an **Ask** page (the Ask AI agent): a local `search.db` index with meaning vectors from an embedding model (default Ollama `nomic-embed-text`, which Docker's bundled Ollama and the install docs must tell users to pull), and answers saved as notes in `MM3 Answers/`; add both pages to the README feature list and screenshots, and the embedding model to the models listed in `THIRD_PARTY_NOTICES.md` and the privacy docs. The quality baseline is `tests/eval/baseline.json` (`tests/eval/baseline.py` flags
 regressions); measured numbers are in `docs/PERFORMANCE.md`; the README already has a "Known limitations" section.
 
 ## Goal

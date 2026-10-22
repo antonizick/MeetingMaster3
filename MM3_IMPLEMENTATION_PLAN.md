@@ -1,7 +1,7 @@
 # MM3: MeetingMaster3 Implementation Plan
 
 **Spec:** [`docs/MM3_SPECIFICATION.md`](docs/MM3_SPECIFICATION.md) (v1.1). **Decisions:** [`docs/MM3_DECISIONS.md`](docs/MM3_DECISIONS.md). **Agent rules:** [`CLAUDE.md`](CLAUDE.md). **Shared phase instructions:** [`prompts/MM3_shared-instructions.md`](prompts/MM3_shared-instructions.md)
-**Last updated:** 2026-10-20 11:08 CDT (project prefix and timestamps)
+**Last updated:** 2026-10-22 13:47 CDT (phases 15i and 15j inserted: Ask AI agent)
 
 > ⚠️ **Mandatory:** every agent that works on this project keeps this file accurate. **Before doing any other work, set your phase to `🔄 In progress` and commit that change to `main`** (claim protocol: `prompts/MM3_shared-instructions.md` §1a). Other agents read this table from `main`. At the end, set it to `✅ Complete` or `⛔ Blocked` and add a Phase Log entry. See `CLAUDE.md`.
 
@@ -46,7 +46,9 @@ Phases run in order. Phases whose dependencies are all complete may run in paral
 | 15f | Right-size the LLM context and re-measure | Stop counting the output reserve twice in map-reduce `num_ctx` (margin set from measured tokens per character), re-measure Default Notes and Executive Summary on the tuned 8 GB Ollama (flash attention + q8_0 KV cache), recalibrate estimates, document the Ollama settings for small GPUs, full eval | Opus 5.5 | 15e | ✅ Complete | [MM3_phase-15f-context-right-sizing.md](prompts/MM3_phase-15f-context-right-sizing.md) |
 | 15g | Live cloud backend verification (Bedrock, OpenRouter) | Plain-language AWS setup guide (IAM user access keys) and AWS key fields in Settings; Bedrock context window by default; live Bedrock (required) and OpenRouter (if keyed) runs through the real app, consent, map-reduce, eval on synthetic meetings plus one real one, Docker; fixes; measured quality, tokens and cost per note (≤ USD 5 per provider) | Opus 5.5 | 15d, 15e | ✅ Complete | [MM3_phase-15g-cloud-backend-verification.md](prompts/MM3_phase-15g-cloud-backend-verification.md) |
 | 15h | Cloud model picker with prices and recommendations | One capable-model filter for every picker (access, on-demand, context, text); live OpenRouter prices and a dated Bedrock price table; cost estimate per meeting; Best value and Best quality recommendations from 15g's measurements; grouped, accessible drop-down with Show all | Sonnet 5.5 | 15g | ✅ Complete | [MM3_phase-15h-cloud-model-picker.md](prompts/MM3_phase-15h-cloud-model-picker.md) |
-| 16 | Release v0.1.0 & GitHub publication | Final docs, screenshots, CHANGELOG, version and tag, release notes, GitHub repo creation (with confirmation), MVP sign-off | Sonnet 5.5 | 15, 15a, 15b, 15c, 15d, 15e, 15f, 15g, 15h | ⬜ Not started | [MM3_phase-16-release.md](prompts/MM3_phase-16-release.md) |
+| 15i | Meeting index and hybrid search | `embed()` in the Ollama, Bedrock and OpenAI-compatible backends (local `nomic-embed-text` by default; cloud embedding only with its own consent); a rebuildable `search.db` with an FTS5 word index and meaning vectors over every MM3 note and companion transcript, kept in step with the vault and never competing with a job for the GPU; hybrid (meaning + words) search on a **Search** page, `mm3 search` and a Python API for 15j | Opus 5.5 | 15h | ⬜ Not started | [MM3_phase-15i-meeting-index-search.md](prompts/MM3_phase-15i-meeting-index-search.md) |
+| 15j | Ask AI agent | Broad questions answered from the meetings on file: planned searches, each candidate meeting read, counts, dates and attendee tables built by code, a cited answer from a local model, Bedrock or OpenRouter; per-question cloud consent or a sticky Ask-only switch; every answer saved as a linked note in `MM3 Answers/`, listed on an **Ask** page and on each cited meeting's review page; `mm3 ask`; synthetic eval | Opus 5.5 | 15i | ⬜ Not started | [MM3_phase-15j-ask-ai-agent.md](prompts/MM3_phase-15j-ask-ai-agent.md) |
+| 16 | Release v0.1.0 & GitHub publication | Final docs, screenshots, CHANGELOG, version and tag, release notes, GitHub repo creation (with confirmation), MVP sign-off | Sonnet 5.5 | 15, 15a, 15b, 15c, 15d, 15e, 15f, 15g, 15h, 15i, 15j | ⬜ Not started | [MM3_phase-16-release.md](prompts/MM3_phase-16-release.md) |
 
 ### Model rationale
 - **Opus 5.5** (`/model claude-opus-5-5`) handles phases with subtle correctness or design risk: the round-trip parser, job state machine, ML pipeline and VRAM handling, voiceprint matching, prompt engineering, the interactive review workspace, and security review.
@@ -60,11 +62,11 @@ Phases run in order. Phases whose dependencies are all complete may run in paral
                                               │      └→ 12 ─┴→ 14 ─┐
                                               └→ 13 ────────────────┴→ 15 → 15a → 15b ─┬→ 15c → 15d ──────────┬→ 16
                                                                                        └→ 15e → 15f ──────────┤
-                                                                         15d + 15e ─────→ 15g → 15h ──────────┘
+                                                                         15d + 15e ───→ 15g → 15h → 15i → 15j ┘
 ```
 (15g depends on both 15d and 15e.)
 
-15e (template library only) could run in parallel with 15c and 15d, and 15f (generator budgeting and docs) can run in parallel with 15d; 15g (cloud backends, Settings secrets, docs) can run in parallel with 15f, and 15h follows 15g; 15d waits for 15c because both change the review toolbar and the Meetings page.
+15e (template library only) could run in parallel with 15c and 15d, and 15f (generator budgeting and docs) can run in parallel with 15d; 15g (cloud backends, Settings secrets, docs) can run in parallel with 15f, and 15h follows 15g; 15d waits for 15c because both change the review toolbar and the Meetings page. 15i (meeting index and search) and 15j (Ask AI agent) run in sequence after 15h: 15j is built on 15i's search API.
 
 **Interim tuning rounds (ADR-0030).** Between hardening (15) and release (16), Nick's feedback from real use is handled in rounds numbered `15a`, `15b`, `15c`…, each a normal phase (row, prompt `prompts/MM3_phase-15x-pre-op-tuning-N.md`, branch `phase-15x-pre-op-tuning`, worktree `../MeetingMaster3-phase-15x`, claim commit, Phase Log entry). A round depends on the previous one, and Phase 16 depends on the last round. **Any phase can be inserted this way** (`09a` after `09`, ADR-0034): use `/phase-add`, which adds the row and prompt and moves the dependencies for you.
 
@@ -72,6 +74,7 @@ Phases run in order. Phases whose dependencies are all complete may run in paral
 - [ ] Upload audio → diarized transcript → named speakers → structured note written to the Obsidian vault, all on the 8 GB reference machine with Ollama, fully offline after model download.
 - [ ] Side-by-side review, edit, per-section regeneration with diff and archive, and re-open of an existing note.
 - [ ] 23 templates; library management; Bedrock and OpenRouter work with BYOK.
+- [ ] Search and Ask AI agent: meetings found by meaning and words; broad questions answered with cited, code-checked facts and saved as linked notes (15i, 15j).
 - [ ] Docker Compose deployment (GPU and CPU) documented and verified.
 - [ ] Repo is GitHub-ready: README, LICENSE, NOTICE, THIRD_PARTY_NOTICES, SECURITY, CONTRIBUTING, CoC, CHANGELOG, .gitignore, .dockerignore, CI green.
 - [ ] All docs in this table and the spec are accurate.
@@ -340,3 +343,14 @@ Newest entries at the bottom. Format: `### YYYY-MM-DD HH:MM TZ: Phase NN: <title
 - Renamed the plan, spec, decision log and every prompt to `MM3_…` and rewrote references (ADR-0048); the vault note is now `MM3 Implementation Plan.md`. New Phase Log entries and ADRs carry a timestamp. No phase was in progress and `main` was clean when this was done; no product code changed.
 - Follow-up: `/phase` and `/phase-add` work unchanged (they read the renamed files by their new names).
 - 2026-10-20 11:30 CDT: also prefixed `docs/MM3_ARCHITECTURE.md`; added the Timeline-bullet rule (first bullet of every Phase Log entry) to `CLAUDE.md`, the shared instructions' close-out checklist and `/phase-add` (ADR-0048, update).
+
+### 2026-10-22 13:32 CDT: Planning: phases 15i and 15j inserted with `/phase-add` (Planned)
+- **Timeline:** started 2026-10-22 13:32 CDT · finished 2026-10-22 13:47 CDT
+- Request (Nick): an **Ask AI agent** that answers broad questions from the meeting notes and transcripts on file, RAG-style, understanding meaning and intent (word search welcome as an extra), with local, Bedrock or OpenRouter models. Typical example: how many times a topic was discussed, who was principally involved and in what role, and a table of the meetings, dates and attendees.
+- Grounding: no cross-meeting search exists; no `embed()` or tool-calling in any adapter (`llm/base.py:LLMBackend`); SQLite 3.53 has FTS5; Ollama `nomic-embed-text` is already pulled on Nick's machine; reusable pieces: `vault/relink.py:index_vault` and `vault/picker.py:read_identity` (find notes and companions by `mm3-id`), `parse_note`/`parse_transcript`, Default Notes' Meeting Context section (roles), `review/progress.py` long tasks, `llm/consent.py`, 15h's capable-model picker and cost estimate. Bedrock's IAM policy already allows `bedrock:InvokeModel` (Titan embeddings); OpenRouter's `/embeddings` support is unverified (15i checks it).
+- Scope split (one focused session each): **15i** builds `embed()` in the backends, a rebuildable `search.db` (FTS5 + vectors) kept in step with the vault and the GPU rule, hybrid search on a Search page, `mm3 search` and an API; **15j** builds the JSON-driven agent pipeline with code-built facts, per-question/sticky Ask consent, answer notes in `MM3 Answers/`, the Ask page and history, links from the review page, `mm3 ask` and a synthetic eval plus Nick's example question privately.
+- Placement: after 15h as Nick asked (15i depends on 15h; 15j on 15i); they run in sequence. Phase 16 now depends on 15i and 15j (row and prompt); MVP definition of done gains a Search/Ask line. No phase is in progress, so no overlap.
+- Models: both Opus 5.5: 15i has index consistency, incremental updates, GPU sharing, FTS escaping and consent; 15j is prompt engineering for small and cloud models, fact correctness and a new privacy surface.
+- Decisions: ADR-0049 (hybrid retrieval with backend embeddings, local default and cloud only with its own consent; JSON pipeline with code-built facts instead of tool-calling; per-question consent or a separate sticky Ask switch; every answer saved as a linked vault note; the split). Spec amendments R30/R31 are left to the phases.
+- Other files: `prompts/MM3_phase-15i-meeting-index-search.md`, `prompts/MM3_phase-15j-ask-ai-agent.md` (new), `prompts/MM3_phase-16-release.md` (depends on, notes), `docs/MM3_DECISIONS.md`, the Obsidian project note.
+

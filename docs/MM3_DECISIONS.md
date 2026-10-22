@@ -52,6 +52,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0046 | 2026-10-16 | Logging never blocks the event loop: all records, uvicorn's included, go through a bounded queue to a writer thread; a stalled terminal drops (and later reports) log lines instead of freezing the web app | Accepted | fix |
 | ADR-0047 | 2026-10-16 | Meetings entries stranded by a vault move are re-linked by `mm3-id` (found in the current vault, matched only when unambiguous), on request from the Meetings page or `mm3 notes relink`; only the list entry changes | Accepted | fix |
 | ADR-0048 | 2026-10-20 11:08 CDT | Project documents carry the prefix `MM3_` and every recorded date becomes a timestamp (`YYYY-MM-DD HH:MM TZ`); files renamed, references rewritten | Accepted | docs |
+| ADR-0049 | 2026-10-22 13:47 CDT | Ask AI agent: hybrid (FTS5 + embeddings) retrieval with embeddings through the backends (local `nomic-embed-text` default, cloud only with its own consent); a JSON-driven pipeline with code-built facts, not tool-calling; per-question cloud consent or a separate sticky Ask switch; every answer saved as a linked vault note; split into 15i and 15j | Accepted (planning) | 15i, 15j |
 
 ---
 
@@ -1379,3 +1380,50 @@ one click. Other absolute paths (job audio, review sessions) were not stranded b
 **Decision.** Underscore prefix on the project's own documents only: `MM3_IMPLEMENTATION_PLAN.md`, `docs/MM3_SPECIFICATION.md`, `docs/MM3_DECISIONS.md`, `prompts/MM3_shared-instructions.md`, `prompts/MM3_phase-NN-<slug>.md` and `prompts/MM3_change-request-template.md`. Convention-bound files (`CLAUDE.md`, `README.md`, `LICENSE`, `CHANGELOG.md`, `.claude/commands/*`) and branch and worktree names are unchanged. The vault note is now `02 Projects/MM3 Implementation Plan.md`. New records use `YYYY-MM-DD HH:MM TZ` from `date`; earlier entries keep their dates.
 **Consequences.** Git follows the renames (`git log --follow`). References inside the repo were rewritten in the same commit; commit messages and anything outside the repo that links the old names (older notes) are not. The other docs (`docs/MM3_ARCHITECTURE.md`, `PERFORMANCE.md`, `PRIVACY.md`, `THREAT_MODEL.md`) were not renamed.
 **Update 2026-10-20 11:30 CDT.** Also prefixed `docs/MM3_ARCHITECTURE.md`. Phase Log entries now start with a **Timeline** bullet (started = claim commit, finished, merged, blocked) so a visual phase timeline can be drawn for the final report.
+
+## ADR-0049: Ask AI agent: hybrid retrieval, backend embeddings, code-built facts, Ask consent and answer notes (planning, Phases 15i and 15j)
+**Recorded:** 2026-10-22 13:47 CDT (planning with `/phase-add`; decided by Nick during intake)
+
+**Context.** Nick wants an "Ask AI agent": broad questions about the meetings on file (notes and transcripts), answered
+RAG-style with understanding of meaning and intent, "not only a simple word search, although a word search may be a
+capability we would want", using a local model, Bedrock or OpenRouter. His typical example asks for a count of
+discussions on a topic, the principal people and their roles, and a table of meetings, dates and attendees, so the
+facts must be reliable. Nothing in the app searches across meetings today; the backends have no embedding or
+tool-calling call. SQLite FTS5 is available, and Ollama's `nomic-embed-text` is already on Nick's machine.
+
+**Options considered (retrieval and embeddings).**
+
+| Option | Pros | Cons |
+|---|---|---|
+| A. Hybrid: FTS5 words + embeddings through the backends (`embed()`), local Ollama by default | Meaning and words; no new Python dependency; offline and free by default; Bedrock (Titan V2) and OpenAI-compatible embeddings possible | Cloud embedding sends every meeting's full text at indexing time (needs its own consent); changing the embedding model means re-indexing; Docker users need the bundled Ollama |
+| B. In-process ONNX embedding model | Works without Ollama; text never leaves the process | onnxruntime and tokenizers become core dependencies; another model-download path |
+| C. FTS5 word search only | Simplest, instant | Misses meaning and intent, which Nick explicitly wants |
+
+**Options considered (agent).** A free tool-calling agent (flexible, but no adapter supports tool-calling, small local
+models are unreliable with it, and counts and tables could be invented) versus a fixed pipeline driven by the model's
+JSON output: plan searches, retrieve, read each candidate meeting, at most one follow-up round, answer.
+
+**Decision.**
+1. **Retrieval: A** (Nick, 2026-10-22). Hybrid search over passages of notes (by section) and companion transcripts
+   (speaker-turn windows with times), fused by reciprocal rank; a rebuildable index in app data, kept in step with the
+   vault; word-only search still works when the embedder is unavailable.
+2. **Agent:** the fixed JSON-driven pipeline, working through every backend's `generate()`. **Facts are computed by
+   code** from the files (which meetings, how many, dates, titles, attendees, speakers in the matching passages); the
+   model judges relevance per meeting and writes the narrative and roles; citations to meetings it was not shown are
+   removed.
+3. **Consent (S6), Nick's choice:** a question sent to a cloud backend needs consent for that question, unless a new
+   **separate** sticky per-backend switch for Ask (`ask_consent_remembered`) is on; note writing's
+   `consent_remembered` does not cover Ask, because one question can send excerpts from many meetings. Cloud
+   embedding has its own sticky switch (`cloud_embedding_consent`) stating that every meeting's text is sent.
+4. **Answers, Nick's choice:** every answer is saved automatically as a vault note (default folder `MM3 Answers/`,
+   `mm3-kind: answer`, no `mm3-id`) with wikilinks to the meetings it used, and recorded in an `answers` table so the
+   Ask page lists it and each cited meeting's review page links to it; Obsidian's backlinks link the other way. Meeting
+   notes are never edited. Deleting an answer from the app removes the note and the record.
+5. **Split:** 15i (embeddings, index, hybrid search, Search page, `mm3 search`) then 15j (agent, Ask page, answer notes,
+   `mm3 ask`, eval). Both Opus 5.5.
+
+**Consequences.** The app gains a second store of meeting text (`search.db`), covered by the privacy docs and
+deletable from Settings. Embedding with a local model uses the GPU briefly, so indexing waits for the job runner's GPU
+semaphore (R5). Answer quality on an 8 GB machine depends on qwen3:8b reading one meeting per call; the eval in 15j
+measures it against a synthetic corpus and Nick's example question. Native tool-calling and in-process embeddings stay
+possible later behind the same search API.
