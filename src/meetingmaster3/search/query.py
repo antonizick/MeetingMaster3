@@ -15,9 +15,11 @@ from __future__ import annotations
 import asyncio
 import heapq
 import json
+import logging
 import math
 import operator
 import re
+import sqlite3
 import time
 from array import array
 from collections.abc import Callable, Iterable, Sequence
@@ -25,11 +27,26 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from meetingmaster3.errors import MM3Error
+from meetingmaster3.markdown.transcript_format import timestamp
 from meetingmaster3.search.chunking import PLACEHOLDER_RE
 from meetingmaster3.search.embedder import EmbedderChoice
 from meetingmaster3.search.store import SearchStore, unpack
 
+log = logging.getLogger(__name__)
+
 RRF_K = 60
+HEAD_WEIGHT = 0.3
+"""BM25 weight of a passage's heading lines (title, date, section, speakers) against its body
+(1.0). Every passage repeats its meeting's title, so a word that is only in the title would
+otherwise match every passage of that meeting as strongly as the passage that discusses it."""
+WORD_FRACTION = 0.3
+"""Word candidates must score at least this fraction of the best BM25 score: a passage matching
+one common query word should not enter the fusion at the rank of one that matches them all."""
+VECTOR_MARGIN = 0.08
+"""Vector candidates must score within this much cosine similarity of the best one. Embedding
+models give unrelated text a similarity well above zero (about 0.5 for nomic-embed-text), so a
+plain top-N would always "find" every meeting; relevant passages stand out by a few hundredths
+(measured on the synthetic corpus and on Nick's vault, ADR-0050)."""
 MAX_TERMS = 32
 MAX_TERM_CHARS = 64
 MAX_QUERY_CHARS = 2000
@@ -94,6 +111,13 @@ class Hit:
     """Cosine similarity (-1 to 1)."""
     snippet: tuple[tuple[str, bool], ...] = ()
     """The best part of ``body`` as (text, matched) pieces; render ``matched`` highlighted."""
+
+    def label(self) -> str:
+        """Where the passage is: the section heading, or "Transcript · 0:12:30 · names"."""
+        if self.kind == "transcript":
+            when = timestamp(self.start_s) if self.start_s is not None else ""
+            return " · ".join(p for p in ("Transcript", when, ", ".join(self.speakers)) if p)
+        return self.heading or "Note"
 
     def snippet_text(self, open_mark: str = "**", close_mark: str = "**") -> str:
         return "".join(f"{open_mark}{t}{close_mark}" if hit else t for t, hit in self.snippet)
@@ -358,14 +382,22 @@ class Searcher:
 
     def word_search(self, match: str, filters: SearchFilters, n: int) -> list[tuple[int, float]]:
         where, params = _doc_filter(filters)
-        rows = self.store.fetchall(
-            "SELECT p.id, bm25(passages_fts) AS score FROM passages_fts "  # noqa: S608
-            "JOIN passages p ON p.id = passages_fts.rowid "
-            "JOIN documents d ON d.id = p.doc_id "
-            f"WHERE passages_fts MATCH ? AND {where} ORDER BY score LIMIT ?",
-            [match, *params, n],
-        )
-        return [(int(r["id"]), float(r["score"])) for r in rows]
+        try:
+            rows = self.store.fetchall(
+                f"SELECT p.id, bm25(passages_fts, 1.0, {HEAD_WEIGHT}) AS score FROM passages_fts "  # noqa: S608
+                "JOIN passages p ON p.id = passages_fts.rowid "
+                "JOIN documents d ON d.id = p.doc_id "
+                f"WHERE passages_fts MATCH ? AND {where} ORDER BY score LIMIT ?",
+                [match, *params, n],
+            )
+        except sqlite3.OperationalError as exc:  # never from user text (it is quoted); defensive
+            log.warning("Word search failed: %s", exc)
+            return []
+        found = [(int(r["id"]), float(r["score"])) for r in rows]
+        if found and found[0][1] < 0:  # SQLite's bm25 is negative; more negative is better
+            floor = found[0][1] * WORD_FRACTION
+            found = [(pid, score) for pid, score in found if score <= floor]
+        return found
 
     # -- vector search -----------------------------------------------------------------------
 
@@ -387,7 +419,12 @@ class Searcher:
         return {int(r["id"]) for r in rows}
 
     def vector_search(
-        self, query_vec: Sequence[float], model_id: str, filters: SearchFilters, n: int
+        self,
+        query_vec: Sequence[float],
+        model_id: str,
+        filters: SearchFilters,
+        n: int,
+        margin: float | None = VECTOR_MARGIN,
     ) -> list[tuple[int, float]]:
         items = self._vectors(model_id)
         allowed = self.allowed_docs(filters)
@@ -398,7 +435,11 @@ class Searcher:
             for pid, doc_id, vec in items
             if len(vec) == dims and (allowed is None or doc_id in allowed)
         )
-        return heapq.nlargest(n, scored, key=lambda t: t[1])
+        best = heapq.nlargest(n, scored, key=lambda t: t[1])
+        if best and margin is not None:
+            floor = best[0][1] - margin
+            best = [(pid, score) for pid, score in best if score >= floor]
+        return best
 
     # -- both --------------------------------------------------------------------------------
 
@@ -416,7 +457,7 @@ class Searcher:
         ids = [pid for pid, _ in best]
         marks = ",".join("?" * len(ids))
         rows = self.store.fetchall(
-            "SELECT p.id, p.text, p.heading, p.section_id, p.start_s, p.end_s, p.speakers, "  # noqa: S608
+            "SELECT p.id, p.text, p.body, p.heading, p.section_id, p.start_s, p.end_s, p.speakers, "  # noqa: S608
             "d.mm3_id, d.kind, d.path, d.title, d.date, "
             "(SELECT n.path FROM documents n WHERE n.mm3_id = d.mm3_id AND n.kind = 'note' "
             " ORDER BY n.id LIMIT 1) AS note_path, "
@@ -431,7 +472,7 @@ class Searcher:
             r = by_id.get(pid)
             if r is None:  # removed by a concurrent update
                 continue
-            body = passage_body(r["text"])
+            body = r["body"] or passage_body(r["text"])
             w, v = words.get(pid), vectors.get(pid)
             hits.append(
                 Hit(
@@ -467,12 +508,14 @@ class Searcher:
         filters: SearchFilters | None = None,
         candidates: int | None = None,
         use_vectors: bool = True,
+        vector_margin: float | None = VECTOR_MARGIN,
     ) -> SearchResult:
         """The passages most related to ``text``, by meaning and by words.
 
         ``limit`` passages are returned (best first); each list contributes ``candidates``
-        (default ``max(3 * limit, 50)``) to the fusion. Never raises for the user's text; an
-        embedder failure falls back to words only, with the reason."""
+        (default ``max(3 * limit, 50)``) to the fusion; vector candidates must also be within
+        ``vector_margin`` of the best similarity (``None``: no cut-off). Never raises for the
+        user's text; an embedder failure falls back to words only, with the reason."""
         filters = filters or SearchFilters()
         text = text.strip()[:MAX_QUERY_CHARS]
         n = candidates or max(3 * limit, 50)
@@ -496,6 +539,7 @@ class Searcher:
             try:
                 choice = self.embedder()
                 badge = choice.badge
+                choice.require_consent()
                 stored = await asyncio.to_thread(
                     self.store.fetchone,
                     "SELECT COUNT(*) AS n FROM vectors WHERE model = ?",
@@ -512,7 +556,7 @@ class Searcher:
                     timings["embed_query"] = (time.perf_counter() - started) * 1000
                     started = time.perf_counter()
                     vectors = await asyncio.to_thread(
-                        self.vector_search, qvec, choice.model_id, filters, n
+                        self.vector_search, qvec, choice.model_id, filters, n, vector_margin
                     )
                     timings["vectors"] = (time.perf_counter() - started) * 1000
                     vectors_used = True

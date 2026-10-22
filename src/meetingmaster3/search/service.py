@@ -22,6 +22,7 @@ import asyncio
 import contextlib
 import logging
 import sqlite3
+import time
 from collections.abc import AsyncIterator, Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from pathlib import Path
@@ -42,6 +43,9 @@ from meetingmaster3.vault.paths import is_inside, resolve_vault_root
 log = logging.getLogger(__name__)
 
 DEBOUNCE_S = 2.0
+STALE_S = 60.0
+"""A search starts a background check of the vault when the last one is older than this (an
+unchanged file costs one ``stat``), so a note deleted or edited in Obsidian drops out soon."""
 E_SEARCH_OFF = "E_SEARCH_OFF"
 
 
@@ -296,7 +300,15 @@ class SearchService:
                 status_code=409,
             )
         await asyncio.to_thread(self._open)
+        self._refresh_if_stale()
         return await self.searcher.query(text, limit=limit, filters=filters)
+
+    def _refresh_if_stale(self) -> None:
+        if self.running() or self._loop is None:
+            return
+        finished = self.task.finished if self.task is not None else None
+        if finished is None or time.monotonic() - finished > STALE_S:
+            self.schedule()
 
     async def meeting_facts(
         self, mm3_ids: list[str], hits: list[Hit] | None = None

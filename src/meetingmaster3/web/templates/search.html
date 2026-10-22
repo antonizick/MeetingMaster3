@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{% if q %}{{ q }} · {% endif %}Search · MeetingMaster3{% endblock %}
+{% block content %}
+<h1>Search</h1>
+<form class="card stack search-form" role="search" action="/search" method="get"
+      hx-get="/search" hx-target="#search-results" hx-select="#search-results" hx-swap="outerHTML" hx-push-url="true">
+  <div class="field">
+    <label for="s-q">Search your meetings</label>
+    <input id="s-q" type="search" name="q" value="{{ q }}" maxlength="500" autocomplete="off" spellcheck="true"
+           placeholder="e.g. where did we spend more than planned?" aria-describedby="s-q-hint">
+    <p class="hint" id="s-q-hint">Ask in your own words: passages are found by what they mean as well as by the words they use.</p>
+  </div>
+  <details{% if date_from or date_to or person %} open{% endif %}>
+    <summary>Filters</summary>
+    <div class="row">
+      <div class="field"><label for="s-from">From</label><input id="s-from" type="date" name="from" value="{{ date_from }}"></div>
+      <div class="field"><label for="s-to">To</label><input id="s-to" type="date" name="to" value="{{ date_to }}"></div>
+      <div class="field"><label for="s-person">Person</label><input id="s-person" type="text" name="person" value="{{ person }}" maxlength="100" autocomplete="off" placeholder="a participant or speaker"></div>
+    </div>
+  </details>
+  <div><button type="submit" class="primary">Search</button></div>
+</form>
+
+<section id="search-results" aria-labelledby="h-results" aria-live="polite">
+  <h2 id="h-results" class="sr-only">Results</h2>
+  {% for e in errors %}<div class="alert warn" role="alert"><p>{{ e }}</p></div>{% endfor %}
+  {% if notice %}<div class="alert info" role="status"><p>{{ notice }} <a href="/settings/search">Search &amp; Ask settings</a></p></div>{% endif %}
+  {% if result %}
+    <p class="search-meta">
+      {% if total_meetings %}<strong>{{ total_meetings }}</strong> meeting{{ '' if total_meetings == 1 else 's' }} found{% else %}Nothing found{% endif %}
+      {% if mode_label %}<span class="badge" title="How the search was done">{{ mode_label }}</span>{% endif %}
+      {% if result.embedder %}<span class="badge {{ 'local' if result.embedder == 'local' else 'cloud' }}" title="Where the meaning search ran">{{ result.embedder }}</span>{% endif %}
+    </p>
+    {% if result.reason %}<p class="hint">{{ result.reason }} <a href="/settings/search">Index status</a></p>{% endif %}
+    {% if not total_meetings %}<p class="muted">Try other words, or remove a filter.</p>{% endif %}
+    <ol class="plain search-list">
+    {% for m in meetings %}
+      <li class="card search-meeting">
+        <h3>{% if m.link %}<a href="{{ m.link }}">{{ m.title }}</a>{% else %}{{ m.title }}{% endif %}
+          <span class="muted">{{ m.date or 'no date' }} · {{ m.count }} passage{{ '' if m.count == 1 else 's' }}</span></h3>
+        <ul class="plain search-hits">
+        {% for item in m.hits %}{% set h = item.hit %}
+          <li>
+            <p class="search-where">{% if item.link %}<a href="{{ item.link }}">{{ item.label }}</a>{% else %}{{ item.label }}{% endif %}</p>
+            <p class="search-snippet">{% for t, matched in h.snippet %}{% if matched %}<mark>{{ t }}</mark>{% else %}{{ t }}{% endif %}{% endfor %}</p>
+          </li>
+        {% endfor %}
+        </ul>
+        {% if m.more %}<p class="hint">and {{ m.more }} more passage{{ '' if m.more == 1 else 's' }} in this meeting</p>{% endif %}
+      </li>
+    {% endfor %}
+    </ol>
+    {% set pg = pager %}
+    {% if pg and pg.page.pages > 1 %}
+    <nav class="pager" aria-label="Result pages">
+      {% if pg.prev %}<a class="pager-step" rel="prev" href="{{ pg.prev.href }}"><span aria-hidden="true">‹</span> Previous</a>{% else %}<span class="pager-step off" aria-disabled="true"><span aria-hidden="true">‹</span> Previous</span>{% endif %}
+      <ul class="pager-pages">
+        {% for item in pg.numbers %}
+        {% if item is none %}<li aria-hidden="true">…</li>
+        {% elif item.n == pg.page.number %}<li><span class="pager-current" aria-current="page"><span class="sr-only">Page </span>{{ item.n }}</span></li>
+        {% else %}<li><a href="{{ item.href }}" aria-label="Page {{ item.n }}">{{ item.n }}</a></li>{% endif %}
+        {% endfor %}
+      </ul>
+      {% if pg.next %}<a class="pager-step" rel="next" href="{{ pg.next.href }}">Next <span aria-hidden="true">›</span></a>{% else %}<span class="pager-step off" aria-disabled="true">Next <span aria-hidden="true">›</span></span>{% endif %}
+      <span class="muted pager-pos">Page {{ pg.page.number }} of {{ pg.page.pages }}</span>
+    </nav>
+    {% endif %}
+  {% elif not q and index %}
+    <p class="hint">{% if index.running %}The index is being updated; results may be incomplete for a moment. {% endif %}{{ index.meetings }} meeting{{ '' if index.meetings == 1 else 's' }} indexed{% if index.badge %} · embedder: {{ index.badge }}{% endif %} · <a href="/settings/search">Index status</a></p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -65,6 +65,7 @@ router = APIRouter()
 NAV = (
     ("new", "/", "New meeting"),
     ("recent", "/meetings", "Meetings"),
+    ("search", "/search", "Search"),
     ("templates", "/templates", "Templates"),
     ("settings", "/settings", "Settings"),
 )

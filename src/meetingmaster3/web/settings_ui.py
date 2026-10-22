@@ -46,6 +46,8 @@ from meetingmaster3.web.pages import render
 
 router = APIRouter()
 
+AUTO = "auto"
+"""Shown for ``search.embedding_backend: null`` (the local Ollama)."""
 BACKEND_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,31}$")
 DEFAULT_WHISPER_CHOICES = ("large-v3-turbo", "medium", "small")
 
@@ -128,7 +130,15 @@ async def _tab_context(request: Request, tab: str, state: State) -> dict[str, An
         ids = tuple(e.id for e in library.listing() if e.valid and e.id)
         current = settings.generation.default_template
         choices["generation.default_template"] = ids if current in ids else (current, *ids)
+    if tab == "search":
+        names = _registry(request).names()
+        current_backend = settings.search.embedding_backend
+        extra = (current_backend,) if current_backend and current_backend not in names else ()
+        choices["search.embedding_backend"] = (AUTO, *names, *extra)
     views_list = _views(settings, fields, state, choices)
+    for v in views_list:
+        if v.spec.path == "search.embedding_backend" and v.value == "":
+            v.value = AUTO
     ctx["views"] = [v for v in views_list if not v.spec.advanced]
     ctx["advanced_views"] = [v for v in views_list if v.spec.advanced]
     if tab == "transcription":
@@ -137,6 +147,8 @@ async def _tab_context(request: Request, tab: str, state: State) -> dict[str, An
         ctx.update(await _llm_context(request))
     elif tab == "privacy":
         ctx.update(_privacy_context(request))
+    elif tab == "search":
+        ctx.update(_search_context(request))
     elif tab == "about":
         ctx.update(await _about_context(request))
     return ctx
@@ -257,6 +269,87 @@ async def save_aws_keys(request: Request) -> HTMLResponse:
 async def save_privacy(request: Request) -> HTMLResponse:
     state, _ = await _save_fields(request, "privacy", {}, {})
     return await _show(request, "privacy", state)
+
+
+@router.post("/settings/search", response_class=HTMLResponse)
+async def save_search(request: Request) -> HTMLResponse:
+    override: dict[str, Any] = {}
+    form = await _form(request)
+    if form.get("search.embedding_backend", "").strip() in ("", AUTO):
+        override["search.embedding_backend"] = None
+    state, ok = await _save_fields(request, "search", {}, override)
+    if ok:
+        service = _search_or_none(request)
+        if service is not None and _settings(request).search.enabled:
+            service.schedule()
+            state.notices.append("The index is being brought up to date in the background.")
+    return await _show(request, "search", state)
+
+
+# -- search & ask: the meeting index (Phase 15i) -------------------------------------------------
+
+
+def _search_or_none(request: Request) -> Any:
+    return getattr(request.app.state, "search", None)
+
+
+def _search(request: Request) -> Any:
+    service = _search_or_none(request)
+    if service is None:
+        raise MM3Error(
+            "E_SEARCH_UNAVAILABLE", "The search index is not running.", "Restart the app.", 503
+        )
+    return service
+
+
+def _search_context(request: Request) -> dict[str, Any]:
+    service = _search_or_none(request)
+    return {"search_status": service.status() if service is not None else None}
+
+
+def _search_status(request: Request, message: str = "") -> HTMLResponse:
+    ctx = {**_search_context(request), "search_message": message}
+    return render(request, "settings/_search_status.html", ctx)
+
+
+@router.get("/settings/search/status", response_class=HTMLResponse)
+async def search_status(request: Request) -> HTMLResponse:
+    return _search_status(request)
+
+
+async def _start_index(request: Request, *, rebuild: bool) -> HTMLResponse:
+    service = _search(request)
+    if not _settings(request).search.enabled:
+        service.enable()
+        _persist(request)
+    service.start_update(rebuild=rebuild)
+    return _search_status(request, "Rebuilding the index." if rebuild else "Updating the index.")
+
+
+@router.post("/settings/search/update", response_class=HTMLResponse)
+async def search_update(request: Request) -> HTMLResponse:
+    return await _start_index(request, rebuild=False)
+
+
+@router.post("/settings/search/rebuild", response_class=HTMLResponse)
+async def search_rebuild(request: Request) -> HTMLResponse:
+    return await _start_index(request, rebuild=True)
+
+
+@router.post("/settings/search/cancel", response_class=HTMLResponse)
+async def search_cancel(request: Request) -> HTMLResponse:
+    await _search(request).cancel()
+    return _search_status(request, "Stopped. What was indexed so far is kept.")
+
+
+@router.post("/settings/search/delete", response_class=HTMLResponse)
+async def search_delete(request: Request) -> HTMLResponse:
+    removed = await _search(request).delete_index()
+    _persist(request)  # delete_index switched search.enabled off
+    word = "file" if len(removed) == 1 else "files"
+    return _search_status(
+        request, f"The index was deleted ({len(removed)} {word}) and indexing is off."
+    )
 
 
 # -- transcription: token test and model downloads ---------------------------------------------
@@ -428,6 +521,7 @@ async def backend_save(request: Request) -> HTMLResponse:
         "profile": form.get("profile", "").strip() or None,
         "default_model": form.get("default_model", "").strip() or None,
         "consent_remembered": bool(form.get("consent_remembered")),
+        "cloud_embedding_consent": bool(form.get("cloud_embedding_consent")),
         "params": existing.params if existing else {},
         "headers": existing.headers if existing else {},
     }
@@ -493,6 +587,7 @@ async def backend_revoke(request: Request, name: str) -> HTMLResponse:
     if cfg is None:
         raise MM3Error("E_LLM_UNKNOWN_BACKEND", f"No backend named '{name}'.", "", 404)
     cfg.consent_remembered = False
+    cfg.cloud_embedding_consent = False
     _persist(request)
     return await _show(request, "llm", State(saved=True))
 

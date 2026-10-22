@@ -161,6 +161,7 @@ class BackendRegistry:
             "is_local": backend.is_local,
             "requires_consent": not backend.is_local,
             "consent_remembered": cfg.consent_remembered,
+            "cloud_embedding_consent": cfg.cloud_embedding_consent,
             "is_default": name == self.default_name,
             "base_url": cfg.base_url or getattr(backend, "base_url", None),
             "region": cfg.region,

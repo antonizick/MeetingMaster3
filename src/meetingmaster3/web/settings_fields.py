@@ -152,11 +152,36 @@ AWS_FIELDS = (
           "Shown once by AWS when you create the access key."),
 )  # fmt: skip
 
+SEARCH_FIELDS = (
+    Field("search.enabled", "Index meetings for search", "bool",
+          "Keeps a search index of every meeting note and transcript in the vault, in the app's "
+          "data folder (search.db). Your vault is not changed."),
+    Field("search.embedding_backend", "Embedding backend", "select",
+          "auto uses the local Ollama, which keeps everything on this computer. A cloud backend "
+          "also needs “Allow search indexing” in its settings (Language models)."),
+    Field("search.embedding_model", "Embedding model", "text",
+          "The model that turns passages into meaning vectors. For Ollama: nomic-embed-text "
+          "(run `ollama pull nomic-embed-text` once). Changing it re-embeds every passage.",
+          placeholder="nomic-embed-text"),
+    Field("search.index_transcripts", "Index the transcripts too", "bool",
+          "Finds what was said even when the notes leave it out. Turn off to index notes only."),
+    Field("search.chunk_tokens", "Passage size (tokens)", "int",
+          "About how much text one search result holds. Applies to all meetings after "
+          "Rebuild index.", advanced=True),
+    Field("search.chunk_overlap", "Passage overlap (tokens)", "int",
+          "Text repeated between neighbouring passages, so a point is not cut in half.",
+          advanced=True),
+    Field("search.rescan_minutes", "Check the vault every (minutes)", "int",
+          "For notes edited in Obsidian. Changes made in MeetingMaster3 are indexed at once.",
+          advanced=True),
+)  # fmt: skip
+
 TABS: dict[str, tuple[str, tuple[Field, ...]]] = {
     "vault": ("Vault", VAULT_FIELDS),
     "transcription": ("Transcription", TRANSCRIPTION_FIELDS),
     "notes": ("Notes & jobs", NOTES_FIELDS),
     "llm": ("Language models", AWS_FIELDS),
+    "search": ("Search & Ask", SEARCH_FIELDS),
     "privacy": ("Privacy", PRIVACY_FIELDS),
     "about": ("About & diagnostics", ()),
 }

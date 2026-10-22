@@ -28,6 +28,7 @@ from meetingmaster3.web.hardware import router as hardware_router
 from meetingmaster3.web.llm import router as llm_router
 from meetingmaster3.web.pages import WEB_DIR, router
 from meetingmaster3.web.review import router as review_router
+from meetingmaster3.web.search_ui import router as search_router
 from meetingmaster3.web.security import CSRFMiddleware, SecurityHeadersMiddleware
 from meetingmaster3.web.settings_ui import router as settings_router
 from meetingmaster3.web.templates_ui import router as templates_ui_router
@@ -111,6 +112,7 @@ def create_app(settings: Settings | None = None, paths: AppPaths | None = None) 
     app.mount("/static", StaticFiles(directory=WEB_DIR / "static"), name="static")
     app.include_router(router)
     app.include_router(review_router)
+    app.include_router(search_router)
     app.include_router(hardware_router)
     app.include_router(llm_router)
     app.include_router(jobs_router)

@@ -1,0 +1,13 @@
+{% from "settings/_macros.html" import field, status %}
+<form class="card stack" hx-post="/settings/search" hx-target="#tab-body" hx-swap="innerHTML">
+  <h2>Search &amp; Ask</h2>
+  <p class="hint">The <a href="/search">Search</a> page finds meetings by what was meant as well as by the words used. It uses an index of your meeting notes and transcripts, kept in step with the vault. With the local embedder nothing leaves this computer.</p>
+  {% for v in views %}{{ field(v) }}{% endfor %}
+  <details>
+    <summary>Advanced: passages and checks</summary>
+    <div class="stack">{% for v in advanced_views %}{{ field(v) }}{% endfor %}</div>
+  </details>
+  {{ status(state) }}
+  <div><button type="submit" class="primary">Save</button></div>
+</form>
+{% include "settings/_search_status.html" %}

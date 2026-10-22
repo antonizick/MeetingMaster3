@@ -6,8 +6,9 @@ version and is simply recreated when that changes, never migrated. It holds:
 - ``documents``: one row per indexed vault file (a live note or a companion transcript) with its
   identity, metadata and the fingerprint (sha256, mtime, size) the incremental update compares;
 - ``passages``: the chunks of each document, in order, with their section or time range;
-- ``passages_fts``: an FTS5 word index over the passage text (external content, kept in step by
-  triggers);
+- ``passages_fts``: an FTS5 word index over each passage's body and, as a second column weighted
+  lower at query time, its heading lines (title, date, section or speakers), external content
+  kept in step by triggers;
 - ``vectors``: one float32 embedding per passage, tagged with the embedding model. Only one model
   is ever stored (``meta.embed_model``); a different model empties the table first.
 
@@ -56,6 +57,8 @@ CREATE TABLE passages (
     doc_id INTEGER NOT NULL REFERENCES documents (id) ON DELETE CASCADE,
     ord INTEGER NOT NULL,
     text TEXT NOT NULL,
+    head TEXT NOT NULL DEFAULT '',
+    body TEXT NOT NULL DEFAULT '',
     text_hash TEXT NOT NULL,
     heading TEXT,
     section_id TEXT,
@@ -66,13 +69,15 @@ CREATE TABLE passages (
 CREATE INDEX passages_doc ON passages (doc_id);
 CREATE INDEX passages_hash ON passages (text_hash);
 CREATE VIRTUAL TABLE passages_fts USING fts5 (
-    text, content='passages', content_rowid='id', tokenize='porter unicode61 remove_diacritics 2'
+    body, head, content='passages', content_rowid='id',
+    tokenize='porter unicode61 remove_diacritics 2'
 );
 CREATE TRIGGER passages_ai AFTER INSERT ON passages BEGIN
-    INSERT INTO passages_fts (rowid, text) VALUES (new.id, new.text);
+    INSERT INTO passages_fts (rowid, body, head) VALUES (new.id, new.body, new.head);
 END;
 CREATE TRIGGER passages_ad AFTER DELETE ON passages BEGIN
-    INSERT INTO passages_fts (passages_fts, rowid, text) VALUES ('delete', old.id, old.text);
+    INSERT INTO passages_fts (passages_fts, rowid, body, head)
+    VALUES ('delete', old.id, old.body, old.head);
 END;
 CREATE TABLE vectors (
     passage_id INTEGER PRIMARY KEY REFERENCES passages (id) ON DELETE CASCADE,
@@ -88,7 +93,10 @@ class Passage:
     """One chunk of a document, ready to store."""
 
     text: str
+    """Heading lines and body, as embedded."""
     text_hash: str
+    head: str = ""
+    body: str = ""
     heading: str | None = None
     section_id: str | None = None
     start_s: float | None = None
@@ -319,12 +327,15 @@ class SearchStore:
             doc_id = int(cur.lastrowid or 0)
             for order, p in enumerate(passages):
                 pcur = conn.execute(
-                    "INSERT INTO passages (doc_id, ord, text, text_hash, heading, section_id, "
-                    "start_s, end_s, speakers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO passages (doc_id, ord, text, head, body, text_hash, heading, "
+                    "section_id, start_s, end_s, speakers) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (
                         doc_id,
                         order,
                         p.text,
+                        p.head,
+                        p.body,
                         p.text_hash,
                         p.heading,
                         p.section_id,

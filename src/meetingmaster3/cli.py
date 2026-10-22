@@ -864,5 +864,159 @@ def process(
         typer.echo("Done (no vault configured; nothing was written).")
 
 
+# -- search (Phase 15i) ------------------------------------------------------------------------
+
+
+def _search_service(settings: Settings) -> Any:
+    """The same service as the server's, gated on ``mm3.db`` instead of the runner (a server may
+    be transcribing at the same time)."""
+    from meetingmaster3.llm.registry import BackendRegistry
+    from meetingmaster3.search.service import JobsTableGate, SearchService
+
+    paths = resolve_paths()
+    paths.ensure()
+    registry = BackendRegistry(settings)
+    return SearchService(
+        settings, paths, registry.names, registry.get, JobsTableGate(paths.database)
+    )
+
+
+async def _search_index(settings: Settings, rebuild: bool) -> None:
+    import asyncio
+
+    service = _search_service(settings)
+    try:
+        task = service.start_update(rebuild=rebuild)
+        last = ""
+        while task.runner is not None and not task.runner.done():
+            if task.message != last:
+                last = task.message
+                typer.echo(f"  {task.message}", err=True)
+            await asyncio.sleep(0.5)
+        if task.error is not None:
+            _fail(task.error)
+        r = service.last_report
+        if r is not None:
+            typer.echo(
+                f"Indexed in {r.seconds:.1f} s: {r.added} added, {r.updated} updated, {r.moved} "
+                f"moved, {r.removed} removed, {r.unchanged} unchanged; {r.embedded} passages "
+                f"embedded ({r.embed_seconds:.1f} s)."
+            )
+            for path, message in r.failed:
+                typer.secho(f"  not indexed: {path}: {message}", fg=typer.colors.YELLOW)
+            if r.vector_error is not None:
+                typer.secho(
+                    f"Words only: {r.vector_error.message}", fg=typer.colors.YELLOW, err=True
+                )
+                if r.vector_error.hint:
+                    typer.echo(f"Hint: {r.vector_error.hint}", err=True)
+        if not settings.search.enabled:
+            typer.echo("Note: search.enabled is off, so the server does not keep this up to date.")
+    finally:
+        await service.stop()
+
+
+def _print_status(settings: Settings) -> None:
+    import asyncio
+
+    service = _search_service(settings)
+    try:
+        st = service.status()
+    finally:
+        asyncio.run(service.stop())
+    emb = st["embedder"]
+    typer.echo(f"Index:     {st['path']}{'' if st['exists'] else ' (not built)'}")
+    typer.echo(f"Enabled:   {'yes' if st['enabled'] else 'no'}")
+    if "error" in emb:
+        typer.echo(f"Embedder:  unavailable: {emb['error']} {emb.get('hint', '')}".rstrip())
+    else:
+        allowed = "" if emb["consented"] else " (not allowed to index: no consent)"
+        typer.echo(f"Embedder:  {emb['model']} on {emb['backend']} ({emb['badge']}){allowed}")
+    typer.echo(
+        f"Meetings:  {st['meetings']} ({st['notes']} notes, {st['transcripts']} transcripts)"
+    )
+    typer.echo(f"Passages:  {st['passages']}, {st['vectors']} with vectors")
+    typer.echo(f"Size:      {st['size_bytes'] / 1048576:.1f} MB")
+    typer.echo(f"Updated:   {st['last_update'] or 'never'}")
+    if st["vector_error"]:
+        typer.secho(f"Words only: {st['vector_error']}", fg=typer.colors.YELLOW)
+
+
+@app.command("search")
+def search(
+    words: list[str] = typer.Argument(  # noqa: B008 - typer's declaration style
+        None,
+        help='What to look for, in your own words. Or "index" (update the index) or "status".',
+    ),
+    query: str | None = typer.Option(
+        None, "--query", "-q", help='Search for this text (use it to search for "index").'
+    ),
+    limit: int = typer.Option(10, help="How many meetings to list."),
+    date_from: str | None = typer.Option(None, "--from", help="Only meetings on or after."),
+    date_to: str | None = typer.Option(None, "--to", help="Only meetings on or before."),
+    person: list[str] = typer.Option(  # noqa: B008
+        None, "--person", help="Only meetings with this participant or speaker (repeatable)."
+    ),
+    as_json: bool = typer.Option(False, "--json", help="Print the result as JSON."),
+    rebuild: bool = typer.Option(False, "--rebuild", help="With index: start from scratch."),
+) -> None:
+    """Search the meetings by meaning and by words (`mm3 search "<question>"`), update the
+    index (`mm3 search index [--rebuild]`) or show it (`mm3 search status`)."""
+    import asyncio
+    import datetime as dt
+    import json
+
+    from meetingmaster3.search.query import SearchFilters
+
+    configure_logging()
+    settings = load_settings()
+    words = list(words or [])
+    if query is None and words == ["index"]:
+        asyncio.run(_search_index(settings, rebuild))
+        return
+    if query is None and words == ["status"]:
+        _print_status(settings)
+        return
+    text = query if query is not None else " ".join(words)
+    if not text.strip():
+        typer.secho('Give some words to search for, e.g. mm3 search "budget".', err=True)
+        raise typer.Exit(2)
+    try:
+        filters = SearchFilters(
+            date_from=dt.date.fromisoformat(date_from).isoformat() if date_from else None,
+            date_to=dt.date.fromisoformat(date_to).isoformat() if date_to else None,
+            people=tuple(person or ()),
+        )
+    except ValueError:
+        _fail(MM3Error("E_BAD_DATE", "--from and --to take a date like 2026-10-22.", ""))
+
+    async def run() -> Any:
+        service = _search_service(settings)
+        try:
+            return await service.query(text, limit=max(30, limit * 5), filters=filters)
+        finally:
+            await service.stop()
+
+    try:
+        result = asyncio.run(run())
+    except MM3Error as exc:
+        _fail(exc)
+    meetings = result.group_by_meeting()[:limit]
+    if as_json:
+        data = result.to_dict()
+        data["meetings"] = [m.to_dict() for m in meetings]
+        typer.echo(json.dumps(data, indent=2, ensure_ascii=False))
+        return
+    mode = {"hybrid": "meaning + words", "meaning": "meaning", "words": "words only"}
+    typer.echo(f"{len(meetings)} meeting(s), {mode.get(result.mode, 'nothing searched')}.")
+    if result.reason:
+        typer.secho(result.reason, fg=typer.colors.YELLOW, err=True)
+    for m in meetings:
+        typer.secho(f"\n{m.date or '----------'}  {m.title}", bold=True)
+        typer.echo(f"            {m.note_path or '(no note)'}  [{m.mm3_id}]")
+        for h in m.hits[:3]:
+            typer.echo(f"  - {h.label()}: {h.snippet_text()}")
+
+
 def main() -> None:
     app()

@@ -49,8 +49,9 @@ def text_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def _passage(text: str, **fields: object) -> Passage:
-    return Passage(text=text, text_hash=text_hash(text), **fields)  # type: ignore[arg-type]
+def _passage(head: str, body: str, **fields: object) -> Passage:
+    text = head + "\n" + body
+    return Passage(text=text, text_hash=text_hash(text), head=head, body=body, **fields)  # type: ignore[arg-type]
 
 
 def _pieces(text: str, budget: int) -> list[str]:
@@ -139,13 +140,13 @@ def chunk_note(text: str, *, chunk_tokens: int, overlap: int, fallback_title: st
         head = _head(title, date, f"## {block.title}")
         for window in _windows(_pieces(block.body_markdown, budget), budget, over):
             passages.append(
-                _passage(head + "\n" + "\n".join(window), heading=block.title, section_id=block.id)
+                _passage(head, "\n".join(window), heading=block.title, section_id=block.id)
             )
     other = _user_text(b for b in note.blocks if isinstance(b, TextBlock))
     if other:
         head = _head(title, date, f"## {OTHER_HEADING}")
         for window in _windows(_pieces(other, budget), budget, over):
-            passages.append(_passage(head + "\n" + "\n".join(window), heading=OTHER_HEADING))
+            passages.append(_passage(head, "\n".join(window), heading=OTHER_HEADING))
     return Chunked(
         mm3_id=str(meta.id),
         kind="note",
@@ -208,7 +209,8 @@ def chunk_transcript(
         head = _head(title, date, "Transcript", f"Speakers: {', '.join(names)}" if names else "")
         passages.append(
             _passage(
-                head + "\n" + _render(chosen),
+                head,
+                _render(chosen),
                 start_s=chosen[0].start,
                 end_s=chosen[-1].end,
                 speakers=names,

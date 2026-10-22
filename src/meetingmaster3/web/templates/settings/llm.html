@@ -13,11 +13,11 @@
             <span class="badge {{ 'local' if b.is_local else 'cloud' }}">{{ b.badge }}</span>
             {% if b.error %}<br><span class="error-text">{{ b.error }}</span>{% endif %}</td>
         <td>{{ b.kind }}</td>
-        <td>{{ b.default_model or '—' }}{% if b.consent_remembered %}<br><span class="hint">Consent remembered</span>{% endif %}</td>
+        <td>{{ b.default_model or '—' }}{% if b.consent_remembered %}<br><span class="hint">Consent remembered</span>{% endif %}{% if b.cloud_embedding_consent and not b.is_local %}<br><span class="hint">Search indexing allowed</span>{% endif %}</td>
         <td class="actions">
           <button hx-post="/settings/llm/{{ b.name }}/test" hx-target="#test-{{ b.name }}" hx-swap="innerHTML">Test</button>
           <button hx-get="/settings/llm/{{ b.name }}/edit" hx-target="#backend-slot" hx-swap="innerHTML">Edit</button>
-          {% if b.consent_remembered %}<button hx-post="/settings/llm/{{ b.name }}/revoke-consent" hx-target="#tab-body" hx-swap="innerHTML">Revoke consent</button>{% endif %}
+          {% if b.consent_remembered or b.cloud_embedding_consent %}<button hx-post="/settings/llm/{{ b.name }}/revoke-consent" hx-target="#tab-body" hx-swap="innerHTML">Revoke consent</button>{% endif %}
           {% if not b.is_default %}<button class="danger" hx-post="/settings/llm/{{ b.name }}/delete" hx-target="#tab-body" hx-swap="innerHTML" hx-confirm="Remove the backend “{{ b.name }}”?">Remove</button>{% endif %}
           <div id="test-{{ b.name }}" aria-live="polite"></div>
         </td>

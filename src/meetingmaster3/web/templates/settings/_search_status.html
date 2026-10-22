@@ -1,0 +1,51 @@
+{# The meeting index card (Phase 15i). Re-fetches itself every 2 s while an update runs. #}
+{% set st = search_status %}
+<section id="search-index" class="card stack" aria-labelledby="h-search-index"
+  {% if st and st.running %}hx-get="/settings/search/status" hx-trigger="every 2s" hx-target="this" hx-swap="outerHTML"{% endif %}>
+  <h2 id="h-search-index">Meeting index</h2>
+  {% if not st %}
+    <p class="muted">The index is not running in this server.</p>
+  {% else %}
+    {% set emb = st.embedder %}
+    <dl class="facts">
+      <dt>Embedder</dt>
+      <dd>{% if emb.error %}<span class="error-text">{{ emb.error }}</span> {{ emb.hint }}
+          {% else %}{{ emb.model }} on <strong>{{ emb.backend }}</strong> <span class="badge {{ 'local' if emb.badge == 'local' else 'cloud' }}">{{ emb.badge }}</span>{% if not emb.consented %} <span class="warn-text">(not allowed to index: see Language models)</span>{% endif %}{% endif %}</dd>
+      <dt>Status</dt>
+      <dd>{% if not st.enabled %}Off{% if st.exists %} (the index file is kept){% endif %}{% elif st.running %}Updating…{% elif not st.exists %}Not built yet{% else %}Ready{% endif %}</dd>
+      {% if st.exists %}
+      <dt>Meetings</dt><dd>{{ st.meetings }} ({{ st.notes }} notes, {{ st.transcripts }} transcripts)</dd>
+      <dt>Passages</dt><dd>{{ st.passages }}, {{ st.vectors }} with meaning vectors{% if st.indexed_model %} ({{ st.indexed_model }}{% if st.dims %}, {{ st.dims }} dimensions{% endif %}){% endif %}</dd>
+      <dt>Size</dt><dd>{{ (st.size_bytes / 1048576)|round(1) }} MB · <code>{{ st.path }}</code></dd>
+      <dt>Last update</dt><dd>{{ st.last_update or 'never' }}{% if st.last_seconds %} ({{ st.last_seconds }} s){% endif %}</dd>
+      {% endif %}
+    </dl>
+    {% if st.task and st.running %}
+      <div class="stack" role="status" aria-live="polite">
+        <progress max="1" value="{{ st.task.fraction }}" aria-label="Index update progress">{{ (st.task.fraction * 100)|round|int }}%</progress>
+        <p class="hint">{{ st.task.message }} · {{ st.task.elapsed_s|duration }} elapsed{% if st.task.remaining_s %} · about {{ st.task.remaining_s|duration }} left{% endif %}</p>
+      </div>
+    {% elif st.task and st.task.error %}
+      <div class="alert error" role="alert"><p>{{ st.task.error.message }}</p>{% if st.task.error.hint %}<p class="hint">{{ st.task.error.hint }}</p>{% endif %}</div>
+    {% endif %}
+    {% if st.vector_error and st.enabled %}
+      <div class="alert warn" role="status"><p><strong>Words only for now.</strong> Meaning vectors are missing: {{ st.vector_error }}</p><p class="hint">Word search still works. Press Update index when it is fixed.</p></div>
+    {% endif %}
+    {% if st.failed_count %}
+      <div class="alert info"><p>{{ st.failed_count }} file(s) could not be indexed.</p>
+        {% if st.failed %}<ul class="plain">{% for f in st.failed[:10] %}<li><code>{{ f.path }}</code>: {{ f.message }}</li>{% endfor %}</ul>{% endif %}</div>
+    {% endif %}
+    {% if st.truncated %}<p class="hint warn-text">The vault has more than 50 000 Markdown files; only the first were indexed.</p>{% endif %}
+    {% if search_message %}<p class="ok" role="status">{{ search_message }}</p>{% endif %}
+    <div class="row">
+      {% if st.running %}
+        <button hx-post="/settings/search/cancel" hx-target="#search-index" hx-swap="outerHTML">Stop</button>
+      {% else %}
+        <button class="primary" hx-post="/settings/search/update" hx-target="#search-index" hx-swap="outerHTML">Update index</button>
+        <button hx-post="/settings/search/rebuild" hx-target="#search-index" hx-swap="outerHTML" hx-confirm="Rebuild the whole index? Every passage is read and embedded again (a few minutes for a large vault).">Rebuild index</button>
+        {% if st.exists %}<button class="danger" hx-post="/settings/search/delete" hx-target="#search-index" hx-swap="outerHTML" hx-confirm="Delete the search index and turn indexing off? Your notes are not touched; Update index builds it again.">Delete index</button>{% endif %}
+      {% endif %}
+    </div>
+    <p class="hint">Update reads only what changed; Rebuild starts from scratch. Indexing waits while a meeting is being transcribed, so it never slows a job down.</p>
+  {% endif %}
+</section>

@@ -57,6 +57,15 @@
   }
   window.mm3Player = { seek };
 
+  // Opened from a search result at a moment (/meetings/<id>#t=<seconds>): show that segment.
+  const fromHash = /^#t=(\d+(?:\.\d+)?)$/.exec(window.location.hash);
+  if (fromHash && segs.length) {
+    const t = Number(fromHash[1]);
+    seek(t, false);
+    const i = indexAt(t + 0.01);
+    if (i >= 0 && segs[i]) segs[i].scrollIntoView({ block: "center" });
+  }
+
   // A manual scroll pauses "follow"; the checkbox turns it back on.
   if (box) {
     box.addEventListener("scroll", () => {
