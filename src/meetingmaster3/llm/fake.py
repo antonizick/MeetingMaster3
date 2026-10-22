@@ -9,13 +9,16 @@ map-reduce extraction. Tests pass a ``responder`` to script exact answers (inclu
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
+import math
 import re
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Sequence
 from dataclasses import dataclass, field
 
 from meetingmaster3.llm.base import (
     ConnectionStatus,
+    EmbedPurpose,
     GenerateRequest,
     GenerateResult,
     ModelInfo,
@@ -92,6 +95,42 @@ def _section(prompt: str) -> str:
     return text
 
 
+FAKE_DIMENSIONS = 64
+
+
+def _words(text: str) -> frozenset[str]:
+    return frozenset(text.split())
+
+
+_CONCEPTS: tuple[frozenset[str], ...] = (
+    _words(
+        "budget budgets overrun overran overspend overspent spending spend spent cost costs "
+        "exceeded exceed forecast forecasts planned money expensive price dollars"
+    ),
+    _words("hire hiring hired recruit recruiting candidate candidates headcount"),
+    _words("launch launches release releases ship shipping shipped rollout"),
+    _words("bug bugs outage incident crash crashes failure failures broken"),
+)
+"""Toy "meanings" for :func:`fake_embedding`: words in one group land on the same dimension, so
+tests can check that a search finds a topic phrased in different words."""
+_WORD_RE = re.compile(r"[a-z0-9]+")
+
+
+def fake_embedding(text: str, dims: int = FAKE_DIMENSIONS) -> list[float]:
+    """A deterministic unit vector: one dimension per toy concept (weighted 3), the rest hashed
+    words. Not a real model; good enough to rank synthetic test meetings."""
+    vec = [0.0] * dims
+    for word in _WORD_RE.findall(text.lower()):
+        hit = next((i for i, group in enumerate(_CONCEPTS) if word in group), None)
+        if hit is not None:
+            vec[hit] += 3.0
+            continue
+        digest = hashlib.blake2b(word.encode(), digest_size=4).digest()
+        vec[len(_CONCEPTS) + int.from_bytes(digest, "big") % (dims - len(_CONCEPTS))] += 1.0
+    norm = math.sqrt(sum(v * v for v in vec)) or 1.0
+    return [v / norm for v in vec]
+
+
 @dataclass
 class FakeLLMBackend:
     """Implements :class:`~meetingmaster3.llm.base.LLMBackend` without any network."""
@@ -105,6 +144,9 @@ class FakeLLMBackend:
     models: tuple[str, ...] = ("fake-model",)
     embedding_models: tuple[str, ...] = ()
     """Models that cannot write text, like Ollama's embedding models."""
+    supports_embeddings: bool = True
+    embed_calls: list[tuple[str, tuple[str, ...]]] = field(default_factory=list)
+    """``(model, texts)`` of every :meth:`embed` call."""
     delay: float = 0.0
     """Seconds each call takes (``MM3_FAKE_LLM_SECONDS`` in the fake pipeline), so progress UI
     can be watched in the browser tests."""
@@ -137,6 +179,17 @@ class FakeLLMBackend:
 
     def can_generate(self, model: str) -> bool:
         return model not in self.embedding_models
+
+    async def embed(
+        self, model: str, texts: Sequence[str], *, purpose: EmbedPurpose = "document"
+    ) -> list[list[float]]:
+        self.embed_calls.append((model, tuple(texts)))
+        if self.delay:
+            await asyncio.sleep(self.delay)
+        return [fake_embedding(t) for t in texts]
+
+    async def list_embedding_models(self) -> list[ModelInfo]:
+        return [ModelInfo(id=m, can_generate=False) for m in self.embedding_models]
 
     async def test_connection(self) -> ConnectionStatus:
         return ConnectionStatus(ok=True, message="Fake backend (offline)", models=len(self.models))

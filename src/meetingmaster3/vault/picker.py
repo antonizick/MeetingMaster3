@@ -35,6 +35,8 @@ class NoteInfo:
     """The companion transcript (the machine copy with the data block)."""
     is_readable: bool = False
     """The readable transcript (R25): generated for people, never parsed back."""
+    kind: str | None = None
+    """The ``mm3-kind`` property, if any (``readable-transcript``; ``answer`` from Phase 15j)."""
 
     @property
     def is_note(self) -> bool:
@@ -66,6 +68,7 @@ def read_identity(path: Path) -> NoteInfo | None:
         is_transcript=not readable
         and ("mm3-note" in fm.data or path.name.endswith(TRANSCRIPT_SUFFIX)),
         is_readable=readable,
+        kind=text_value(fm.data.get("mm3-kind")),
     )
 
 

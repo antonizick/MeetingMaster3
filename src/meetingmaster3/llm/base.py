@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import ipaddress
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass, field
 from typing import Literal, Protocol, runtime_checkable
 from urllib.parse import urlparse
@@ -20,6 +20,7 @@ E_LLM_UNKNOWN_BACKEND = "E_LLM_UNKNOWN_BACKEND"
 E_LLM_CONFIG = "E_LLM_CONFIG"
 E_CONSENT_REQUIRED = "E_CONSENT_REQUIRED"
 E_LLM_MODEL_UNSUITABLE = "E_LLM_MODEL_UNSUITABLE"
+E_LLM_EMBED_UNSUPPORTED = "E_LLM_EMBED_UNSUPPORTED"
 
 LOCAL_HOSTNAMES = frozenset({"localhost", "host.docker.internal"})
 
@@ -171,6 +172,68 @@ class LLMBackend(Protocol):
     async def warm(self, model: str) -> None:
         """Best-effort lookup of ``model``'s context window so ``context_window`` can answer."""
         ...
+
+
+EmbedPurpose = Literal["document", "query"]
+"""What a text is embedded for. Some models embed a search query differently from the passages
+it is matched against (Cohere's ``input_type``); the others ignore it."""
+
+
+@runtime_checkable
+class Embedder(Protocol):
+    """The optional embedding capability of a backend (Phase 15i, ADR-0049).
+
+    It is a separate protocol so that a backend (or a test double) without embeddings still
+    satisfies :class:`LLMBackend`. Use :func:`supports_embeddings` before calling it."""
+
+    id: str
+    is_local: bool
+    supports_embeddings: bool
+
+    async def embed(
+        self, model: str, texts: Sequence[str], *, purpose: EmbedPurpose = "document"
+    ) -> list[list[float]]:
+        """One vector per text, in order. Raises ``MM3Error`` like ``generate``."""
+        ...
+
+    async def list_embedding_models(self) -> list[ModelInfo]:
+        """The models this backend can embed with (never offered for writing notes)."""
+        ...
+
+
+def supports_embeddings(backend: object) -> bool:
+    return bool(getattr(backend, "supports_embeddings", False)) and isinstance(backend, Embedder)
+
+
+def embed_unsupported(provider: str) -> MM3Error:
+    return llm_error(
+        E_LLM_EMBED_UNSUPPORTED,
+        f"{provider} does not offer embeddings for search.",
+        "Use the local Ollama backend with nomic-embed-text for search (Settings → Search & Ask).",
+        status_code=400,
+    )
+
+
+def check_vectors(provider: str, vectors: object, count: int) -> list[list[float]]:
+    """Validate an embedding answer: ``count`` non-empty lists of finite numbers, one size."""
+    if not isinstance(vectors, list) or len(vectors) != count:
+        raise llm_error(E_LLM_BAD_RESPONSE, f"{provider} returned the wrong number of vectors.")
+    out: list[list[float]] = []
+    dims: int | None = None
+    for vec in vectors:
+        if not isinstance(vec, list) or not vec:
+            raise llm_error(E_LLM_BAD_RESPONSE, f"{provider} returned an empty vector.")
+        try:
+            floats = [float(x) for x in vec]
+        except (TypeError, ValueError) as exc:
+            raise llm_error(E_LLM_BAD_RESPONSE, f"{provider} returned a malformed vector.") from exc
+        if any(f != f or f in (float("inf"), float("-inf")) for f in floats):
+            raise llm_error(E_LLM_BAD_RESPONSE, f"{provider} returned a malformed vector.")
+        if dims is not None and len(floats) != dims:
+            raise llm_error(E_LLM_BAD_RESPONSE, f"{provider} returned vectors of mixed sizes.")
+        dims = len(floats)
+        out.append(floats)
+    return out
 
 
 EMPTY_FINISHES = frozenset({"length", "content_filter", "content_filtered", "guardrail_intervened"})

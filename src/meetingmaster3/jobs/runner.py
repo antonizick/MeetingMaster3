@@ -17,7 +17,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, TypedDict
@@ -487,6 +487,24 @@ class JobRunner:
                 self.stages.reset_from(job.id, rec.position)
                 return rec.position
         return len(rows)
+
+    def gpu_idle(self) -> bool:
+        """No job is running or queued, and nothing holds the GPU."""
+        return not self._tasks and self._queue.empty() and not self._gpu.locked()
+
+    @contextlib.asynccontextmanager
+    async def background_gpu(self, poll_s: float = 1.0) -> AsyncIterator[None]:
+        """The GPU for low-priority work (search indexing with a local embedder, Phase 15i).
+
+        It is taken only while no job is running or queued, and held for one short batch, so a
+        job that arrives waits at most that batch (R5)."""
+        while not self.gpu_idle():
+            await asyncio.sleep(poll_s)
+        await self._gpu.acquire()
+        try:
+            yield
+        finally:
+            self._gpu.release()
 
     async def _acquire_gpu(self, token: CancelToken) -> None:
         while True:

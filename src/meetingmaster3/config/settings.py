@@ -104,6 +104,10 @@ class BackendConfig(BaseModel):
     headers: dict[str, str] = Field(default_factory=dict)  # e.g. OpenRouter HTTP-Referer
     context_window: int | None = Field(default=None, ge=512)  # override when unknown
     consent_remembered: bool = False  # cloud egress consent remembered for this backend (S6)
+    cloud_embedding_consent: bool = False
+    """Allow search indexing with this (cloud) backend's embeddings: the full text of every
+    indexed meeting, and every search query, is sent to the provider (ADR-0049, S6). Separate
+    from ``consent_remembered``, which covers writing one meeting's notes."""
 
 
 class LLMSettings(BaseModel):
@@ -129,6 +133,23 @@ class GenerationSettings(BaseModel):
     multiplies generation time and can use up a section's token budget."""
     install_templates: bool = True
     """Copy the built-in templates into the vault's templates folder on first use."""
+
+
+class SearchSettings(BaseModel):
+    """The meeting index and hybrid search (Phase 15i, R30, ADR-0049)."""
+
+    enabled: bool = True
+    embedding_backend: str | None = Field(default=None, pattern=r"^[a-z0-9][a-z0-9_-]{0,31}$")
+    """Backend that embeds passages; ``None`` uses the local Ollama (or the first local backend)."""
+    embedding_model: str = Field(default="nomic-embed-text", pattern=MODEL_NAME_PATTERN)
+    chunk_tokens: int = Field(default=350, ge=64, le=2000)
+    """About how many tokens one passage holds."""
+    chunk_overlap: int = Field(default=50, ge=0, le=500)
+    """Tokens repeated between consecutive passages of a long section or transcript."""
+    index_transcripts: bool = True
+    """Index companion transcripts as well as notes."""
+    rescan_minutes: int = Field(default=10, ge=1, le=1440)
+    """How often the vault is checked for notes changed outside MeetingMaster3 (Obsidian)."""
 
 
 class AudioSettings(BaseModel):
@@ -175,6 +196,7 @@ class Settings(BaseSettings):
     hardware: HardwareSettings = Field(default_factory=HardwareSettings)
     llm: LLMSettings = Field(default_factory=LLMSettings)
     generation: GenerationSettings = Field(default_factory=GenerationSettings)
+    search: SearchSettings = Field(default_factory=SearchSettings)
     audio: AudioSettings = Field(default_factory=AudioSettings)
     jobs: JobsSettings = Field(default_factory=JobsSettings)
     privacy: PrivacySettings = Field(default_factory=PrivacySettings)

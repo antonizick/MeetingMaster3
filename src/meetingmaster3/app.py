@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -15,6 +16,7 @@ from meetingmaster3 import __version__
 from meetingmaster3.config.paths import AppPaths, resolve_paths
 from meetingmaster3.config.settings import Settings, load_settings
 from meetingmaster3.errors import MM3Error, install_error_handlers
+from meetingmaster3.llm.base import LLMBackend
 from meetingmaster3.llm.registry import BackendRegistry
 from meetingmaster3.web.api.export import router as export_router
 from meetingmaster3.web.api.feedback import router as feedback_router
@@ -48,6 +50,23 @@ def _install_templates(settings: Settings, paths: AppPaths) -> None:
         log.warning("Starter templates were not installed: %s", exc)
 
 
+def _search_service(app: FastAPI, settings: Settings, paths: AppPaths, runner: Any) -> Any:
+    """The meeting index (Phase 15i). With ``MM3_FAKE_PIPELINE=1`` the offline fake model
+    embeds, like it writes notes."""
+    from meetingmaster3.jobs.pipeline import fake_pipeline_enabled
+    from meetingmaster3.search.service import RunnerGate, SearchService
+
+    registry: BackendRegistry = app.state.llm_registry
+    lookup: Callable[[str], LLMBackend] = registry.get
+    if fake_pipeline_enabled():
+        from meetingmaster3.jobs.fakes import fake_backend
+
+        def lookup(name: str) -> LLMBackend:
+            return fake_backend(settings, name)[1]
+
+    return SearchService(settings, paths, registry.names, lookup, RunnerGate(runner))
+
+
 def create_app(settings: Settings | None = None, paths: AppPaths | None = None) -> FastAPI:
     settings = settings or load_settings()
     app_paths = paths or resolve_paths()
@@ -67,9 +86,13 @@ def create_app(settings: Settings | None = None, paths: AppPaths | None = None) 
         runner = JobRunner(db, settings, app_paths)
         await runner.start()
         app.state.db, app.state.runner = db, runner
+        search = _search_service(app, settings, app_paths, runner)
+        await search.start()  # the start-up scan runs in the background
+        app.state.search = search
         try:
             yield
         finally:
+            await search.stop()
             await runner.stop()
             db.close()
 

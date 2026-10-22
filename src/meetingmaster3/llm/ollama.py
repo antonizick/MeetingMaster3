@@ -1,4 +1,4 @@
-"""Ollama backend: ``/api/chat``, ``/api/tags``, ``/api/show`` and ``/api/ps``."""
+"""Ollama backend: ``/api/chat``, ``/api/embed``, ``/api/tags``, ``/api/show`` and ``/api/ps``."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 import time
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncIterator, Mapping, Sequence
 from typing import Any
 
 import httpx
@@ -15,13 +15,17 @@ from meetingmaster3.errors import MM3Error
 from meetingmaster3.llm._http import MAX_ATTEMPTS, error_from_exception, error_from_response, send
 from meetingmaster3.llm.base import (
     E_LLM_BAD_RESPONSE,
+    E_LLM_CONFIG,
     E_LLM_CONTEXT,
     ConnectionStatus,
+    EmbedPurpose,
     GenerateRequest,
     GenerateResult,
     ModelInfo,
     Usage,
+    check_vectors,
     connection_failure,
+    embed_unsupported,
     is_local_url,
     llm_error,
 )
@@ -34,10 +38,17 @@ DEFAULT_BASE_URL = "http://127.0.0.1:11434"
 MIN_NUM_CTX = 4096
 DEFAULT_OUTPUT_RESERVE = 2048
 PROBE_TIMEOUT_S = 10.0
+EMBED_BATCH = 32
+"""Texts per ``/api/embed`` call."""
+EMBED_TIMEOUT_S = 120.0
+EMBED_KEEP_ALIVE = "30s"
+"""How long the embedding model stays loaded after a call: long enough for the next batch, short
+enough that it has left the GPU before a transcription would want it (R5)."""
 
 
 class OllamaBackend:
     kind = "ollama"
+    supports_embeddings = True
 
     def __init__(
         self,
@@ -248,6 +259,47 @@ class OllamaBackend:
             if key.endswith(".context_length") and isinstance(value, int):
                 self._ctx[model] = value
                 return
+
+    # -- embeddings (Phase 15i) ------------------------------------------------------------
+
+    async def embed(
+        self, model: str, texts: Sequence[str], *, purpose: EmbedPurpose = "document"
+    ) -> list[list[float]]:
+        vectors: list[list[float]] = []
+        for start in range(0, len(texts), EMBED_BATCH):
+            batch = list(texts[start : start + EMBED_BATCH])
+            body = {"model": model, "input": batch, "keep_alive": EMBED_KEEP_ALIVE}
+            try:
+                resp = await self._call("POST", "/api/embed", timeout=EMBED_TIMEOUT_S, body=body)
+            except MM3Error as exc:
+                raise self._embed_error(model, exc) from exc
+            try:
+                data = resp.json()["embeddings"]
+            except (ValueError, KeyError, TypeError) as exc:
+                raise llm_error(
+                    E_LLM_BAD_RESPONSE, "Ollama returned an unexpected answer."
+                ) from exc
+            vectors += check_vectors(PROVIDER, data, len(batch))
+        return vectors
+
+    @staticmethod
+    def _embed_error(model: str, exc: MM3Error) -> MM3Error:
+        reason = str(exc.details.get("provider_reason", "")).lower()
+        if "not found" in reason or "pull" in reason:
+            return llm_error(
+                E_LLM_CONFIG,
+                f"The embedding model {model!r} is not installed in Ollama.",
+                f"Run `ollama pull {model}`.",
+                status_code=400,
+            )
+        if "does not support" in reason:
+            return embed_unsupported(f"Ollama model {model!r}")
+        return exc
+
+    async def list_embedding_models(self) -> list[ModelInfo]:
+        """Installed models whose ``/api/show`` capabilities include ``embedding``."""
+        models = await self.list_models()
+        return [m for m in models if "embedding" in self._caps.get(m.id, frozenset())]
 
     # -- Ollama-specific helpers ---------------------------------------------------------
 

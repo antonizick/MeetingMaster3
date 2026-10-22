@@ -1,13 +1,16 @@
-"""AWS Bedrock backend using the Converse and ConverseStream APIs (optional ``bedrock`` extra)."""
+"""AWS Bedrock backend using the Converse and ConverseStream APIs (optional ``bedrock`` extra).
+
+Embeddings (Phase 15i) use ``InvokeModel`` with Amazon Titan Text Embeddings V2 or Cohere Embed."""
 
 from __future__ import annotations
 
 import asyncio
 import functools
+import json
 import logging
 import threading
 import time
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncIterator, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -24,12 +27,15 @@ from meetingmaster3.llm.base import (
     E_LLM_TIMEOUT,
     E_LLM_UNREACHABLE,
     ConnectionStatus,
+    EmbedPurpose,
     GenerateRequest,
     GenerateResult,
     ModelInfo,
     Usage,
     check_answer,
+    check_vectors,
     connection_failure,
+    embed_unsupported,
     llm_error,
 )
 from meetingmaster3.llm.budget import DEFAULT_CONTEXT_WINDOW
@@ -48,6 +54,11 @@ AUTH_CODES = {
     "UnauthorizedException",
 }
 _DONE = object()
+TITAN_DIMENSIONS = 1024
+EMBED_CONCURRENCY = 4
+"""Titan takes one text per call; this many calls run at once."""
+COHERE_BATCH = 96
+"""Cohere Embed takes up to 96 texts per call."""
 MODELS_FILE = Path(__file__).with_name("bedrock_models.yaml")
 GEO_PREFIXES = frozenset({"us", "eu", "apac", "global", "jp", "au", "ca", "us-gov", "apne"})
 """First segments of cross-Region inference profile ids (``us.anthropic.claude-...``)."""
@@ -305,6 +316,7 @@ class _Stop:
 class BedrockBackend:
     kind = "bedrock"
     is_local = False
+    supports_embeddings = True
 
     def __init__(
         self,
@@ -527,6 +539,82 @@ class BedrockBackend:
         finally:
             stop.set()  # a cancelled or abandoned stream lets the worker thread wind down
             task.cancel()
+
+    # -- embeddings (Phase 15i) ------------------------------------------------------------
+
+    async def embed(
+        self, model: str, texts: Sequence[str], *, purpose: EmbedPurpose = "document"
+    ) -> list[list[float]]:
+        family = base_model_id(model)
+        if family.startswith("amazon.titan-embed"):
+            gate = asyncio.Semaphore(EMBED_CONCURRENCY)
+
+            async def one(text: str) -> object:
+                async with gate:
+                    body = {"inputText": text, "dimensions": TITAN_DIMENSIONS, "normalize": True}
+                    data = await self._invoke(model, body)
+                    return data.get("embedding")
+
+            vectors = list(await asyncio.gather(*(one(t) for t in texts)))
+            return check_vectors(PROVIDER, vectors, len(texts))
+        if family.startswith("cohere.embed"):
+            out: list[list[float]] = []
+            input_type = "search_query" if purpose == "query" else "search_document"
+            for start in range(0, len(texts), COHERE_BATCH):
+                batch = list(texts[start : start + COHERE_BATCH])
+                data = await self._invoke(
+                    model, {"texts": batch, "input_type": input_type, "truncate": "END"}
+                )
+                found = data.get("embeddings")
+                if isinstance(found, dict):  # embedding_types requested: {"float": [...]}
+                    found = found.get("float")
+                out += check_vectors(PROVIDER, found, len(batch))
+            return out
+        raise embed_unsupported(f"Bedrock model {model!r}")
+
+    async def _invoke(self, model: str, body: dict[str, Any]) -> dict[str, Any]:
+        def call() -> dict[str, Any]:
+            resp = self.runtime.invoke_model(
+                modelId=model,
+                body=json.dumps(body),
+                contentType="application/json",
+                accept="application/json",
+            )
+            raw = resp["body"].read()
+            data = json.loads(raw)
+            if not isinstance(data, dict):
+                raise ValueError("not an object")
+            return data
+
+        try:
+            return await asyncio.to_thread(call)
+        except (ValueError, KeyError, TypeError) as exc:
+            raise llm_error(
+                E_LLM_BAD_RESPONSE, "Unexpected embedding answer from Bedrock."
+            ) from exc
+        except Exception as exc:
+            raise map_boto_error(exc) from exc
+
+    async def list_embedding_models(self) -> list[ModelInfo]:
+        """Titan and Cohere text embedding models (the ones :meth:`embed` can call)."""
+        try:
+            data = await asyncio.to_thread(
+                self.control.list_foundation_models, byOutputModality="EMBEDDING"
+            )
+        except Exception as exc:
+            raise map_boto_error(exc) from exc
+        found = []
+        for m in data.get("modelSummaries", []):
+            mid = str(m.get("modelId", ""))
+            if not mid.startswith(("amazon.titan-embed-text", "cohere.embed")):
+                continue
+            if m.get("modelLifecycle", {}).get("status", "ACTIVE") != "ACTIVE":
+                continue
+            types = set(m.get("inferenceTypesSupported", []))
+            if types and "ON_DEMAND" not in types:
+                continue
+            found.append(ModelInfo(id=mid, name=m.get("modelName"), can_generate=False))
+        return sorted(found, key=lambda m: m.id)
 
     async def list_models(self) -> list[ModelInfo]:
         try:

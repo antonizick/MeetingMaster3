@@ -23,6 +23,9 @@ def isolated_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[No
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "cfg"))
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    # The meeting index (Phase 15i) would embed every test vault with a real local Ollama if
+    # one is running. Search tests switch it on (``settings.search.enabled = True``).
+    monkeypatch.setenv("MM3_SEARCH__ENABLED", "false")
     yield
     clear_secrets()
 

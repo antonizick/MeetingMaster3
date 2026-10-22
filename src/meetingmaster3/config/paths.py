@@ -33,6 +33,11 @@ class AppPaths:
         return self.data_dir / "mm3.db"
 
     @property
+    def search_database(self) -> Path:
+        """The meeting index (Phase 15i): derived from the vault, safe to delete."""
+        return self.data_dir / "search.db"
+
+    @property
     def jobs_dir(self) -> Path:
         return self.data_dir / "jobs"
 

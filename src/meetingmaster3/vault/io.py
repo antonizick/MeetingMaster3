@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from meetingmaster3.errors import MM3Error
+from meetingmaster3.vault.changes import vault_changed
 from meetingmaster3.vault.paths import is_inside
 
 NEW_FILE_MODE = 0o644
@@ -92,6 +93,8 @@ def atomic_write_text(
     finally:
         with contextlib.suppress(FileNotFoundError):
             tmp.unlink()
+    if path.suffix == ".md":
+        vault_changed(path)  # the search index updates itself (listeners ignore other folders)
     return path
 
 

@@ -55,6 +55,7 @@ from meetingmaster3.markdown.transcript_format import TITLE_PREFIX, parse_transc
 from meetingmaster3.storage.db import Database
 from meetingmaster3.templates.regenerate import find_companion
 from meetingmaster3.vault.archive import ARCHIVE_FOLDER
+from meetingmaster3.vault.changes import vault_changed
 from meetingmaster3.vault.io import atomic_write_text, read_text
 from meetingmaster3.vault.links import LinkScan, scan_backlinks
 from meetingmaster3.vault.naming import (
@@ -1033,6 +1034,7 @@ def apply_retitle(
         tick("committed")
         _remove_old(root, journal, warnings, tick)
         _finish(backup, journal, "completed")
+    vault_changed()  # the old names are gone too: the search index follows the move
     note_new = root / plan.note.new_rel
     return RetitleResult(
         note_rel=plan.note.new_rel,

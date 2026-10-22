@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from collections.abc import AsyncIterator, Mapping
+from collections.abc import AsyncIterator, Mapping, Sequence
 from typing import Any
 
 import httpx
@@ -15,12 +15,15 @@ from meetingmaster3.llm._http import MAX_ATTEMPTS, error_from_exception, send
 from meetingmaster3.llm.base import (
     E_LLM_BAD_RESPONSE,
     ConnectionStatus,
+    EmbedPurpose,
     GenerateRequest,
     GenerateResult,
     ModelInfo,
     Usage,
     check_answer,
+    check_vectors,
     connection_failure,
+    embed_unsupported,
     is_local_url,
     llm_error,
 )
@@ -38,6 +41,12 @@ mandatory for this endpoint", Claude Sonnet 5.5 and Opus 5.5), learned per model
 CLAUDE_WINDOW = 200_000
 """OpenRouter lists Claude 5.x with a 1M window; planning uses 200k as on Bedrock (ADR-0044), so
 a long meeting is summarised in parts rather than billed at the long-context price."""
+EMBED_BATCH = 64
+"""Texts per ``/embeddings`` call."""
+EMBED_TIMEOUT_S = 120.0
+EMBEDDING_HINTS = ("embed", "bge-", "e5-", "gte-", "minilm", "mpnet")
+"""Model-id fragments that mark an embedding model on servers whose ``/models`` list does not say
+(LM Studio, vLLM, OpenAI)."""
 REASONING_ROOM = 4096
 """Output tokens added to ``max_tokens`` when the model must reason: reasoning counts against
 ``max_tokens``. Only the tokens used are billed."""
@@ -62,6 +71,9 @@ def parse_pricing(pricing: object) -> tuple[float | None, float | None]:
 
 class OpenAICompatBackend:
     kind = "openai_compat"
+    supports_embeddings = True
+    """``/embeddings`` is part of the OpenAI API; OpenRouter serves it too (checked live in Phase
+    15i). A server without it answers 404/405, reported as ``E_LLM_EMBED_UNSUPPORTED``."""
 
     def __init__(
         self,
@@ -248,6 +260,56 @@ class OpenAICompatBackend:
             free=(live and price_in == 0 and price_out == 0) or str(m["id"]).endswith(":free"),
             text_only=text_only,
         )
+
+    # -- embeddings (Phase 15i) ------------------------------------------------------------
+
+    async def embed(
+        self, model: str, texts: Sequence[str], *, purpose: EmbedPurpose = "document"
+    ) -> list[list[float]]:
+        vectors: list[list[float]] = []
+        async with self._client(EMBED_TIMEOUT_S) as client:
+            for start in range(0, len(texts), EMBED_BATCH):
+                batch = list(texts[start : start + EMBED_BATCH])
+                request = client.build_request(
+                    "POST", "/embeddings", json={"model": model, "input": batch}
+                )
+                try:
+                    resp = await send(client, request, self._provider)
+                except MM3Error as exc:
+                    if exc.code == E_LLM_BAD_RESPONSE and (
+                        "HTTP 404" in exc.message or "HTTP 405" in exc.message
+                    ):
+                        raise embed_unsupported(f"{self._provider} ({model})") from exc
+                    raise
+                vectors += self._vectors(resp, len(batch))
+        return vectors
+
+    def _vectors(self, resp: httpx.Response, count: int) -> list[list[float]]:
+        try:
+            items = resp.json()["data"]
+            ordered = sorted(items, key=lambda d: int(d.get("index", 0)))
+            data = [d["embedding"] for d in ordered]
+        except (ValueError, KeyError, TypeError, AttributeError) as exc:
+            raise llm_error(
+                E_LLM_BAD_RESPONSE, f"Unexpected embedding answer from {self._provider}."
+            ) from exc
+        return check_vectors(self._provider, data, count)
+
+    async def list_embedding_models(self) -> list[ModelInfo]:
+        """OpenRouter lists its embedding models at ``/embeddings/models``; other servers mix
+        them into ``/models``, so those are picked by name."""
+        if self.kind == "openrouter":
+            async with self._client(PROBE_TIMEOUT_S) as client:
+                request = client.build_request("GET", "/embeddings/models")
+                resp = await send(client, request, self._provider)
+            try:
+                return [self._model_info(m) for m in resp.json()["data"] if isinstance(m, dict)]
+            except (ValueError, KeyError, TypeError) as exc:
+                raise llm_error(
+                    E_LLM_BAD_RESPONSE, f"Unexpected model list from {self._provider}."
+                ) from exc
+        models = await self._list_models()
+        return [m for m in models if any(h in m.id.lower() for h in EMBEDDING_HINTS)]
 
     async def test_connection(self) -> ConnectionStatus:
         started = time.monotonic()
