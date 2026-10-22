@@ -62,12 +62,14 @@ class QuestionScore:
     meetings_read: int
     follow_up: bool
     answer: str = ""
+    relevance: dict[str, str] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
 
 
 def score(q: ac.Question, result: AskResult, price: tuple[float, float] | None) -> QuestionScore:
     key_of = {str(m.id): m.key for m in ac.MEETINGS}
     found = [key_of.get(r.mm3_id, r.mm3_id) for r in result.rows]
+    depth: dict[str, str] = {key_of.get(r.mm3_id, r.mm3_id): r.relevance for r in result.rows}
     expected = set(q.meetings)
     hit = expected & set(found)
     recall = len(hit) / len(expected) if expected else 1.0
@@ -128,8 +130,13 @@ def score(q: ac.Question, result: AskResult, price: tuple[float, float] | None) 
         meetings_read=t.read,
         follow_up=t.follow_up,
         answer=result.answer,
+        relevance=depth,
         notes=notes,
     )
+
+
+def found_text(s: QuestionScore) -> str:
+    return ", ".join(f"{k} ({s.relevance.get(k, '?')})" for k in s.found) or "none"
 
 
 async def run(args: argparse.Namespace) -> list[QuestionScore]:
@@ -178,7 +185,7 @@ async def run(args: argparse.Namespace) -> list[QuestionScore]:
             s = score(q, result, price)
             scores.append(s)
             print(
-                f"   found {s.found} (expected {s.expected}) recall {s.recall} precision "
+                f"   found {found_text(s)} (expected {s.expected}) recall {s.recall} precision "
                 f"{s.precision} count {'ok' if s.count_ok else 'WRONG'} rows "
                 f"{'ok' if s.rows_ok else 'WRONG'} people {'ok' if s.people_ok else 'missing'} "
                 f"roles {s.roles_ok} links {'ok' if s.links_ok else 'BAD'} · {s.seconds} s, "

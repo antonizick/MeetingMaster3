@@ -25,6 +25,12 @@ exceeded the forecast"); the Hiring Plan's AI Recommendations mention the budget
 People and companies are invented; CC0. Regenerate with
 `MM3_UPDATE_GOLDEN=1 uv run pytest tests/unit/search/test_corpus.py` and review the diff.
 
+## Ask corpus (Phase 15j, `tests/ask_corpus.py`, not a folder)
+The seven search meetings plus a *Meeting Context* section stating people's roles in the three overspending
+meetings, and an eighth decoy meeting (*Team Offsite Planning*) that mentions a budget without overspending it.
+Written into a temporary vault by the Ask tests, the Ask browser test and `tests/eval/ask_eval.py`, which also holds
+the six eval questions and their expected meetings and people. Invented people and numbers; CC0.
+
 ## `assembler/` (Phase 09)
 | File | Source | Purpose |
 |---|---|---|

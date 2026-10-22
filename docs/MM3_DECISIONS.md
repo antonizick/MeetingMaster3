@@ -1441,6 +1441,23 @@ GPU rule are ADR-0050. Measured on Nick's vault (13 meetings, 467 passages): ful
 0.07 s, hybrid search about 120 ms, `search.db` 4.0 MB; hybrid ranked a right meeting first for 16 of 17 private
 questions against 13 of 17 for words alone (docs/PERFORMANCE.md). Spec amendment **R30**.
 
+**Phase 15j implementation (2026-10-22 16:37 CDT).** Built as decided, in `src/meetingmaster3/ask/` (details and smaller choices:
+ADR-0051). **Prompts and JSON:** plan → `{topic, queries[2-6], date_from, date_to, people, wants}`; read (one call per
+meeting; header facts, Meeting Context, hits with one neighbour each, fenced in `<meeting>`) → `{relevant: yes|partly|no,
+finding, people[{name, role, contribution}], quotes[{text, time}]}`; answer → Markdown from the findings and a code-built
+facts block. Replies are read with map-reduce's tolerant JSON reader (`json_candidates`), validated by pydantic with
+one repair request; the plan falls back to the question. **Budgets:** reasoning off; temperatures 0.2 (plan, read) and
+0.4 (answer); output 500 / 900 / 1 800 tokens; excerpts at most 6 000 tokens per read and within the window's usable
+70 % and `num_ctx` less 10 %; one `num_ctx` per question for local models (10 240 for qwen3:8b); the answer call
+shortens findings in steps if they do not fit. **Citation rule:** only `[[note stem]]` of the meetings in the table;
+a meeting's title is corrected to its stem, anything else becomes plain text and is listed in the note. **Answer
+note:** `MM3 Answers/YYYY-MM-DD HHMM - <short question>.md` with `mm3-kind: answer`, `mm3-answer-id`, `question`,
+`asked`, `mm3-backend`, `mm3-model`, `mm3-sources`, `tags: [mm3/answer]`; sections Answer, Meetings (table), People,
+Sources (with moment links), How this was answered. **Eval** (synthetic corpus, 6 questions): recall 1.00 and
+precision 0.96 with local qwen3:8b (55 s per question), Haiku 5.5 on Bedrock (13 s, USD 0.0013) and on OpenRouter
+(12.5 s, USD 0.0012); every table row matched the files and no invalid link survived; Nick's SOC-manager question on
+his vault found the three SOC-role meetings (docs/PERFORMANCE.md). Spec amendment **R31**, S6 extended.
+
 ## ADR-0050: Meeting index layout and retrieval tuning (Phase 15i)
 **Recorded:** 2026-10-22 14:56 CDT
 

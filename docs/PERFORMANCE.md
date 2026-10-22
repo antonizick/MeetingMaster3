@@ -136,6 +136,35 @@ defaults were kept and `bge-m3` / `qwen3-embedding` were not tried (ADR-0050). O
 GPU: embedding holds the GPU only between jobs, one batch of 32 passages (about 0.7 s) at a time, and Ollama keeps
 the 274 MB model for 30 s after the last batch.
 
+## Ask AI agent (Phase 15j, 2026-10-22 16:37 CDT)
+Measured with `tests/eval/ask_eval.py` on the synthetic eight-meeting corpus (`tests/ask_corpus.py`: one topic,
+money spent beyond the plan, in three meetings in different words with different people and stated roles, plus
+decoys; six questions incl. one with no answer), index embedded with the local `nomic-embed-text`. One question =
+1 plan call + one read call per candidate meeting + (when fewer than two are relevant) one follow-up round + 1
+answer call.
+
+| Backend · model | Recall | Precision | Count right | Rows match files | People named | Links valid | Time per question | Cost per question |
+|---|---|---|---|---|---|---|---|---|
+| Ollama `qwen3:8b` (RTX 2070 Max-Q 8 GB, `num_ctx` 10 240) | 1.00 | 0.96 | 5/6 | 6/6 | 6/6 | 6/6 | 55 s mean (24-117 s; an earlier run 39 s), 3-30 s per meeting read | free |
+| Bedrock `us.anthropic.claude-haiku-5-5` | 1.00 | 0.96 | 5/6 | 6/6 | 6/6 | 6/6 | 13 s mean (10-16 s), about 2 s per meeting read | USD 0.0009-0.0019 (USD 0.008 for all six) |
+| OpenRouter `anthropic/claude-haiku-5.5` | 1.00 | 0.96 | 5/6 | 6/6 | 6/6 | 6/6 | 12.5 s mean (8-16 s) | USD 0.0007-0.0017 (USD 0.007 for all six) |
+
+- The one miss is the same on every backend: the decoy *Team Offsite Planning* ("the plan fits the offsite budget")
+  was judged relevant to one of the two overspending questions, so the count was 4 instead of 3. The answer note
+  marks such meetings *briefly* when the model says "partly".
+- Tokens per question: 5-8 k in and 0.4-2.2 k out with Haiku (Bedrock and OpenRouter agree); Ollama reports only
+  the tokens it did not have cached, so its counts are lower. Reads run one after another (one GPU), so the time
+  grows with the number of candidate meetings: with `ask.max_meetings` = 25 a local question can take 5-10 minutes.
+- **Nick's vault** (private copy, deleted after the check; 13 meetings): "How many times have we discussed the SOC
+  manager role? Who was principally in those discussions and what was their role? Also create a table…" with
+  local `qwen3:8b`: 4 searches, 9 meetings read, 4 relevant (the three SOC-role meetings, two in depth and one
+  briefly, plus one team meeting marked briefly), every table row's date and attendees identical to the notes'
+  frontmatter, 3 min 24 s, 35 k tokens in, 2.1 k out. Before the "by context" wording in the read prompt the
+  follow-on interview (which says "the role", not "SOC manager") was missed; the synthetic scores did not change.
+- Retrieval found every expected meeting on every backend (recall 1.0) after a fix: the question's "decide" was
+  taken for "December", so the plan's invented date range hid the launch meeting. Time words are now matched
+  strictly, and a date range the model chose that finds nothing is dropped (ADR-0051).
+
 ## Raw numbers
 Per stage: wall time in seconds (real-time factor in brackets = audio seconds / wall seconds), then
 the peak GPU memory of the MeetingMaster3 process, of Ollama, and the app's peak resident memory
