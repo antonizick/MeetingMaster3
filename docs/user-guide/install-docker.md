@@ -101,6 +101,13 @@ Ollama listens on `127.0.0.1:11434` by default, which a bridge-network container
 `host.docker.internal` is treated as local for consent and for the "unload Ollama before
 transcribing" step.
 
+**Search (Phase 15i)** embeds meetings with `nomic-embed-text` in the same Ollama: pull it once on the
+host (`ollama pull nomic-embed-text`) or, with the bundled Ollama,
+`docker compose exec ollama ollama pull nomic-embed-text`. The bundled Ollama counts as a cloud endpoint
+(see above), so search indexing with it also needs *Allow search indexing* on that backend (Settings →
+Language models), even though the text stays on your machine; a host Ollama needs nothing. The index,
+`search.db`, lives in the `/data` volume. Without the model, search works by words only.
+
 On an 8 GB GPU, turn on Ollama's flash attention and 8-bit context cache (`OLLAMA_FLASH_ATTENTION=1`,
 `OLLAMA_KV_CACHE_TYPE=q8_0`): notes are written about twice as fast because more of the model stays
 on the GPU. The bundled `ollama` service sets both; for a host Ollama see

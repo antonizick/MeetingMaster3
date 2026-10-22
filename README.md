@@ -21,6 +21,10 @@ The CI badge above is a placeholder until the repository is published (Phase 16)
   opening with a short and a detailed summary, written straight into your Obsidian vault with
   frontmatter, wikilinks, a readable colour-coded transcript and a full-fidelity companion transcript.
 - Side-by-side review with audio, per-section regeneration with diffs, and re-opening existing notes.
+- **Search your meetings by meaning and by words**: "where did we spend more than planned?" finds the
+  meeting where someone said "the costs exceeded the forecast". Notes and transcripts are indexed locally
+  (Ollama `nomic-embed-text`), kept in step with the vault, on a **Search** page and `mm3 search`
+  ([search and ask](docs/user-guide/search-and-ask.md)). The Ask agent on top of it comes next.
 - Fix a meeting's title or date after the fact: every file is renamed and the links to it in your other
   notes follow (backed up first).
 - Local-first LLMs through Ollama; optional BYOK cloud backends (AWS Bedrock, OpenAI-compatible
@@ -31,7 +35,9 @@ The CI badge above is a placeholder until the repository is published (Phase 16)
 
 ## Privacy stance
 Your audio, transcripts and notes stay on your machine. Nothing leaves it unless you explicitly pick a
-cloud LLM backend, and the app asks for consent before the first cloud use. There is no telemetry.
+cloud LLM backend, and the app asks for consent before the first cloud use. The search index stays in
+the app's data folder and uses a local embedding model; a cloud embedder needs its own permission, because
+it would receive every meeting's text. There is no telemetry.
 Voiceprints are treated as biometric data: opt-in, local only, stored only for the people you choose,
 physically erased when deleted. See [`docs/PRIVACY.md`](docs/PRIVACY.md).
 
@@ -44,6 +50,7 @@ physically erased when deleted. See [`docs/PRIVACY.md`](docs/PRIVACY.md).
         |        WhisperX pipeline ── speaker mapping / voiceprints
         |                |
         |        template engine ── LLM backend (Ollama | Bedrock | OpenAI-compatible)
+        |                                       └─ embed() ── search.db (FTS5 words + vectors) ── /search
         v
  Markdown writer/parser ──> your Obsidian vault (source of truth)
 ```

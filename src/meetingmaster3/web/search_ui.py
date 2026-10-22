@@ -50,12 +50,17 @@ def _date(raw: str, label: str, errors: list[str]) -> str | None:
         return None
 
 
+def meeting_link(mm3_id: str, note_path: str | None) -> str | None:
+    """The meeting's review page (the note's path finds it even if it is not in Meetings)."""
+    if not note_path:
+        return None
+    return f"/meetings/{quote(mm3_id, safe='')}?path={quote(note_path, safe='')}"
+
+
 def hit_link(hit: Hit) -> str | None:
     """Where a passage opens: the meeting's review page, at the moment for a transcript."""
-    if not hit.note_path:
-        return None
-    url = f"/meetings/{quote(hit.mm3_id, safe='')}?path={quote(hit.note_path, safe='')}"
-    if hit.kind == "transcript" and hit.start_s is not None:
+    url = meeting_link(hit.mm3_id, hit.note_path)
+    if url and hit.kind == "transcript" and hit.start_s is not None:
         url += f"#t={int(hit.start_s)}"
     return url
 
@@ -66,7 +71,7 @@ def _meeting_view(m: MeetingHits) -> dict[str, Any]:
         "title": m.title,
         "date": m.date,
         "count": len(m.hits),
-        "link": hit_link(next((h for h in m.hits if h.kind == "note"), m.hits[0])),
+        "link": meeting_link(m.mm3_id, m.note_path),
         "hits": [
             {"hit": h, "link": hit_link(h), "label": h.label()} for h in m.hits[:PASSAGES_SHOWN]
         ],

@@ -261,6 +261,7 @@ by this project. Users download them to their own machine, under the weights' ow
 | wav2vec2 alignment, English: torchaudio `WAV2VEC2_ASR_BASE_960H` (fairseq, trained on LibriSpeech) | MIT (fairseq weights) | Downloaded from download.pytorch.org into the model cache. |
 | wav2vec2 alignment, fr/de/es/it: torchaudio VoxPopuli models; other languages: Hugging Face models chosen by WhisperX (for example `jonatasgrosman/wav2vec2-large-xlsr-53-*`) | Per model: VoxPopuli weights are CC-BY-NC-4.0 (non-commercial); check each Hugging Face model card | Only downloaded when a recording in that language is transcribed. |
 | LLMs (Ollama, Bedrock, OpenAI-compatible endpoints) | Chosen by the user; each has its own licence | The project ships no LLM. |
+| Embedding models for search (Phase 15i): [`nomic-embed-text`](https://ollama.com/library/nomic-embed-text) (default, through Ollama); optionally Amazon Titan Text Embeddings V2 or Cohere Embed on Bedrock, or a model on OpenRouter / an OpenAI-compatible server | `nomic-embed-text`: Apache-2.0 (Nomic AI). Cloud models: the provider's terms | Not bundled: the user pulls `nomic-embed-text` with `ollama pull` (274 MB) or calls a provider. No new Python dependency. |
 
 ## Test fixtures (in the repository)
 

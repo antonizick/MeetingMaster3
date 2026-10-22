@@ -62,6 +62,19 @@ meeting's review page, and from Obsidian (backlinks and the answers folder).
 ## What exists (verified 2026-10-22 13:44 CDT, before 15i; re-check after 15i)
 - No question answering anywhere; 15i adds `src/meetingmaster3/search/` (index, hybrid query, `meeting_facts`), the
   `search` settings, the Search page and `mm3 search`.
+- **The search API as built in 15i** (see its Phase Log and ADR-0050): the app-wide service is
+  `app.state.search` (`search.service.SearchService`; the CLI builds its own with `JobsTableGate`).
+  `await service.query(text, limit=, filters=SearchFilters(date_from=, date_to=, people=(...), kinds=(...),
+  mm3_ids=(...)))` returns a `SearchResult` (`mode` hybrid/words/meaning/none, `reason` when meaning search was not
+  used, `embedder` badge, `hits`, `group_by_meeting()` → `MeetingHits(mm3_id, title, date, note_path, score,
+  hits)`). For wider recall call the underlying `service.searcher.query(..., vector_margin=None, candidates=N)`: the
+  default keeps only vector hits within 0.08 cosine of the best. Each `Hit` has `text` (with heading lines),
+  `body`, `heading`, `section_id`, `start_s`/`end_s`, `speakers`, `note_path`, scores and ranks, `label()`.
+  `await service.meeting_facts(mm3_ids, hits)` → `MeetingFacts(title, date, participants, speakers,
+  speakers_in_hits, note_path, transcript_path)` (placeholder names such as "Speaker 2" left out). A query is
+  embedded with the search embedder, which a cloud backend allows only with `cloud_embedding_consent`; Ask's own
+  consent covers the answering model, not the query embedding. The indexer already skips `mm3-kind: answer`
+  (`search/index.py:indexable`). `search.enabled` off makes `query` raise `E_SEARCH_OFF`.
 - LLM: `llm/base.py:GenerateRequest`/`GenerateResult` (messages, `max_tokens`, `temperature`, `usage`), `stream()`;
   `llm/budget.py` (`estimate_tokens`, `usable_tokens`, `window_for`, `fits_window`); local models plan for
   `generation.max_context` (16 384) tokens; reasoning switches per backend (ADR-0045); the capable-model picker

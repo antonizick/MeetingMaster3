@@ -22,6 +22,7 @@ import asyncio
 import contextlib
 import logging
 import sqlite3
+import threading
 import time
 from collections.abc import AsyncIterator, Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
@@ -47,6 +48,7 @@ STALE_S = 60.0
 """A search starts a background check of the vault when the last one is older than this (an
 unchanged file costs one ``stat``), so a note deleted or edited in Obsidian drops out soon."""
 E_SEARCH_OFF = "E_SEARCH_OFF"
+STOP_GRACE_S = 10.0
 
 
 class RunnerGate:
@@ -123,6 +125,7 @@ class SearchService:
         self._pending_rebuild = False
         self._worker: asyncio.Task[None] | None = None
         self._lock = asyncio.Lock()
+        self._open_lock = threading.Lock()
 
     # -- wiring ------------------------------------------------------------------------------
 
@@ -130,11 +133,14 @@ class SearchService:
         return resolve(self.settings, self._names(), self._lookup)
 
     def _open(self) -> SearchStore:
-        if self.store is None:
-            self.store = SearchStore.open(self.paths.search_database)
-            self._indexer = Indexer(self.store, self.settings, self.embedder, self.gate)
-            self._searcher = Searcher(self.store, self.embedder)
-        return self.store
+        """The store, opened on first use (from the event loop or a worker thread)."""
+        with self._open_lock:
+            if self.store is None:
+                store = SearchStore.open(self.paths.search_database)
+                self._indexer = Indexer(store, self.settings, self.embedder, self.gate)
+                self._searcher = Searcher(store, self.embedder)
+                self.store = store
+            return self.store
 
     @property
     def indexer(self) -> Indexer:
@@ -161,6 +167,9 @@ class SearchService:
         changes.unsubscribe(self._on_change)
         if self.task is not None and self.task.runner is not None:
             self.task.runner.cancel()
+            # A worker thread finishes its current step (one file or one batch) before it sees
+            # the cancellation; let it, so the store is not closed under it.
+            await asyncio.wait({self.task.runner}, timeout=STOP_GRACE_S)
         if self._worker is not None:
             self._worker.cancel()
             with contextlib.suppress(asyncio.CancelledError):
@@ -196,11 +205,12 @@ class SearchService:
             rebuild, self._pending_rebuild = self._pending_rebuild, False
             try:
                 task = self.start_update(rebuild=rebuild)
-                if task.runner is not None:
-                    with contextlib.suppress(asyncio.CancelledError):
-                        await asyncio.shield(task.runner)
             except MM3Error as exc:
                 log.info("Search index not updated: %s", exc.message)
+                continue
+            if task.runner is not None:
+                # Wait for the update without swallowing this worker's own cancellation (stop()).
+                await asyncio.wait({task.runner})
 
     # -- updates -----------------------------------------------------------------------------
 
@@ -275,9 +285,10 @@ class SearchService:
         """Remove the index files and switch indexing off (see the module doc)."""
         await self.cancel()
         async with self._lock:
-            if self.store is not None:
-                self.store.close()
-            self.store, self._indexer, self._searcher = None, None, None
+            with self._open_lock:
+                if self.store is not None:
+                    self.store.close()
+                self.store, self._indexer, self._searcher = None, None, None
             removed = await asyncio.to_thread(delete_index_files, self.paths.search_database)
         self.settings.search.enabled = False
         self.last_report = None

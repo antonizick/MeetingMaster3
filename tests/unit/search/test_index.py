@@ -5,14 +5,14 @@ from __future__ import annotations
 import asyncio
 import os
 import stat
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Sequence
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 import pytest
 
 from meetingmaster3.config.settings import Settings
-from meetingmaster3.llm.base import E_CONSENT_REQUIRED
+from meetingmaster3.llm.base import E_CONSENT_REQUIRED, EmbedPurpose
 from meetingmaster3.llm.fake import FakeLLMBackend
 from meetingmaster3.search.embedder import EmbedderChoice, resolve
 from meetingmaster3.search.index import Indexer
@@ -114,13 +114,11 @@ async def test_a_deleted_meeting_drops_out(
     report = await indexer.update(corpus_vault)
     assert report.removed == 1
     assert FINANCE not in {d.path for d in store.documents()}
-    assert (
-        store.fetchone(
-            "SELECT COUNT(*) FROM vectors v LEFT JOIN passages p ON p.id = v.passage_id "
-            "WHERE p.id IS NULL"
-        )[0]
-        == 0
-    )  # type: ignore[index]
+    orphans = store.fetchone(
+        "SELECT COUNT(*) FROM vectors v LEFT JOIN passages p ON p.id = v.passage_id "
+        "WHERE p.id IS NULL"
+    )
+    assert orphans is not None and orphans[0] == 0
 
 
 async def test_a_moved_file_keeps_its_vectors(
@@ -176,8 +174,8 @@ async def test_an_unavailable_embedder_leaves_a_word_index(
 
     class Down(FakeLLMBackend):
         async def embed(
-            self, model: str, texts: object, *, purpose: str = "document"
-        ) -> list[list[float]]:  # type: ignore[override]
+            self, model: str, texts: Sequence[str], *, purpose: EmbedPurpose = "document"
+        ) -> list[list[float]]:
             raise MM3Error("E_LLM_UNREACHABLE", "Cannot reach Ollama.", "Start Ollama.")
 
     down = Down(id="ollama", kind="ollama")

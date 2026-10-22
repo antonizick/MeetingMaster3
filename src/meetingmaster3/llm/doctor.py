@@ -28,6 +28,8 @@ async def _embedding_note(backend: Any, model: str) -> tuple[str, str]:
         models = await backend.list_embedding_models()
     except MM3Error as exc:
         return f" Embeddings: supported, models not listed ({exc.message}).", ""
+    except Exception as exc:  # a diagnostic never fails the whole check
+        return f" Embeddings: supported, models not listed ({type(exc).__name__}).", ""
     ids = {m.id for m in models} | {m.id.removesuffix(":latest") for m in models}
     if model in ids:
         return f" Embeddings for search: {model} is available.", ""

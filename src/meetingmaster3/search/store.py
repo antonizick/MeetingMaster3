@@ -34,8 +34,8 @@ SCHEMA_VERSION = 1
 SIDE_FILES = ("-wal", "-shm", "-journal")
 
 SCHEMA = """
-CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-CREATE TABLE documents (
+CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS documents (
     id INTEGER PRIMARY KEY,
     mm3_id TEXT NOT NULL,
     kind TEXT NOT NULL CHECK (kind IN ('note', 'transcript')),
@@ -50,9 +50,9 @@ CREATE TABLE documents (
     size INTEGER NOT NULL,
     indexed_at TEXT NOT NULL
 );
-CREATE INDEX documents_mm3_id ON documents (mm3_id);
-CREATE INDEX documents_date ON documents (date);
-CREATE TABLE passages (
+CREATE INDEX IF NOT EXISTS documents_mm3_id ON documents (mm3_id);
+CREATE INDEX IF NOT EXISTS documents_date ON documents (date);
+CREATE TABLE IF NOT EXISTS passages (
     id INTEGER PRIMARY KEY,
     doc_id INTEGER NOT NULL REFERENCES documents (id) ON DELETE CASCADE,
     ord INTEGER NOT NULL,
@@ -66,20 +66,20 @@ CREATE TABLE passages (
     end_s REAL,
     speakers TEXT NOT NULL DEFAULT '[]'
 );
-CREATE INDEX passages_doc ON passages (doc_id);
-CREATE INDEX passages_hash ON passages (text_hash);
-CREATE VIRTUAL TABLE passages_fts USING fts5 (
+CREATE INDEX IF NOT EXISTS passages_doc ON passages (doc_id);
+CREATE INDEX IF NOT EXISTS passages_hash ON passages (text_hash);
+CREATE VIRTUAL TABLE IF NOT EXISTS passages_fts USING fts5 (
     body, head, content='passages', content_rowid='id',
     tokenize='porter unicode61 remove_diacritics 2'
 );
-CREATE TRIGGER passages_ai AFTER INSERT ON passages BEGIN
+CREATE TRIGGER IF NOT EXISTS passages_ai AFTER INSERT ON passages BEGIN
     INSERT INTO passages_fts (rowid, body, head) VALUES (new.id, new.body, new.head);
 END;
-CREATE TRIGGER passages_ad AFTER DELETE ON passages BEGIN
+CREATE TRIGGER IF NOT EXISTS passages_ad AFTER DELETE ON passages BEGIN
     INSERT INTO passages_fts (passages_fts, rowid, body, head)
     VALUES ('delete', old.id, old.body, old.head);
 END;
-CREATE TABLE vectors (
+CREATE TABLE IF NOT EXISTS vectors (
     passage_id INTEGER PRIMARY KEY REFERENCES passages (id) ON DELETE CASCADE,
     model TEXT NOT NULL,
     dims INTEGER NOT NULL,
@@ -197,7 +197,8 @@ class SearchStore:
                 ).fetchall()
             ]
             drops = "".join(f'DROP TABLE IF EXISTS "{n}";' for n in names)
-        # One script, so the schema is created whole or not at all.
+        # One script, so the schema is created whole or not at all; IF NOT EXISTS makes a second
+        # process (the CLI next to the server) creating it at the same moment harmless.
         try:
             conn.executescript(
                 f"BEGIN IMMEDIATE;{drops}{SCHEMA}PRAGMA user_version = {SCHEMA_VERSION};COMMIT;"

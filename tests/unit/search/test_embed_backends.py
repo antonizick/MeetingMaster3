@@ -15,7 +15,7 @@ from botocore.response import StreamingBody
 from botocore.stub import ANY, Stubber
 
 from meetingmaster3.errors import MM3Error
-from meetingmaster3.llm import _http, bedrock
+from meetingmaster3.llm import bedrock
 from meetingmaster3.llm.base import (
     E_LLM_BAD_RESPONSE,
     E_LLM_CONFIG,
@@ -29,15 +29,6 @@ from meetingmaster3.llm.openai_compat import OpenAICompatBackend
 
 OLLAMA = "http://127.0.0.1:11434"
 ROUTER = "https://openrouter.ai/api/v1"
-
-
-@pytest.fixture(autouse=True)
-def no_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def instant(_: float) -> None:
-        return None
-
-    monkeypatch.setattr(_http.asyncio, "sleep", instant)
-    monkeypatch.setattr(_http, "backoff_delay", lambda *a, **k: 0.0)
 
 
 # -- Ollama ----------------------------------------------------------------------------------
@@ -86,12 +77,13 @@ async def test_ollama_embed_with_a_chat_model_is_unsupported() -> None:
 @respx.mock
 async def test_ollama_embed_rejects_malformed_answers() -> None:
     route = respx.post(f"{OLLAMA}/api/embed")
-    for body in (
+    bodies: list[dict[str, Any]] = [
         {"embeddings": [[1.0]]},
         {"embeddings": [[]]},
         {"nothing": 1},
         {"embeddings": [["x"]]},
-    ):
+    ]
+    for body in bodies:
         route.respond(json=body)
         with pytest.raises(MM3Error) as exc:
             await OllamaBackend().embed(

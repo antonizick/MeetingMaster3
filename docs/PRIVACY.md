@@ -20,6 +20,7 @@ leave your machine. Final inventory as of Phase 15 (2026-10-12); the threat mode
 | Feedback ratings | `mm3.db` (`feedback` table) |
 | Copy of the audio in the vault (optional, off by default) | Your vault's attachments folder, linked from the note (`mm3-audio`); never replaces an existing file |
 | Logs | The terminal (stderr) of `mm3 serve`; secrets are redacted and transcript text is not logged at the default level. Nothing is written to a log file unless you redirect it |
+| Search index (Phase 15i) | `$XDG_DATA_HOME/meetingmaster3/search.db` (mode `0600`, never in the vault): a copy of the text of every meeting note (by section, AI Recommendations left out) and companion transcript (in windows with times and speaker names), each meeting's title, date, participants and named speakers, file paths and hashes, and the passages' meaning vectors (float numbers from the embedding model). Derived from the vault, so it can be deleted at any time: Settings → Search & Ask → **Delete index** removes the file and its `-wal`/`-shm` files and turns indexing off; deleting the file by hand works too. SQLite `secure_delete` overwrites the text of meetings dropped from the index. |
 | Templates | Your vault's templates folder (`MeetingMaster3/templates/`); `templates.installed.json` in the app data folder records only file hashes, to avoid overwriting your edits. |
 
 ## Exports
@@ -42,6 +43,12 @@ leave your machine. Final inventory as of Phase 15 (2026-10-12); the threat mode
   with a geography (`us.`, `eu.`, `apac.`) may be processed in another region of that geography, and one that
   starts with `global.` in any AWS region. Pick an in-region or geographic ID if data residency matters
   ([llm-backends.md](user-guide/llm-backends.md#aws-bedrock)).
+- **Meeting text sent to a cloud embedder** (search, Phase 15i), only if you choose a cloud backend as the search
+  embedder **and** tick its separate *Allow search indexing* switch (`cloud_embedding_consent`). Then building the
+  index sends the **full text of every indexed meeting** (notes and transcripts) to that provider, and every search
+  sends its query text. Note writing's remembered consent does not cover this. Without the switch nothing is sent
+  and search works by words only. The default embedder is the local Ollama (`nomic-embed-text`), which sends
+  nothing; the Search page shows a "local" or "cloud: <provider>" badge for the embedder.
 - **Your vault**, if you sync it (Obsidian Sync, cloud drives). That is outside this app's control.
   If you enable the optional "copy audio to vault" setting, the audio syncs too.
 
@@ -53,7 +60,7 @@ pyannote.audio 4 would send model names, audio durations and speaker counts to `
 (`HF_HUB_DISABLE_TELEMETRY=1`, `DO_NOT_TRACK=1`).
 
 ## Your controls
-Delete any meeting's audio, pin audio to keep it, list and delete voiceprints or wipe the store, and
+Delete the search index (Settings → Search & Ask), delete any meeting's audio, pin audio to keep it, list and delete voiceprints or wipe the store, and
 set the audio retention period (forever / N days / delete after write).
 
 **Voiceprints.** Voice recognition is off unless you set `privacy.voiceprints_enabled: true`. While it

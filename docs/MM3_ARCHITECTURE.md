@@ -54,8 +54,8 @@ file-only protocol whitelist. Measured speed and memory on the 8 GB reference GP
 ## Implemented so far (Phases 02 to 11)
 | Module | Responsibility |
 |---|---|
-| `app.py` | `create_app(settings, paths)` factory. Middleware order (outermost first): TrustedHost, security headers, CSRF. The lifespan opens `mm3.db` and starts/stops the `JobRunner`. |
-| `cli.py` | Typer CLI `mm3`: `serve`, `version`, `doctor`, `process`, `config path`, `config show`, `llm list`, `llm test`, `jobs list`, `jobs prune [--dry-run]`, `models status`, `models download`, `voiceprints list|delete|wipe`, `templates list|validate|install`. |
+| `app.py` | `create_app(settings, paths)` factory. Middleware order (outermost first): TrustedHost, security headers, CSRF. The lifespan opens `mm3.db`, starts/stops the `JobRunner` and the `SearchService` (Phase 15i; its start-up scan runs in the background). |
+| `cli.py` | Typer CLI `mm3`: `serve`, `version`, `doctor`, `process`, `config path`, `config show`, `llm list`, `llm test`, `jobs list`, `jobs prune [--dry-run]`, `models status`, `models download`, `voiceprints list|delete|wipe`, `templates list|validate|install`, `search "<text>"|index [--rebuild]|status` (Phase 15i). |
 | `headless.py` | `mm3 process`: runs a `JobRunner` in its own event loop for one recording and answers its questions from arguments or the terminal. |
 | `config/paths.py` | XDG directories with `MM3_*_DIR` overrides; created `0700`. |
 | `config/settings.py` | Pydantic `Settings`. Precedence: defaults < `config.yaml` < `MM3_*` env. Atomic `0600` save. Secrets are `SecretStr`. |
@@ -241,3 +241,34 @@ browser: transcript.js (player, binary-search sync, search, splitter, shortcuts)
 The editor never sends marker lines; the server re-inserts them from the base, and unchanged parts keep their
 exact bytes. `/preview` remains the read-only view for files that are not MM3 notes. Decision records: ADR-0024
 (editor), ADR-0025 (save model). Pages added: `/open`, `/meetings/{mm3_id}`.
+
+### Meeting index and search (Phase 15i)
+```
+vault ──(walk, mtime/size, sha256)──▶ search/index.py Indexer ──▶ search/chunking.py (sections; transcript windows)
+  ▲  vault/changes.py hook                     │ passages                    │
+  │  (atomic_write_text, rename)               ▼                             ▼
+writers ──────────────────────▶ SearchService ─▶ search/store.py  <data>/search.db (0600, own schema version)
+  start-up · every 10 min · Settings buttons    documents · passages · passages_fts (FTS5: body, head) · vectors
+  · stale check on search · mm3 search index           ▲                                ▲
+                                                        │ BM25 (head weight 0.3)        │ cosine (brute force)
+                        /search · mm3 search · 15j ─▶ search/query.py Searcher ─ RRF (k = 60) ─▶ SearchResult
+                                                        │                                │ group_by_meeting,
+                         embedder.py ── backend.embed() (Ollama /api/embed; Bedrock Titan/Cohere; /embeddings)
+                         GPU gate: JobRunner.background_gpu (only while no job is active) · cloud consent check
+```
+- **Store** (`search/store.py`): a separate, rebuildable SQLite file next to `mm3.db`, never migrated: a different
+  schema version is dropped and rebuilt. Vectors are float32 blobs tagged with the embedding model id
+  (`<kind>:<model>`); a different model empties the table first, so vectors are never mixed (ADR-0050).
+- **Indexer** (`search/index.py`): incremental. Unchanged files cost one `lstat`; a file whose sha256 matches a
+  vanished document with the same `mm3-id` and kind is re-pointed (a move keeps its vectors); a re-chunked document
+  keeps the vectors of passages whose text is unchanged. `indexable()` is the one place that decides what is
+  indexed (live notes and companion transcripts). Embedding runs in batches of 32 behind a `GpuGate`.
+- **Query** (`search/query.py`): `fts_query` quotes every token of the user text (no FTS syntax survives); word
+  candidates within 30 % of the best BM25, vector candidates within 0.08 cosine of the best (tuned on the corpus and
+  Nick's vault), fused by reciprocal rank. Results carry snippets as (text, matched) pieces for safe rendering.
+- **Service** (`search/service.py`): one per process (`app.state.search`); debounced updates (2 s) after vault
+  writes, a periodic rescan, one update at a time as a `LongTask` (progress, cancel); `JobsTableGate` gives the CLI
+  the same GPU rule by reading `mm3.db`.
+- **Pages:** `/search` (`web/search_ui.py`), Settings → Search & Ask (`web/settings_ui.py`, `/settings/search/*`).
+  Decision records: ADR-0049, ADR-0050.
+

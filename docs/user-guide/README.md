@@ -17,6 +17,7 @@ Pages are added as the features land. Planned index:
 | [`reviewing-and-editing.md`](reviewing-and-editing.md) (workspace, shortcuts, regeneration, archives, template switch, renaming speakers, re-open, damaged markers) | 11 (written) |
 | `settings.md` | 12 |
 | [`settings.md`](settings.md) (the Settings screen, secrets, retention, voiceprints, ratings and export) | 12 (written) |
+| [`search-and-ask.md`](search-and-ask.md) (the meeting index, Search page, `mm3 search`, embedding models, cloud-embedding consent; Ask) | 15i (written), 15j |
 | `docker.md` | 14 |
 | `troubleshooting.md` and `faq.md` | 15, 16 |
 

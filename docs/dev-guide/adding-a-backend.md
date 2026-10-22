@@ -35,6 +35,32 @@ Rules:
 - Import optional SDKs lazily inside the module.
 - Probes (`test_connection`) should use a single attempt so an unreachable server fails fast.
 
+### Optional: embeddings (Phase 15i)
+Search embeds passages through the backends. To support it, set `supports_embeddings = True` and implement the
+`Embedder` protocol (`llm/base.py`):
+```python
+class MyBackend:
+    supports_embeddings = True
+
+    async def embed(
+        self, model: str, texts: Sequence[str], *, purpose: EmbedPurpose = "document"
+    ) -> list[list[float]]: ...
+
+    async def list_embedding_models(self) -> list[ModelInfo]: ...  # never offered for notes
+```
+- Return one vector per text, in order; batch inside `embed` as the provider allows (Ollama 32 per call,
+  OpenAI-style 64, Titan one text per call with bounded concurrency). Validate the answer with
+  `base.check_vectors(provider, vectors, count)`.
+- `purpose` is `"query"` for a search query; pass it on where the provider distinguishes (Cohere `input_type`).
+  Model-specific text prefixes (nomic's `search_document:`/`search_query:`) are added by `search/embedder.py`, not
+  by the backend.
+- Errors like `generate`: a backend or model that cannot embed raises `base.embed_unsupported(...)`
+  (`E_LLM_EMBED_UNSUPPORTED`); a model that is not installed is `E_LLM_CONFIG` with the fix in the hint.
+- Callers check `base.supports_embeddings(backend)`. `Embedder` is a separate protocol so a backend (or test double)
+  without embeddings still satisfies `LLMBackend`. `FakeLLMBackend.embed` gives deterministic toy vectors
+  (`fake_embedding`), so the search tests can assert rankings offline.
+- A cloud embedder is only called with the backend's `cloud_embedding_consent` (`EmbedderChoice.require_consent`).
+
 ## 2. Register it (`llm/registry.py`)
 ```python
 def _mine(name: str, cfg: BackendConfig, settings: Settings) -> LLMBackend:

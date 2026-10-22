@@ -10,7 +10,7 @@ effective settings with secrets masked.
 | What | Default | Override |
 |---|---|---|
 | Config file | `$XDG_CONFIG_HOME/meetingmaster3/config.yaml` (`~/.config/meetingmaster3/config.yaml`) | `MM3_CONFIG_DIR` (the directory) |
-| App data (`mm3.db`, `jobs/`, `logs/`) | `$XDG_DATA_HOME/meetingmaster3/` (`~/.local/share/meetingmaster3/`) | `MM3_DATA_DIR` |
+| App data (`mm3.db`, `search.db`, `jobs/`, `logs/`) | `$XDG_DATA_HOME/meetingmaster3/` (`~/.local/share/meetingmaster3/`) | `MM3_DATA_DIR` |
 | Cache | `$XDG_CACHE_HOME/meetingmaster3/` (`~/.cache/meetingmaster3/`) | `MM3_CACHE_DIR` |
 | Model cache | `<cache>/models` | `MM3_MODELS_DIR` |
 
@@ -60,6 +60,7 @@ Every setting below can also be changed on the **Settings** screen ([`settings.m
 | `llm.backends.<name>.headers` | | `{}` | Extra HTTP headers, e.g. OpenRouter `HTTP-Referer` and `X-Title` (off by default; nothing identifying is sent unless you add it). |
 | `llm.backends.<name>.context_window` | | auto | Override when the server cannot report the model's context size. Bedrock reads it from `llm/bedrock_models.yaml` by model family (inference profile ids included); set this only for a model that table does not know. Unknown windows are treated as 8192 tokens. |
 | `llm.backends.<name>.consent_remembered` | | `false` | Remember cloud-egress consent for this backend (skips the per-job prompt). |
+| `llm.backends.<name>.cloud_embedding_consent` | | `false` | Allow this (cloud) backend to embed meetings for search when it is `search.embedding_backend`. **Indexing sends the full text of every indexed meeting to the provider, and each search sends the query.** Separate from `consent_remembered`, which covers one meeting's notes. Without it a cloud embedder is refused (`E_CONSENT_REQUIRED`), nothing is sent and search uses words only. Ignored for local backends (ADR-0049). |
 | `vault.attachments_subfolder` | `MM3_VAULT__ATTACHMENTS_SUBFOLDER` | `Meetings/attachments/` | Where the optional audio copy goes (inside the vault). Used only when `privacy.copy_audio_to_vault` is on. |
 | `generation.default_template` | `MM3_GENERATION__DEFAULT_TEMPLATE` | `default-notes` | Template used when a job does not choose one, and pre-selected on the New meeting page. Starting a meeting from that page with another template saves it here, so the choice sticks (R29). Was `executive-summary` before Phase 15e; a value already in your `config.yaml` is kept. |
 | `generation.write_companion` | `MM3_GENERATION__WRITE_COMPANION` | `true` | Write the companion `.transcript.md` next to each note. Turning it off saves space but the note can no longer be re-opened to regenerate sections or rename speakers (a warning says so on every job). |
@@ -67,6 +68,13 @@ Every setting below can also be changed on the **Settings** screen ([`settings.m
 | `generation.max_context` | `MM3_GENERATION__MAX_CONTEXT` | `16384` | The largest context window (tokens) planned for a **local** model. Models advertise windows (e.g. 40k) that an 8 GB GPU cannot hold next to the weights; longer meetings are summarised in parts (map-reduce). Raise it on bigger GPUs (e.g. 32768 on 16 GB). Cloud models use their own window. Each note asks Ollama for only what its largest call needs plus 10 % (about 13k for a long meeting at 16384); Ollama's own memory settings for small GPUs are in [hardware.md](hardware.md#ollama-settings-for-small-gpus-recommended-on-8-gb). |
 | `generation.think` | `MM3_GENERATION__THINK` | `false` | Let reasoning models (qwen3, deepseek-r1, ...) "think" before answering. Off by default: it is several times slower and can use up a section's length limit. |
 | `generation.install_templates` | `MM3_GENERATION__INSTALL_TEMPLATES` | `true` | Copy the built-in templates into the vault's templates folder the first time a vault is used. Edited copies are never overwritten. |
+| `search.enabled` | `MM3_SEARCH__ENABLED` | `true` | Keep the meeting index (`<data>/search.db`) for the **Search** page, `mm3 search` and Ask (R30). Off: nothing is indexed and searches are refused; *Delete index* in Settings turns it off. See [search-and-ask.md](search-and-ask.md). |
+| `search.embedding_backend` | `MM3_SEARCH__EMBEDDING_BACKEND` | unset | The backend that embeds passages and queries. Unset (`auto` in Settings): the local `ollama`, else the first local backend that can embed. A cloud backend also needs its `cloud_embedding_consent`. |
+| `search.embedding_model` | `MM3_SEARCH__EMBEDDING_MODEL` | `nomic-embed-text` | The embedding model (Ollama: run `ollama pull nomic-embed-text` once; Bedrock: `amazon.titan-embed-text-v2:0`; OpenRouter: e.g. `openai/text-embedding-3-small`). Changing it (or the backend kind) re-embeds every passage at the next update; vectors of two models are never mixed. |
+| `search.chunk_tokens` | `MM3_SEARCH__CHUNK_TOKENS` | `350` | About how many tokens one passage holds (64-2000). Applies to all meetings after *Rebuild index*. |
+| `search.chunk_overlap` | `MM3_SEARCH__CHUNK_OVERLAP` | `50` | Tokens repeated between neighbouring passages of a long section or transcript (0-500). |
+| `search.index_transcripts` | `MM3_SEARCH__INDEX_TRANSCRIPTS` | `true` | Index companion transcripts as well as notes. Off: transcripts already indexed are dropped at the next update. |
+| `search.rescan_minutes` | `MM3_SEARCH__RESCAN_MINUTES` | `10` | How often the vault is checked for notes changed outside MeetingMaster3 (Obsidian). Changes MeetingMaster3 makes are indexed within seconds, and a search also checks the vault when the last check is more than a minute old. |
 | `audio.max_upload_mb` | `MM3_AUDIO__MAX_UPLOAD_MB` | `2048` | Largest accepted upload, in MiB (R7). Larger uploads get HTTP 413 `E_UPLOAD_TOO_LARGE`. |
 | `audio.opus_bitrate_kbps` | `MM3_AUDIO__OPUS_BITRATE_KBPS` | `24` | Bitrate of the Opus copy kept after a note is written (6-128). |
 | `jobs.max_concurrent` | `MM3_JOBS__MAX_CONCURRENT` | `2` | Jobs processed at once (1-8). GPU stages never overlap regardless (R5); this lets one job's CPU work run beside another's GPU work. |

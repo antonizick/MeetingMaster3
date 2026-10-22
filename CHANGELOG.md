@@ -8,6 +8,29 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Search your meetings by meaning and by words** (Phase 15i, R30, ADR-0049, ADR-0050): a **Search** page
+  (`/search`) and `mm3 search "<question>"` find the passages most related to a question in every meeting note and
+  companion transcript, grouped by meeting, with the matched words highlighted, date and person filters, and links
+  to the meeting or straight to the transcript moment. Hybrid retrieval: an SQLite FTS5 word index plus meaning
+  vectors from a local embedding model (Ollama `nomic-embed-text`, `ollama pull nomic-embed-text`), fused by
+  reciprocal rank; without the model the search works by words only and says why. Any typed text is safe (quotes,
+  `*`, `NEAR`, `:` are plain words).
+- **Meeting index** `<data>/search.db` (0600, outside the vault, rebuildable), kept current by itself: at start-up
+  in the background, seconds after the app writes or renames a meeting, every 10 minutes and on a stale search for
+  edits made in Obsidian. Only changed files are re-read; a moved note keeps its vectors; editing one section
+  re-embeds only that section. Indexing never competes with a transcription for the GPU (it runs only while no job
+  is active). Settings → **Search & Ask** shows the embedder, meetings, passages, vectors, size, last update and
+  problems, with **Update index**, **Rebuild index** and **Delete index**; `mm3 search index [--rebuild]` and
+  `mm3 search status` do the same from the terminal.
+- **Embeddings in the LLM backends**: `embed()` and `list_embedding_models()` for Ollama (`/api/embed`), AWS
+  Bedrock (Titan Text Embeddings V2, Cohere Embed), OpenRouter (verified live: `/embeddings` with
+  `openai/text-embedding-3-small`) and OpenAI-compatible servers, plus deterministic fake embeddings for tests;
+  embedding models are never offered for writing notes. `mm3 llm test` says whether the search embedding model is
+  available.
+- **Cloud embedding needs its own permission**: a cloud backend embeds for search only with *Allow search
+  indexing with this backend's embeddings* (`llm.backends.<name>.cloud_embedding_consent`, off by default), because
+  indexing sends every meeting's full text and each search its query; otherwise nothing is sent (S6).
+  *Revoke consent* clears it too.
 - **Re-link moved meetings** (Meetings page, `mm3 notes relink`, ADR-0047): after a vault folder is moved or `vault.path`
   changes, entries whose note is missing or outside the vault can be found again by their `mm3-id`: **Find them in the
   vault**, then **Re-link** per entry or **Re-link N found** for all clear matches (one live note, or one that kept its

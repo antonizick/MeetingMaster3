@@ -52,6 +52,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0046 | 2026-10-16 | Logging never blocks the event loop: all records, uvicorn's included, go through a bounded queue to a writer thread; a stalled terminal drops (and later reports) log lines instead of freezing the web app | Accepted | fix |
 | ADR-0047 | 2026-10-16 | Meetings entries stranded by a vault move are re-linked by `mm3-id` (found in the current vault, matched only when unambiguous), on request from the Meetings page or `mm3 notes relink`; only the list entry changes | Accepted | fix |
 | ADR-0048 | 2026-10-20 11:08 CDT | Project documents carry the prefix `MM3_` and every recorded date becomes a timestamp (`YYYY-MM-DD HH:MM TZ`); files renamed, references rewritten | Accepted | docs |
+| ADR-0050 | 2026-10-22 14:56 CDT | Meeting index layout and retrieval tuning: separate rebuildable `search.db` (not an `mm3.db` migration); FTS5 over passage body plus heading lines weighted 0.3; word candidates within 30 % of the best BM25 and vector candidates within 0.08 cosine of the best, fused by RRF (k = 60); pure-Python cosine over cached float32 arrays; vectors tagged with one model id; vault-change hook in `atomic_write_text`; GPU only while no job is active | Accepted | 15i |
 | ADR-0049 | 2026-10-22 13:47 CDT | Ask AI agent: hybrid (FTS5 + embeddings) retrieval with embeddings through the backends (local `nomic-embed-text` default, cloud only with its own consent); a JSON-driven pipeline with code-built facts, not tool-calling; per-question cloud consent or a separate sticky Ask switch; every answer saved as a linked vault note; split into 15i and 15j | Accepted (planning) | 15i, 15j |
 
 ---
@@ -1427,3 +1428,67 @@ deletable from Settings. Embedding with a local model uses the GPU briefly, so i
 semaphore (R5). Answer quality on an 8 GB machine depends on qwen3:8b reading one meeting per call; the eval in 15j
 measures it against a synthetic corpus and Nick's example question. Native tool-calling and in-process embeddings stay
 possible later behind the same search API.
+
+**Phase 15i implementation (2026-10-22 14:56 CDT).** Built as planned: `embed()`/`list_embedding_models()` in the Ollama (`/api/embed`,
+batches of 32, `keep_alive` 30 s), Bedrock (`invoke_model`: Titan Text Embeddings V2 at 1024 dimensions, normalised,
+one text per call, 4 at once; Cohere Embed in batches of 96 with `input_type`) and OpenAI-compatible (`/embeddings`,
+batches of 64) backends and the fake backend, behind a separate optional `Embedder` protocol so existing test doubles
+still satisfy `LLMBackend`. **OpenRouter serves embeddings** (checked live: `POST /embeddings` with
+`openai/text-embedding-3-small` returned 1536-dimension vectors at USD 0.0000002 for 10 tokens; 35 models listed at
+`GET /embeddings/models`), so its preset is not marked "no embeddings". The store, chunking (350/50 tokens), fusion and
+GPU rule are ADR-0050. Measured on Nick's vault (13 meetings, 467 passages): full index 13.6 s cold, an edited note
+0.07 s, hybrid search about 120 ms, `search.db` 4.0 MB; hybrid ranked a right meeting first for 16 of 17 private
+questions against 13 of 17 for words alone (docs/PERFORMANCE.md). Spec amendment **R30**.
+
+## ADR-0050: Meeting index layout and retrieval tuning (Phase 15i)
+**Recorded:** 2026-10-22 14:56 CDT
+
+**Context.** ADR-0049 fixed hybrid retrieval through the backends' embeddings. Phase 15i had to choose where the index
+lives, how passages are matched and fused, how the index follows the vault, and how it shares the GPU.
+
+**Options considered (store).**
+
+| Option | Pros | Cons |
+|---|---|---|
+| A. Separate `<data>/search.db` with its own schema version | Derived data stays apart from state that matters: delete or rebuild it freely (Settings, by hand); a schema change just rebuilds; big FTS/vector writes never contend with the job tables; one file to describe in the privacy docs | A second SQLite file; the CLI and server must both open it safely |
+| B. A migration in `mm3.db` | One file, one connection | Deleting the index means dropping tables; every index schema change is a permanent migration; `secure_delete` and WAL traffic from re-indexing hit the job database |
+
+**Decision.**
+1. **Store: A.** `search.db` (0600, `secure_delete`, WAL), tables `documents`, `passages`, `passages_fts` (FTS5,
+   external content, `porter unicode61 remove_diacritics 2`, columns *body* and *head*), `vectors` (float32 blob per
+   passage, tagged `<backend kind>:<model>`). Another schema version is dropped and rebuilt; `CREATE ... IF NOT EXISTS`
+   makes the CLI and the server creating it at the same moment harmless. Vectors of another model are deleted before
+   embedding (never mixed).
+2. **Passages.** Notes by section (AI Recommendations left out: it is the model's advice, not what was said; the
+   user's text outside sections kept), long sections split at paragraphs/sentences into 350-token windows with
+   50 tokens of overlap; transcripts as windows over the data block's segments (names from `mm3-speakers`). Each
+   passage starts with its title, date and heading lines, so it makes sense to the embedding model on its own.
+   nomic-embed-text gets its `search_document:` / `search_query:` prefixes (a small per-model table).
+3. **Matching.** The user's text becomes quoted word tokens joined by OR (stop words dropped, at most 32 terms of 64
+   characters): FTS syntax never survives. **Heading lines are a second FTS column weighted 0.3**: every passage
+   repeats its meeting's title, and without this a title word ("Hiring *Plan*" for a question about "planned"
+   spending) matched every passage of that meeting as strongly as the passage that discussed it (seen on the synthetic
+   corpus). Word candidates must reach **30 % of the best BM25** and vector candidates must be **within 0.08 cosine of
+   the best**: embedding models rate unrelated text well above zero (about 0.5 for nomic-embed-text, relevant passages
+   0.55-0.75 on the corpus and Nick's vault), so a plain top-N always "found" every meeting. The margin is
+   model-dependent; callers can pass `vector_margin=None` (15j may, for recall). Lists are fused by reciprocal rank,
+   k = 60, untuned.
+4. **Vector search: brute force in pure Python** (`math.sumprod` over cached `array('f')`, rebuilt when the store
+   changes): 10 ms for 467 passages, 340 ms for a synthetic 20 000. numpy is not a core dependency; Python float
+   lists were only 1.6× faster at 8× the memory. Revisit (numpy or sqlite-vec) if vaults pass about 20 000 passages.
+5. **Following the vault.** Incremental by (mtime, size), then sha256; a moved file with the same `mm3-id`, kind and
+   sha256 is re-pointed (vectors kept); re-chunked documents keep vectors of passages whose text hash is unchanged.
+   Triggers: a hook in `vault/io.atomic_write_text` (every `.md` write; listeners ignore paths outside the vault) and
+   the end of a rename, debounced 2 s; start-up; every 10 minutes; a search when the last check is over a minute old;
+   Settings and the CLI. The hook lives in `vault/changes.py` so writers need no knowledge of search.
+6. **GPU (R5).** A local embedder takes the job runner's GPU semaphore only while no job is running or queued
+   (`JobRunner.background_gpu`), for one batch of 32 passages (about 0.7 s); the CLI reads `mm3.db` for active jobs
+   instead (`JobsTableGate`). Ollama's 30 s `keep_alive` and the transcription stage's own unload free the VRAM.
+7. **Delete index** removes the files and switches `search.enabled` off, so the index is not silently rebuilt.
+
+**Consequences.** Search works offline and without any new dependency; the index can always be thrown away. The
+0.08 margin is tuned for nomic-embed-text: another model may need a different value (recorded here for whoever changes
+the default). A note deleted in Obsidian stays searchable until the next check (at most 10 minutes, or a minute after
+any search). The fake embedder (deterministic toy vectors) is not calibrated like a real model, so ranking tests that
+use it switch the margin off.
+

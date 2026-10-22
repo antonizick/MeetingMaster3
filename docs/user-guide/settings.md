@@ -1,6 +1,6 @@
 # Settings
 
-Open **Settings** in the top bar. Everything you can set in `config.yaml` is also here, in six tabs. Changes
+Open **Settings** in the top bar. Everything you can set in `config.yaml` is also here, in seven tabs. Changes
 take effect immediately (the one exception, noted on the field, needs a restart) and are written to
 `config.yaml`, so they survive a restart. If a value is invalid, the field shows why and **nothing** is saved.
 
@@ -42,8 +42,16 @@ The backends that write your notes, their connection tests and the recommendatio
 * **AWS keys for Bedrock:** the access key ID and secret access key of the IAM user you made for MeetingMaster3. Write-only like every key here (never shown again; *Remove the saved value* removes both), stored in `config.yaml`, removed from logs. Leave them empty to use an AWS profile or the standard AWS variables. How to create them: [Setting up AWS Bedrock, step by step](llm-backends.md#setting-up-aws-bedrock-step-by-step); for OpenRouter, [Setting up OpenRouter](llm-backends.md#setting-up-openrouter-step-by-step).
 * **API keys are write-only**: type a new key to replace the old one, or tick *Remove the saved key*. A stored key is never displayed.
 * **Test** tries the connection. In the form, **Load models** shows a drop-down of the models that can write notes (cloud backends with prices, an estimated cost and Best value / Best quality badges; **Show all models** reveals the rest). Choosing one fills the **Default model** box, which still accepts any id you type. See [Choosing a model](llm-backends.md#choosing-a-model-the-picker-prices-and-recommendations).
-* **Remember my consent** (cloud backends) skips the per-meeting question. **Revoke consent** brings the question back.
+* **Remember my consent** (cloud backends) skips the per-meeting question. **Revoke consent** brings the question back (and also withdraws the search-indexing permission below).
+* **Allow search indexing with this backend's embeddings** (cloud backends, Phase 15i): only matters if you pick this backend as the embedder in *Search & Ask*. Indexing then sends the full text of every meeting, and each search sends the query, to the provider. Off by default and separate from the consent above. The backend list says *Search indexing allowed* when it is on.
 * The **default backend** is what a new meeting uses. You cannot remove the default; choose another first.
+
+## Search & Ask
+The meeting index behind the **Search** page (and, from Phase 15j, Ask). Details: [search-and-ask.md](search-and-ask.md).
+
+* **Index meetings for search** (on by default), the **embedding backend** (`auto` = the local Ollama) and **model** (`nomic-embed-text`), and **Index the transcripts too**. *Advanced:* passage size and overlap (apply to all meetings after *Rebuild index*) and how often the vault is checked for edits made in Obsidian.
+* The **Meeting index** card shows the embedder (with a *local* or *cloud* badge), the number of meetings, notes, transcripts and passages, how many passages have meaning vectors, the file size and location, the last update, files that could not be indexed, and why meaning vectors are missing if they are (for example "run `ollama pull nomic-embed-text`"). While an update runs it shows a progress bar, the elapsed time and the time left, and a **Stop** button.
+* **Update index** reads what changed; **Rebuild index** starts from scratch; **Delete index** removes `search.db` (and its `-wal`/`-shm` files) and turns indexing off until you press Update again. Notes are never touched.
 
 ## Privacy
 * **Audio retention**: keep forever, for N days (default 90), or delete right after the note is written. Under the form, the page lists

@@ -99,6 +99,43 @@ uses 10-20× real time for the notes (was 3.5-7×). With Ollama's defaults expec
   The baseline was updated to this run. The long all-hands (map-reduce, window 8 192) still completes:
   decisions 5/6, actions 15/16, questions 3/5 (Phase 15a: 6/6, 15/16, 3/5).
 
+## Search index (Phase 15i, 2026-10-22 14:56 CDT)
+Measured on the RTX 2070 Max-Q (8 GB) with Ollama 0.40.6 and `nomic-embed-text` (768 dimensions), default
+passage size (350 tokens, 50 overlap), on a private copy of Nick's vault: **13 meetings** (13 notes, 13 companion
+transcripts, 123 Markdown files in the vault) → **467 passages**. Only these aggregate numbers are recorded.
+
+| What | Result |
+|---|---|
+| Full index, cold (Ollama loads the embedding model) | 13.6 s (12.6 s of it embedding) |
+| Full rebuild, model loaded | 10.6 s (about 44 passages/s) |
+| Update after saving one note (one section changed) | 0.07 s, 1 passage re-embedded |
+| Update with nothing changed | 0.017 s |
+| `search.db` size | 4.0 MB (about 9 KB per passage: text, FTS index, 3 KB vector); up to 10.8 MB right after a full build, until SQLite folds its write-ahead log (`-wal`) back in |
+| Word search (FTS5, BM25) | 2 ms median |
+| Embedding the query (Ollama, model warm) | about 60 ms |
+| Vector search, brute force over 467 passages | 10 ms (`math.sumprod` over cached `array('f')`); synthetic 20 000 passages: 340 ms |
+| Hybrid search end to end | about 120 ms median |
+
+**Relevance check** (private: 17 questions written from the meeting titles, 10 everyday and 7 deliberately phrased
+without the notes' words, e.g. "battery-powered automobiles" for a talk about electric vehicles; the expected
+meetings judged by hand):
+
+| | Words only | Hybrid (meaning + words) |
+|---|---|---|
+| A right meeting ranked first | 13 of 17 | **16 of 17** |
+| Recall of the expected meetings in the top 3 | 0.98 | 0.98 |
+| Meetings returned per question (fewer = less noise) | 6.7 | 5.8 |
+
+With only 13 long meetings, an OR word search touches most meetings (transcripts contain many everyday words), so
+recall saturates for both; the difference is in **ranking**: meaning search puts the right meeting first more often
+and returns fewer unrelated ones. Hybrid was clearly better on the paraphrased set (7 of 7 first vs 5 of 7), so the
+defaults were kept and `bge-m3` / `qwen3-embedding` were not tried (ADR-0050). On the synthetic corpus
+(`tests/fixtures/search_vault/`) the three meetings about one topic in three wordings rank 1-3 with
+`nomic-embed-text`, while words alone find one or two (`tests/integration/test_search_real_embedder.py`).
+
+GPU: embedding holds the GPU only between jobs, one batch of 32 passages (about 0.7 s) at a time, and Ollama keeps
+the 274 MB model for 30 s after the last batch.
+
 ## Raw numbers
 Per stage: wall time in seconds (real-time factor in brackets = audio seconds / wall seconds), then
 the peak GPU memory of the MeetingMaster3 process, of Ollama, and the app's peak resident memory

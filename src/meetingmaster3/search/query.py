@@ -17,7 +17,6 @@ import heapq
 import json
 import logging
 import math
-import operator
 import re
 import sqlite3
 import time
@@ -431,7 +430,7 @@ class Searcher:
         q = array("f", _unit(query_vec))
         dims = len(q)
         scored = (
-            (pid, sum(map(operator.mul, q, vec)))
+            (pid, math.sumprod(q, vec))
             for pid, doc_id, vec in items
             if len(vec) == dims and (allowed is None or doc_id in allowed)
         )

@@ -260,14 +260,32 @@ model box. It is built on the server, so every page shows the same list for the 
     set `prices_as_of`. The recommendations and the models known to be unsuitable are in
     `src/meetingmaster3/llm/cloud_recommendations.yaml`.
 
+## Embedding models (search)
+The Search page and Ask (Phases 15i and 15j) also use a backend to **embed** meetings: turn each
+passage into a vector that captures its meaning. This is a separate, small model, chosen in
+Settings → Search & Ask; embedding models never appear in the note-writing model pickers.
+
+| Backend | Embedding models | Setup |
+|---|---|---|
+| Ollama (default) | `nomic-embed-text` (default), `bge-m3`, `mxbai-embed-large`, `qwen3-embedding`; any model whose `ollama show` lists the `embedding` capability | `ollama pull nomic-embed-text`. Calls `/api/embed`; the model stays loaded for 30 s after a batch. |
+| AWS Bedrock | `amazon.titan-embed-text-v2:0` (1024 dimensions, normalised), `cohere.embed-english-v3`, `cohere.embed-multilingual-v3` | Enable access to the model in the Bedrock console (*Model access*). The IAM policy above already allows `bedrock:InvokeModel`, which embeddings use. Titan takes one text per call (4 at once). |
+| OpenRouter | about 35 models, e.g. `openai/text-embedding-3-small`, `qwen/qwen3-embedding-8b`, `baai/bge-m3` | Works with the same key; listed at `/embeddings/models` (checked live in Phase 15i: `openai/text-embedding-3-small` returned 1536-dimension vectors at about USD 0.02 per 1M tokens). |
+| OpenAI / OpenAI-compatible | `text-embedding-3-small` and the like; LM Studio and vLLM serve their loaded embedding model | Calls `/embeddings`. A server without it answers 404 and is reported as `E_LLM_EMBED_UNSUPPORTED`. |
+
+A cloud embedder sends **every meeting's full text** when the index is built and **each search
+query** afterwards, so it needs its own permission on the backend (*Allow search indexing*,
+`cloud_embedding_consent`); without it nothing is sent and search uses words only. See
+[search-and-ask.md](search-and-ask.md).
+
 ## Checking it works
 ```bash
 uv run mm3 llm list          # configured backends, local or cloud
-uv run mm3 llm test          # connects to each one and checks the default model exists
+uv run mm3 llm test          # connects to each one, checks the default model exists, and for
+                             # the search embedder whether its embedding model is available
 ```
 The same tests are available at `POST /api/llm/backends/{name}/test` and the Settings page (Phase 12).
 Errors carry a code: `E_LLM_AUTH` (bad key), `E_LLM_UNREACHABLE`, `E_LLM_RATE_LIMIT`, `E_LLM_CONTEXT`
-(prompt too long), `E_LLM_TIMEOUT`.
+(prompt too long), `E_LLM_TIMEOUT`, `E_LLM_EMBED_UNSUPPORTED` (the backend or model cannot embed).
 
 ## Privacy and consent
 - The first use of a non-local backend in each job needs your confirmation. You can remember it per
