@@ -26,13 +26,13 @@ The CI badge above is a placeholder until the repository is published (Phase 16)
   (Ollama `nomic-embed-text`), kept in step with the vault, on a **Search** page and `mm3 search`
   ([search and ask](docs/user-guide/search-and-ask.md)).
 - **Ask your meetings broad questions**: "how many times did we discuss the vendor contract, who led those
-  discussions and in what role? Make a table of the meetings, dates and attendees." The **Ask** page (and
+  discussions and in what role? Make a table of the meetings, dates and attendees." The **Ask-AI** page (and
   `mm3 ask`) searches, reads each matching meeting with a local model (or Bedrock / OpenRouter, after you
   consent), and answers with the meetings cited and a table whose meetings, dates and attendees come from the
-  files. Every answer is saved as a linked note in `MM3 Answers/`, listed on the Ask page and on each cited
+  files. Every answer is saved as a linked note in `MM3 Answers/`, listed on the Ask-AI page and on each cited
   meeting's page, and shown in Obsidian's backlinks.
 
-  ![The Ask page: a cited answer with the table of meetings built from the files](docs/assets/11-ask.png)
+  ![The Ask-AI page: a cited answer with the table of meetings built from the files](docs/assets/11-ask.png)
 - Fix a meeting's title or date after the fact: every file is renamed and the links to it in your other
   notes follow (backed up first).
 - Local-first LLMs through Ollama; optional BYOK cloud backends (AWS Bedrock, OpenAI-compatible
@@ -45,8 +45,8 @@ The CI badge above is a placeholder until the repository is published (Phase 16)
 Your audio, transcripts and notes stay on your machine. Nothing leaves it unless you explicitly pick a
 cloud LLM backend, and the app asks for consent before the first cloud use. The search index stays in
 the app's data folder and uses a local embedding model; a cloud embedder needs its own permission, because
-it would receive every meeting's text. The Ask agent uses a local model by default; a cloud model needs a tick
-for each question (or its own "always allow Ask" switch), because one question sends excerpts of many meetings.
+it would receive every meeting's text. The Ask-AI agent uses a local model by default; a cloud model needs a tick
+for each question (or its own "always allow Ask-AI" switch), because one question sends excerpts of many meetings.
 There is no telemetry.
 Voiceprints are treated as biometric data: opt-in, local only, stored only for the people you choose,
 physically erased when deleted. See [`docs/PRIVACY.md`](docs/PRIVACY.md).
@@ -61,7 +61,7 @@ physically erased when deleted. See [`docs/PRIVACY.md`](docs/PRIVACY.md).
         |                |
         |        template engine ── LLM backend (Ollama | Bedrock | OpenAI-compatible)
         |                                       └─ embed() ── search.db (FTS5 words + vectors) ── /search
-        |        Ask agent: plan ─ search ─ read each meeting ─ facts by code ─ answer ── /ask, MM3 Answers/
+        |        Ask-AI agent: plan ─ search ─ read each meeting ─ facts by code ─ answer ── /ask, MM3 Answers/
         v
  Markdown writer/parser ──> your Obsidian vault (source of truth)
 ```

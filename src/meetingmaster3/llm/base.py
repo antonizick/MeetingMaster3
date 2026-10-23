@@ -209,7 +209,8 @@ def embed_unsupported(provider: str) -> MM3Error:
     return llm_error(
         E_LLM_EMBED_UNSUPPORTED,
         f"{provider} does not offer embeddings for search.",
-        "Use the local Ollama backend with nomic-embed-text for search (Settings → Search & Ask).",
+        "Use the local Ollama backend with nomic-embed-text for search "
+        "(Settings → Search & Ask-AI).",
         status_code=400,
     )
 

@@ -14,7 +14,7 @@ available (Ollama stopped, the model not pulled, no consent for a cloud embedder
 is still complete and the reason is recorded for the status.
 
 What is indexed (one place, so it can be widened later): live MM3 notes and companion
-transcripts. Skipped: readable transcripts, archived copies, Ask answers (``mm3-kind: answer``),
+transcripts. Skipped: readable transcripts, archived copies, Ask-AI answers (``mm3-kind: answer``),
 files without ``mm3-id``, hidden folders and files, symlinks and anything outside the vault (S4).
 """
 

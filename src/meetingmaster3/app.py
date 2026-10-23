@@ -70,7 +70,7 @@ def _search_service(app: FastAPI, settings: Settings, paths: AppPaths, runner: A
 
 
 def _ask_service(app: FastAPI, settings: Settings, db: Any, search: Any, runner: Any) -> Any:
-    """The Ask agent (Phase 15j), with the same model lookup as search (the offline fake with
+    """The Ask-AI agent (Phase 15j), with the same model lookup as search (the offline fake with
     ``MM3_FAKE_PIPELINE=1``)."""
     from meetingmaster3.ask.service import AskService
     from meetingmaster3.search.service import RunnerGate

@@ -136,7 +136,7 @@ defaults were kept and `bge-m3` / `qwen3-embedding` were not tried (ADR-0050). O
 GPU: embedding holds the GPU only between jobs, one batch of 32 passages (about 0.7 s) at a time, and Ollama keeps
 the 274 MB model for 30 s after the last batch.
 
-## Ask AI agent (Phase 15j, 2026-10-22 16:37 CDT)
+## Ask-AI agent (Phase 15j, 2026-10-22 16:37 CDT)
 Measured with `tests/eval/ask_eval.py` on the synthetic eight-meeting corpus (`tests/ask_corpus.py`: one topic,
 money spent beyond the plan, in three meetings in different words with different people and stated roles, plus
 decoys; six questions incl. one with no answer), index embedded with the local `nomic-embed-text`. One question =

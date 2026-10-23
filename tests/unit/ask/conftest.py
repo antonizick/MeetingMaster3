@@ -37,7 +37,7 @@ def meeting_title(prompt: str) -> str:
 @dataclass
 class Script:
     """A responder for the fake backend: per step, a function of the prompt (default: the fake
-    model's own Ask answers). Records every call's step."""
+    model's own Ask-AI answers). Records every call's step."""
 
     plan: Reply | None = None
     read: Reply | None = None

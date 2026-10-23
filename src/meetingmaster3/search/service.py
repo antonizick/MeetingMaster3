@@ -321,13 +321,13 @@ class SearchService:
         candidates: int | None = None,
         vector_margin: float | None = VECTOR_MARGIN,
     ) -> SearchResult:
-        """See :meth:`Searcher.query`; the Ask agent widens ``candidates`` and
+        """See :meth:`Searcher.query`; the Ask-AI agent widens ``candidates`` and
         ``vector_margin`` for recall (Phase 15j)."""
         if not self.settings.search.enabled:
             raise MM3Error(
                 E_SEARCH_OFF,
                 "Search is switched off.",
-                "Turn it on in Settings → Search & Ask (Update index).",
+                "Turn it on in Settings → Search & Ask-AI (Update index).",
                 status_code=409,
             )
         await asyncio.to_thread(self._open)

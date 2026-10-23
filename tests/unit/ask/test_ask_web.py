@@ -1,4 +1,4 @@
-"""The Ask page, answer views, the review page's answers and the consent switch (Phase 15j)."""
+"""The Ask-AI page, answer views, the review page's answers and the consent switch (Phase 15j)."""
 
 from __future__ import annotations
 
@@ -81,7 +81,7 @@ def _ask(client: TestClient, question: str, **body: Any) -> dict[str, Any]:
 def test_ask_is_in_the_navigation_and_the_page_renders(aui: TestClient) -> None:
     page = aui.get("/ask")
     assert page.status_code == 200
-    assert '<a href="/ask" aria-current="page">Ask</a>' in page.text
+    assert '<a href="/ask" aria-current="page">Ask-AI</a>' in page.text
     assert 'id="ask-q"' in page.text and "No answers yet" in page.text
     assert "Up to 25 meetings are read per question" in page.text
     assert '/static/js/ask.js"' in page.text
@@ -95,7 +95,7 @@ def test_the_consent_box_follows_the_backend(aui: TestClient) -> None:
         'name="cloud_consent"' in cloud.text and "up to <strong>25 meetings</strong>" in cloud.text
     )
     cfg = aui.app.state.settings.llm.backends["router"]  # type: ignore[attr-defined]
-    cfg.consent_remembered = True  # note writing's consent does not cover Ask
+    cfg.consent_remembered = True  # note writing's consent does not cover Ask-AI
     assert 'name="cloud_consent"' in aui.get("/ask/consent", params={"backend": "router"}).text
     cfg.ask_consent_remembered = True
     sticky = aui.get("/ask/consent", params={"backend": "router"})
@@ -243,7 +243,7 @@ def test_backend_form_saves_and_revokes_the_ask_switch(aui: TestClient) -> None:
     cfg = aui.app.state.settings.llm.backends["router"]  # type: ignore[attr-defined]
     assert cfg.ask_consent_remembered is True and cfg.consent_remembered is False
     edit = aui.get("/settings/llm/router/edit")
-    assert "Always allow Ask AI agent to send meeting excerpts to this backend" in edit.text
+    assert "Always allow Ask-AI to send meeting excerpts to this backend" in edit.text
     aui.post("/settings/llm/router/revoke-consent")
     assert cfg.ask_consent_remembered is False
 

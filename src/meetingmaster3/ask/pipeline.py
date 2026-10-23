@@ -1,4 +1,4 @@
-"""The Ask agent: a fixed, bounded pipeline driven by the model's JSON (ADR-0049).
+"""The Ask-AI agent: a fixed, bounded pipeline driven by the model's JSON (ADR-0049).
 
 1. **Plan**: the question becomes 2-6 search queries (and an optional date range) in one call;
    a bad reply gets one repair request, then the question itself is searched.
@@ -337,7 +337,7 @@ def cap_candidates(candidates: list[Candidate], limit: int) -> tuple[list[Candid
         return candidates, None
     return candidates[:limit], (
         f"{len(candidates)} meetings matched the searches; the {limit} best were read "
-        "(Settings → Search & Ask → Most meetings read per question)."
+        "(Settings → Search & Ask-AI → Most meetings read per question)."
     )
 
 
@@ -619,7 +619,7 @@ def nothing_found(question: str, plans: Sequence[PlanRecord], read: int, candida
         return (
             "**No meetings were found for this question.** The meeting index had no passages "
             f"matching the searches: {searched}.\n\nTry other words, or check that the meetings "
-            "are indexed (Settings → Search & Ask)."
+            "are indexed (Settings → Search & Ask-AI)."
         )
     return (
         f"**None of the {read} meetings read discusses this**, as far as the model could tell "
@@ -629,8 +629,8 @@ def nothing_found(question: str, plans: Sequence[PlanRecord], read: int, candida
 
 
 def enforce_ask_consent(backend: LLMBackend, cloud_consent: bool, remembered: bool) -> None:
-    """S6 for Ask: a cloud backend needs this question's consent or the backend's own "Always
-    allow Ask AI agent" switch (``ask_consent_remembered``); the note-writing switch does not
+    """S6 for Ask-AI: a cloud backend needs this question's consent or the backend's own "Always
+    allow Ask-AI agent" switch (``ask_consent_remembered``); the note-writing switch does not
     count."""
     try:
         enforce_consent(backend, cloud_consent=cloud_consent, remembered=remembered)
@@ -638,8 +638,9 @@ def enforce_ask_consent(backend: LLMBackend, cloud_consent: bool, remembered: bo
         raise MM3Error(
             exc.code,
             f"The backend '{backend.id}' would send excerpts of your meetings to a cloud service.",
-            "Tick the box for this question (mm3 ask: --allow-cloud), turn on “Always allow Ask AI "
-            "agent” for this backend in Settings → Language models, or choose a local model.",
+            "Tick the box for this question (mm3 ask: --allow-cloud), turn on "
+            "“Always allow Ask-AI” for this backend in Settings → Language models, "
+            "or choose a local model.",
             status_code=exc.status_code,
         ) from exc
 
@@ -659,7 +660,7 @@ class AskAgent:
     max_meetings: int = 25
     max_context: int | None = None
     filters: SearchFilters = field(default_factory=SearchFilters)
-    """The user's own filters (Ask page or CLI); they always apply."""
+    """The user's own filters (Ask-AI page or CLI); they always apply."""
     previous: tuple[str, list[str]] | None = None
     """``(question, findings)`` of the answer this one follows up."""
     gate: Gate | None = None

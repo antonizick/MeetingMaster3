@@ -1,4 +1,4 @@
-"""The synthetic meeting corpus for the Ask agent (Phase 15j): 15i's seven meetings
+"""The synthetic meeting corpus for the Ask-AI agent (Phase 15j): 15i's seven meetings
 (``tests/search_corpus.py``) plus a Meeting Context section stating people's roles in the three
 "money spent beyond the plan" meetings, and an eighth decoy meeting that talks about a budget
 without overspending it. Written into a temporary vault by the tests and ``tests/eval/ask_eval.py``.

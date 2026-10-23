@@ -269,10 +269,10 @@ writers ──────────────────────▶ Se
 - **Service** (`search/service.py`): one per process (`app.state.search`); debounced updates (2 s) after vault
   writes, a periodic rescan, one update at a time as a `LongTask` (progress, cancel); `JobsTableGate` gives the CLI
   the same GPU rule by reading `mm3.db`.
-- **Pages:** `/search` (`web/search_ui.py`), Settings → Search & Ask (`web/settings_ui.py`, `/settings/search/*`).
+- **Pages:** `/search` (`web/search_ui.py`), Settings → Search & Ask-AI (`web/settings_ui.py`, `/settings/search/*`).
   Decision records: ADR-0049, ADR-0050.
 
-### Ask AI agent (Phase 15j)
+### Ask-AI agent (Phase 15j)
 ```
 /ask (ask.js) · mm3 ask ─▶ AskService (app.state.ask) ── consent (S6: the question's tick, or ask_consent_remembered)
                              │ one question at a time, as a LongTask (progress, ETA, cancel)
@@ -288,7 +288,7 @@ writers ──────────────────────▶ Se
                              │
                              ▼
    ask/notes.py ── <vault>/MM3 Answers/YYYY-MM-DD HHMM - <question>.md (atomic, never overwrites, no mm3-id)
-   ask/store.py ── mm3.db answers + answer_sources (migration 5) ── Ask history, review page "Answers that cite"
+   ask/store.py ── mm3.db answers + answer_sources (migration 5) ── Ask-AI history, review page "Answers that cite"
 ```
 - **Pipeline** (`ask/pipeline.py`, pure apart from the injected `Retriever` and backend): the prompts are in
   `ask/prompts.py` (the first line of each system prompt names the step, which the offline fake model keys on),

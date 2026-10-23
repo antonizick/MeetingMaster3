@@ -151,7 +151,7 @@ MIGRATIONS: list[Migration] = [
     Migration(2, "voiceprints (opt-in speaker recognition)", sql=_V2_VOICEPRINTS),
     Migration(3, "feedback ratings (local only)", sql=_V3_FEEDBACK),
     Migration(4, "recent meetings remember their job (review audio)", sql=_V4_RECENT_JOB),
-    Migration(5, "Ask AI agent answer history (Phase 15j)", sql=_V5_ANSWERS),
+    Migration(5, "Ask-AI agent answer history (Phase 15j)", sql=_V5_ANSWERS),
 ]
 
 

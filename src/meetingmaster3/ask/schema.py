@@ -1,4 +1,4 @@
-"""What the model returns at each step of the Ask agent, validated (pure; no I/O).
+"""What the model returns at each step of the Ask-AI agent, validated (pure; no I/O).
 
 The agent never trusts the shape of a reply: each one is parsed with the same tolerant JSON
 reading as map-reduce (fences, reasoning blocks, trailing commas, a cut-off object closed), then

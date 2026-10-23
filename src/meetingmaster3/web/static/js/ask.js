@@ -1,4 +1,4 @@
-/* MeetingMaster3 Ask page (Phase 15j, R31): send the question, follow it with the shared progress
+/* MeetingMaster3 Ask-AI page (Phase 15j, R31): send the question, follow it with the shared progress
    widget (progress.js), then open the saved answer. A question keeps running on the server if the
    page is left; coming back reattaches to it. */
 (function () {

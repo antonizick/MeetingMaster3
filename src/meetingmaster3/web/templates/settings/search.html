@@ -1,14 +1,14 @@
 {% from "settings/_macros.html" import field, status %}
 <form class="card stack" hx-post="/settings/search" hx-target="#tab-body" hx-swap="innerHTML">
-  <h2>Search &amp; Ask</h2>
+  <h2>Search &amp; Ask-AI</h2>
   <p class="hint">The <a href="/search">Search</a> page finds meetings by what was meant as well as by the words used. It uses an index of your meeting notes and transcripts, kept in step with the vault. With the local embedder nothing leaves this computer.</p>
   {% for v in views if v.spec.path.startswith('search.') %}{{ field(v) }}{% endfor %}
   <details>
     <summary>Advanced: passages and checks</summary>
     <div class="stack">{% for v in advanced_views if v.spec.path.startswith('search.') %}{{ field(v) }}{% endfor %}</div>
   </details>
-  <h3 id="ask-settings">Ask AI agent</h3>
-  <p class="hint">The <a href="/ask">Ask</a> page answers broad questions from your meetings: it searches the index, reads each matching meeting with a language model and writes a cited answer with a table built from the files. With a local model nothing leaves this computer.</p>
+  <h3 id="ask-settings">Ask-AI agent</h3>
+  <p class="hint">The <a href="/ask">Ask-AI</a> page answers broad questions from your meetings: it searches the index, reads each matching meeting with a language model and writes a cited answer with a table built from the files. With a local model nothing leaves this computer.</p>
   {% for v in views if v.spec.path.startswith('ask.') %}{{ field(v) }}{% endfor %}
   <details>
     <summary>Advanced: where answers are kept</summary>

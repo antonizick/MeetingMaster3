@@ -1,4 +1,4 @@
-"""The Search page and the Search & Ask settings tab (Phase 15i)."""
+"""The Search page and the Search & Ask-AI settings tab (Phase 15i)."""
 
 from __future__ import annotations
 

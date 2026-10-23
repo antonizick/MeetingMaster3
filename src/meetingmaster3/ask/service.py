@@ -1,4 +1,4 @@
-"""The Ask AI agent as an app service (``app.state.ask``; the CLI builds its own).
+"""The Ask-AI agent as an app service (``app.state.ask``; the CLI builds its own).
 
 It chooses the backend and model, checks consent, runs the agent
 (:class:`~meetingmaster3.ask.pipeline.AskAgent`) as a long task (one question at a time), saves each

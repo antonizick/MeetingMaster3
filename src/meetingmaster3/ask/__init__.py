@@ -1,4 +1,4 @@
-"""The Ask AI agent: broad questions answered from the meetings on file (Phase 15j, R31).
+"""The Ask-AI agent: broad questions answered from the meetings on file (Phase 15j, R31).
 
 Modules: ``schema`` (the model's JSON, validated), ``prompts``, ``pipeline`` (plan → retrieve →
 read each meeting → optional follow-up → code-built facts → answer), ``notes`` (the answer note

@@ -564,7 +564,7 @@ class Searcher:
                 if not stored or not stored["n"]:
                     reason = (
                         "The index has no meaning vectors yet (it is still being built, or the "
-                        "embedding model is not available); see Settings → Search & Ask."
+                        "embedding model is not available); see Settings → Search & Ask-AI."
                     )
                 else:
                     started = time.perf_counter()

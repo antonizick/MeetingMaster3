@@ -1,9 +1,9 @@
-# Search and Ask
+# Search and Ask-AI
 
 MeetingMaster3 keeps an index of every meeting in your vault so you can find what was discussed
 **by meaning as well as by the words used**: "where did we spend more than planned?" finds the
 meeting where someone said "the costs exceeded the forecast". The **Search** page and `mm3 search`
-find passages; the **Ask** page and `mm3 ask` answer broad questions from the same index, with
+find passages; the **Ask-AI** page and `mm3 ask` answer broad questions from the same index, with
 the meetings cited and a table built from the files.
 
 ## What is indexed
@@ -12,8 +12,8 @@ the meetings cited and a table built from the files.
   Your own text outside the sections is indexed too.
 - Every **companion transcript** (`.transcript.md`), in windows of about 350 tokens with the time and
   the speakers' names (as you named them in *Rename speakers*). Turn this off with
-  *Index the transcripts too* in Settings → Search & Ask.
-- Not indexed: readable transcripts (`(Transcript).md`), archived versions, Ask answers, notes
+  *Index the transcripts too* in Settings → Search & Ask-AI.
+- Not indexed: readable transcripts (`(Transcript).md`), archived versions, Ask-AI answers, notes
   MeetingMaster3 did not write, hidden folders (`.obsidian`, `.trash`) and anything a symbolic link
   points to outside the vault.
 
@@ -50,7 +50,7 @@ With Docker and the bundled Ollama: `docker compose exec ollama ollama pull nomi
 Without it (or with Ollama stopped) search still works **by words only**, and the page says so.
 `mm3 llm test` tells you whether the model is available.
 
-Other embedders (Settings → Search & Ask → *Embedding backend* and *Embedding model*):
+Other embedders (Settings → Search & Ask-AI → *Embedding backend* and *Embedding model*):
 
 | Backend | Model | Notes |
 |---|---|---|
@@ -92,7 +92,7 @@ mm3 search status           # meetings, passages, model, last update
 
 `mm3 search index` waits while the server is processing a meeting, like the server does.
 
-## Settings → Search & Ask
+## Settings → Search & Ask-AI
 Shows the embedder, how many meetings and passages are indexed (and how many have meaning
 vectors), the file size, the last update and any problem (for example "the embedding model is not
 installed"). Buttons:
@@ -108,8 +108,8 @@ The index holds copies of the text of your meeting notes and transcripts, with t
 participants and speaker names. It stays on this computer in the app's data folder (mode 0600).
 Nothing is sent anywhere unless you choose a cloud embedder and allow it. See [PRIVACY.md](../PRIVACY.md).
 
-## Ask
-**Ask** (in the navigation, or `mm3 ask`) answers broad questions from the meetings on file, for
+## Ask-AI
+**Ask-AI** (in the navigation, or `mm3 ask`) answers broad questions from the meetings on file, for
 example:
 
 > How many times have we discussed the vendor contract? Who was principally in those discussions
@@ -150,21 +150,21 @@ like a colleague's summary and open the cited meetings for the detail.
 ### What is sent where
 - **Local model** (Ollama, the default): nothing leaves this computer. Each meeting read is one
   call, about 10-40 s with `qwen3:8b` on an 8 GB GPU (see [PERFORMANCE.md](../PERFORMANCE.md)). Like
-  indexing, Ask waits while a meeting is being transcribed and never runs a call next to one.
+  indexing, Ask-AI waits while a meeting is being transcribed and never runs a call next to one.
 - **Cloud model** (Bedrock, OpenRouter, another OpenAI-compatible server): your question and the
   **excerpts of up to 25 meetings** (the matching passages, names, dates and Meeting Context) are
-  sent to the provider. The Ask page says so before you send and shows an estimated cost when the
+  sent to the provider. The Ask-AI page says so before you send and shows an estimated cost when the
   model's price is known. You must tick **Send the excerpts to … for this question** each time,
-  unless you turned on **Always allow Ask AI agent to send meeting excerpts to this backend** in
+  unless you turned on **Always allow Ask-AI to send meeting excerpts to this backend** in
   Settings → Language models → edit the backend. Remembering consent for writing notes does **not**
-  cover Ask, and Ask's switch does not cover notes. *Revoke consent* turns all of them off.
+  cover Ask-AI, and Ask-AI's switch does not cover notes. *Revoke consent* turns all of them off.
   `mm3 ask --allow-cloud` is the per-question consent on the command line.
 - The question is also embedded for the meaning search, by the search embedder (local by default;
   a cloud embedder needs its own permission, see above).
 
 ### Where answers are kept
 Every answer is saved automatically as a note in your vault, in **`MM3 Answers/`** (Settings →
-Search & Ask → *Answers folder*), named `2026-10-22 1530 - How many times have we discussed….md`.
+Search & Ask-AI → *Answers folder*), named `2026-10-22 1530 - How many times have we discussed….md`.
 The note has the question, the answer, the table of meetings, a *People* table, *Sources* (one line
 per meeting with why it was relevant and links to the moments in MeetingMaster3) and *How this
 was answered* (the searches, the meetings read, the model, the time). Its properties are
@@ -173,7 +173,7 @@ was answered* (the searches, the meetings read, the model, the time). Its proper
 
 - **In Obsidian**: the answers folder, the `#mm3/answer` tag, and each meeting's **backlinks** pane,
   which lists the answers that cite it. Meeting notes are never edited.
-- **In MeetingMaster3**: the Ask page lists every answer, newest first; each answer opens in the
+- **In MeetingMaster3**: the Ask-AI page lists every answer, newest first; each answer opens in the
   app with its meeting links going to the meetings' review pages (*Open in Obsidian* opens the
   note). A meeting's review page lists **Answers that cite this meeting**.
 - Renaming or re-dating a meeting (*Title & date…*) updates the links in answer notes too.

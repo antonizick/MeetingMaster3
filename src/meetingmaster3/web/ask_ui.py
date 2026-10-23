@@ -1,10 +1,10 @@
-"""The Ask page (``/ask``) and answer views (``/ask/{id}``), Phase 15j, R31.
+"""The Ask-AI page (``/ask``) and answer views (``/ask/{id}``), Phase 15j, R31.
 
 A question runs as a long task (``static/js/ask.js`` follows it with the shared progress widget)
 and, when done, opens its answer. The answer view renders the saved vault note server-side with
 the sanitising renderer (S3); its ``[[links]]`` to meetings become links to their review pages,
 and links to MeetingMaster3 moments become relative links. A cloud backend needs the consent box
-ticked for the question unless the backend's "Always allow Ask AI agent" switch is on (S6); the
+ticked for the question unless the backend's "Always allow Ask-AI" switch is on (S6); the
 check is made before the task starts, so a refused question sends nothing.
 """
 
@@ -56,7 +56,7 @@ def service(request: Request) -> AskService:
     ask: AskService | None = getattr(request.app.state, "ask", None)
     if ask is None:
         raise MM3Error(
-            "E_ASK_UNAVAILABLE", "The Ask agent is not running.", "Restart the app.", 503
+            "E_ASK_UNAVAILABLE", "The Ask-AI agent is not running.", "Restart the app.", 503
         )
     return ask
 
@@ -281,7 +281,7 @@ async def ask_start(request: Request) -> dict[str, Any]:
         raise MM3Error(
             "E_SEARCH_OFF",
             "Search is switched off, so there is nothing to answer from.",
-            "Turn it on in Settings → Search & Ask (Update index).",
+            "Turn it on in Settings → Search & Ask-AI (Update index).",
             status_code=409,
         )
     task = ask.start(

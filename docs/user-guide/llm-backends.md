@@ -261,9 +261,9 @@ model box. It is built on the server, so every page shows the same list for the 
     `src/meetingmaster3/llm/cloud_recommendations.yaml`.
 
 ## Embedding models (search)
-The Search page and Ask (Phases 15i and 15j) also use a backend to **embed** meetings: turn each
+The Search page and Ask-AI (Phases 15i and 15j) also use a backend to **embed** meetings: turn each
 passage into a vector that captures its meaning. This is a separate, small model, chosen in
-Settings → Search & Ask; embedding models never appear in the note-writing model pickers.
+Settings → Search & Ask-AI; embedding models never appear in the note-writing model pickers.
 
 | Backend | Embedding models | Setup |
 |---|---|---|

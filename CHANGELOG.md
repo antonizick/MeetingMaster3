@@ -8,7 +8,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- **Ask AI agent** (Phase 15j, R31, ADR-0049, ADR-0051): an **Ask** page (`/ask`) and `mm3 ask "<question>"`
+- **Ask-AI agent** (Phase 15j, R31, ADR-0049, ADR-0051): an **Ask-AI** page (`/ask`) and `mm3 ask "<question>"`
   answer broad questions from the meetings on file ("how many times did we discuss X, who led it and in what role,
   and a table of the meetings, dates and attendees"). A fixed, bounded pipeline: the model plans 2-6 searches,
   15i's hybrid search finds the meetings, the model reads each one (its header, Meeting Context and matching
@@ -20,14 +20,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Answers are kept and linked**: each answer is written to `MM3 Answers/YYYY-MM-DD HHMM - <question>.md` in the
   vault (atomic, never overwrites; `mm3-kind: answer`, `mm3-answer-id`, `mm3-sources` wikilinks, `#mm3/answer`),
   with the answer, a table of meetings, a People table, Sources with links to the moments, and how it was answered.
-  The Ask page lists every answer (paged) with **Open in Obsidian**, **Ask again**, **Ask a follow-up** and
+  The Ask-AI page lists every answer (paged) with **Open in Obsidian**, **Ask again**, **Ask a follow-up** and
   **Delete** (note and record); a moved answer note is found again by its id, a deleted one offers **Forget**. A
   meeting's review page lists **Answers that cite this meeting**; Obsidian's backlinks show them too, and renaming
   a meeting updates the links. History in `mm3.db` (migration 5: `answers`, `answer_sources`).
-- **Ask consent switch** (S6): a cloud backend needs a tick for each question (`mm3 ask --allow-cloud`) unless its
-  new **Always allow Ask AI agent to send meeting excerpts to this backend** (`ask_consent_remembered`) is on; the
-  note-writing consent does not cover Ask. The Ask page says what is sent where and shows an estimated cost.
-- Settings → Search & Ask gains the **Ask AI agent** section: backend and model, most meetings read per question
+- **Ask-AI consent switch** (S6): a cloud backend needs a tick for each question (`mm3 ask --allow-cloud`) unless its
+  new **Always allow Ask-AI to send meeting excerpts to this backend** (`ask_consent_remembered`) is on; the
+  note-writing consent does not cover Ask-AI. The Ask-AI page says what is sent where and shows an estimated cost.
+- Settings → Search & Ask-AI gains the **Ask-AI agent** section: backend and model, most meetings read per question
   (`ask.max_meetings`, 25), keep every answer (`ask.keep_history`) and the answers folder (`ask.answers_subfolder`).
 - `tests/eval/ask_eval.py`: scores the agent on a synthetic eight-meeting corpus (`tests/ask_corpus.py`) for the
   meeting set, count, table rows, people and roles, and citations, with time, tokens and cost per question.
@@ -42,7 +42,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   in the background, seconds after the app writes or renames a meeting, every 10 minutes and on a stale search for
   edits made in Obsidian. Only changed files are re-read; a moved note keeps its vectors; editing one section
   re-embeds only that section. Indexing never competes with a transcription for the GPU (it runs only while no job
-  is active). Settings → **Search & Ask** shows the embedder, meetings, passages, vectors, size, last update and
+  is active). Settings → **Search & Ask-AI** shows the embedder, meetings, passages, vectors, size, last update and
   problems, with **Update index**, **Rebuild index** and **Delete index**; `mm3 search index [--rebuild]` and
   `mm3 search status` do the same from the terminal.
 - **Embeddings in the LLM backends**: `embed()` and `list_embedding_models()` for Ollama (`/api/embed`), AWS
@@ -303,6 +303,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Frontmatter values PyYAML cannot build (an impossible date) gave HTTP 500 instead of a readable error.
 
 ### Changed
+- The Ask page is now called **Ask-AI** in the navigation, page text, settings and documentation (2026-10-22 20:45 CDT). The address (`/ask`), the `mm3 ask` command, config keys (`ask.*`, `ask_consent_remembered`) and the `MM3 Answers/` folder are unchanged.
 - **Model lists (Phase 15h).** New meeting lists a cloud backend's models as soon as it is selected (this sends only your
   API key to that provider, as Settings' Load models does, never the transcript); before, you had to type the id.
   Settings and New meeting now agree on which models are usable (Settings applied only the embedding-model check).

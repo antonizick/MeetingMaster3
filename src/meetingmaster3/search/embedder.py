@@ -118,7 +118,7 @@ def default_backend_name(settings: Settings, names: Sequence[str], lookup: Backe
         E_SEARCH_NO_EMBEDDER,
         "No local backend can embed passages for search.",
         "Add the local Ollama backend and run `ollama pull nomic-embed-text`, or choose an "
-        "embedding backend in Settings → Search & Ask.",
+        "embedding backend in Settings → Search & Ask-AI.",
         status_code=400,
     )
 

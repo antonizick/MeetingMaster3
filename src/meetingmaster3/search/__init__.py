@@ -1,6 +1,6 @@
 """Meeting index and hybrid search (Phase 15i, R30, ADR-0049, ADR-0050).
 
-The API Phase 15j (Ask) builds on::
+The API Phase 15j (Ask-AI) builds on::
 
     service: SearchService = app.state.search          # or SearchService(...) in the CLI
     result = await service.query("costs over budget", limit=40,

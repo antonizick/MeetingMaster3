@@ -109,7 +109,7 @@ class BackendConfig(BaseModel):
     indexed meeting, and every search query, is sent to the provider (ADR-0049, S6). Separate
     from ``consent_remembered``, which covers writing one meeting's notes."""
     ask_consent_remembered: bool = False
-    """Always allow the Ask AI agent to send meeting excerpts to this (cloud) backend, without a
+    """Always allow the Ask-AI agent to send meeting excerpts to this (cloud) backend, without a
     tick per question (Phase 15j, ADR-0049, S6). Separate from ``consent_remembered``."""
 
 
@@ -156,7 +156,7 @@ class SearchSettings(BaseModel):
 
 
 class AskSettings(BaseModel):
-    """The Ask AI agent: questions answered from the meetings on file (Phase 15j, R31)."""
+    """The Ask-AI agent: questions answered from the meetings on file (Phase 15j, R31)."""
 
     default_backend: str | None = Field(default=None, pattern=r"^[a-z0-9][a-z0-9_-]{0,31}$")
     """Backend that answers; ``None`` uses the note-writing default (``llm.default_backend``)."""
@@ -167,7 +167,7 @@ class AskSettings(BaseModel):
     answers_subfolder: str = "MM3 Answers/"
     """Vault folder the answer notes are written to."""
     keep_history: bool = True
-    """Save every answer as a vault note and list it on the Ask page. Off: answers are shown
+    """Save every answer as a vault note and list it on the Ask-AI page. Off: answers are shown
     once and not kept anywhere."""
 
 

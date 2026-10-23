@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}{{ record.question[:80] }} · Ask · MeetingMaster3{% endblock %}
+{% block title %}{{ record.question[:80] }} · Ask-AI · MeetingMaster3{% endblock %}
 {% block content %}
-<p><a href="/ask">← Ask</a></p>
+<p><a href="/ask">← Ask-AI</a></p>
 <header class="stack">
   <h1 class="ask-question">{{ record.question }}</h1>
   <p class="muted">Asked <time datetime="{{ record.asked_at.isoformat() }}">{{ asked }}</time> · {{ record.model }} on {{ record.backend }} · {{ record.relevant }} meeting{{ '' if record.relevant == 1 else 's' }}{% if record.duration_s %} · {{ record.duration_s|round|int }} s{% endif %}</p>

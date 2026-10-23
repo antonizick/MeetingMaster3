@@ -1,4 +1,4 @@
-"""Evaluate the Ask AI agent on the synthetic corpus (``tests/ask_corpus.py``) with a real model.
+"""Evaluate the Ask-AI agent on the synthetic corpus (``tests/ask_corpus.py``) with a real model.
 
     uv run python -m tests.eval.ask_eval --model qwen3:8b
     uv run python -m tests.eval.ask_eval --model qwen3:8b --questions overspend,none --json r.json

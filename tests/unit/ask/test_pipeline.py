@@ -1,4 +1,4 @@
-"""The Ask agent's pipeline with a scripted fake model over the synthetic corpus (Phase 15j)."""
+"""The Ask-AI agent's pipeline with a scripted fake model over the synthetic corpus (Phase 15j)."""
 
 from __future__ import annotations
 

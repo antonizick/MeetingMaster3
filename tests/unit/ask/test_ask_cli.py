@@ -77,7 +77,7 @@ def test_a_cloud_backend_needs_allow_cloud(cli_vault: Path) -> None:
     r = runner.invoke(app, ["ask", "budget?", "--backend", "router"])
     assert r.exit_code != 0 and "would send excerpts of your meetings" in r.output
     assert "--allow-cloud" in r.output
-    assert cloud.calls == []  # consent_remembered (notes) does not cover Ask
+    assert cloud.calls == []  # consent_remembered (notes) does not cover Ask-AI
     r = runner.invoke(app, ["ask", "budget?", "--backend", "router", "--allow-cloud", "--no-save"])
     assert r.exit_code == 0, r.output
     assert cloud.calls

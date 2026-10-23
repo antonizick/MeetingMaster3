@@ -196,10 +196,10 @@ model links every mitigation to its code.
 | Model output is untrusted | `templates/postprocess.py` | Marker-like lines and `mm3` HTML comments are stripped before a section is built (a model cannot forge section markers), headings demoted; the note is otherwise plain Markdown. Rendering it in the browser must sanitise it (S3, Phases 10/11). A transcript could contain instructions aimed at the model (prompt injection); the worst outcome is wrong note text in your own vault, which you review. Phase 15 threat model. |
 | No transcript text in logs | `templates/generator.py` | Prompts and answers are not logged; the owner guard logs only the changed task line at INFO. |
 
-### Implemented in Phase 15j (Ask AI agent, S3, S4, S6)
+### Implemented in Phase 15j (Ask-AI agent, S3, S4, S6)
 | Control | Where | Behaviour |
 |---|---|---|
-| Ask consent (S6) | `ask/pipeline.py` `enforce_ask_consent`, `ask/service.py` | A cloud backend answers only with this question's consent (the Ask page's box, `mm3 ask --allow-cloud`) or the backend's own `ask_consent_remembered`; note writing's `consent_remembered` does not count. Checked before the task starts and before the first call: a refused question sends nothing. Threat model T-ASK-EGRESS. |
+| Ask-AI consent (S6) | `ask/pipeline.py` `enforce_ask_consent`, `ask/service.py` | A cloud backend answers only with this question's consent (the Ask-AI page's box, `mm3 ask --allow-cloud`) or the backend's own `ask_consent_remembered`; note writing's `consent_remembered` does not count. Checked before the task starts and before the first call: a refused question sends nothing. Threat model T-ASK-EGRESS. |
 | Prompt injection contained | `ask/pipeline.py`, `ask/prompts.py` | The agent only reads the index and vault and writes one new answer note; meeting text is fenced as material, not instructions; counts, dates, links and attendees are computed from the files; unknown people, quotes and links are dropped; model tables are removed. Threat model T-ASK. |
 | Answer notes (S3, S4) | `ask/notes.py`, `web/ask_ui.py` | Written atomically inside the vault (confined answers folder, never overwriting); HTML tags in model text and the question are defused for Obsidian; the app renders answers with the sanitising renderer. Delete removes a note only if its `mm3-answer-id` matches; Delete and Forget need the CSRF token. Threat model T-ANSWERS. |
 

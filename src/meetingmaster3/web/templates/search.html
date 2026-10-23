@@ -24,7 +24,7 @@
 <section id="search-results" aria-labelledby="h-results" aria-live="polite">
   <h2 id="h-results" class="sr-only">Results</h2>
   {% for e in errors %}<div class="alert warn" role="alert"><p>{{ e }}</p></div>{% endfor %}
-  {% if notice %}<div class="alert info" role="status"><p>{{ notice }} <a href="/settings/search">Search &amp; Ask settings</a></p></div>{% endif %}
+  {% if notice %}<div class="alert info" role="status"><p>{{ notice }} <a href="/settings/search">Search &amp; Ask-AI settings</a></p></div>{% endif %}
   {% if result %}
     <p class="search-meta">
       {% if total_meetings %}<strong>{{ total_meetings }}</strong> meeting{{ '' if total_meetings == 1 else 's' }} found{% else %}Nothing found{% endif %}
