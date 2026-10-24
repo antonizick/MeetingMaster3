@@ -18,6 +18,7 @@ Pages are added as the features land. Planned index:
 | `settings.md` | 12 |
 | [`settings.md`](settings.md) (the Settings screen, secrets, retention, voiceprints, ratings and export) | 12 (written) |
 | [`search-and-ask.md`](search-and-ask.md) (the meeting index, Search page, `mm3 search`, embedding models, cloud-embedding consent; Ask-AI) | 15i (written), 15j |
+| [`importing.md`](importing.md) (import a transcript or an AI conversation: supported formats, exporting from Grok, ChatGPT and Claude, checking who said what, `mm3 import`) | 15k (written) |
 | `docker.md` | 14 |
 | `troubleshooting.md` and `faq.md` | 15, 16 |
 

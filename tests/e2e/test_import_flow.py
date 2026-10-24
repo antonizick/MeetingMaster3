@@ -13,6 +13,7 @@ from meetingmaster3.markdown.transcript_format import parse_transcript
 from meetingmaster3.vault.io import read_text
 from tests.e2e import test_qa_flows as qa
 from tests.e2e.test_qa_flows import BLOCKING, _axe, browser_page
+from tests.unit.jobs.test_jobs_api import wait
 
 pytestmark = [pytest.mark.e2e]
 pytest.importorskip("playwright.sync_api")
@@ -60,3 +61,24 @@ def test_import_flip_a_turn_and_write(server: tuple[str, Path]) -> None:
     doc = parse_transcript(read_text(companion)).doc
     assert doc.transcript.segments[1].speaker_label == "SPEAKER_00"
     assert doc.speakers.names == {"SPEAKER_00": "Nick", "SPEAKER_01": "Grok"}
+
+
+def test_a_timed_import_jumps_to_the_clicked_time(server: tuple[str, Path]) -> None:
+    base, _ = server
+    source = FIXTURE.with_name("timestamped.txt")
+    with qa.api(base) as client, source.open("rb") as fh:
+        job = client.post(
+            "/api/imports",
+            files={"file": (source.name, fh, "text/plain")},
+            data={"options": '{"import_confirmed": true}'},
+        ).json()
+        wait(client, job["id"], "written", timeout=30)  # type: ignore[arg-type]
+        written = client.get(f"/jobs/{job['id']}").text
+    url = re.search(r'href="(/meetings/[^"]+)"', written)
+    assert url
+    with browser_page(base) as page:
+        page.goto(base + url.group(1).replace("&amp;", "&"))
+        assert page.locator("#audio").count() == 0
+        page.locator('.ts[data-t="62.0"]').click()
+        current = page.locator(".seg.current")
+        assert current.count() == 1 and "login page" in current.inner_text()

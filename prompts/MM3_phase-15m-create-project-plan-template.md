@@ -67,8 +67,13 @@ enough that the phased-project skill's review needs few corrections.
 - **Map-reduce:** long inputs go through `templates/mapreduce.py` (R6, ADR-0016); `params.detail: high` asks the map
   step for richer points (R29). An AI conversation is text-dense: Nick's 35-minute example is about 33 KB (roughly
   8-9 k tokens), and the assistant's turns carry most of the specifics.
-- **Speakers in imported conversations** (by plan; confirm in 15k's log): the user is a named person (e.g. "Nick"),
-  the assistant is "Grok", "ChatGPT", "Claude" or "AI". The transcript may have no times (`timed: false`).
+- **Speakers in imported conversations** (as built in 15k): the user is a named person (the first participant, e.g.
+  "Nick", else `importing.user_name`), the assistant is the name in the export ("Grok", "ChatGPT", "Claude") or "AI".
+  The transcript may have no times (`Transcript.timed` false): the prompt then has no `[mm:ss]` stamps and says so,
+  and `clean_section(timed=False)` removes any clock reference from the sections, so the template's output format
+  should not depend on timestamps. The note carries `mm3-source: import` and `mm3-source-format`. On Nick's example,
+  Default Notes with `qwen3:8b` worked but used meeting wording ("The meeting focused…", "Grok and Nick convened"):
+  a template for conversations should say "conversation" explicitly.
 - **Nick's example (private), what it shows** (structure only; read the file itself for content): a feasibility
   conversation that moves from an idea, through the assistant's critique and alternatives (existing products compared,
   build vs adopt), to the user's stated constraints (platform, budget, preference for supported products, a stated

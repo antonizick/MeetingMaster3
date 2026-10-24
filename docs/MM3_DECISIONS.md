@@ -1609,3 +1609,41 @@ phases.
 **Consequences.** MM3 gains its first non-LLM outbound request (documented in PRIVACY and the threat model) and a
 dependency on an undocumented Grok endpoint, isolated in one parser that fails safely. Meetings, Search and Ask-AI
 include conversations; filtering them apart is a possible follow-up. The template count becomes 24.
+
+**Phase 15k implementation (2026-10-24 12:53 CDT).** Built as decided, in `src/meetingmaster3/importing/` (interface and details:
+`docs/dev-guide/importing.md`; spec R32, amended R18 and R19).
+- **Parser ids and detection.** `mm3-companion`, `webvtt`, `srt`, `timestamped-text`, `chat-markdown`,
+  `chat-unlabelled`, chosen **by content** in that order (companion frontmatter plus data block; `WEBVTT`; numbered
+  `-->` cues; at least 25 % of lines starting a timed cue; two role markers or two repeated custom names; anything
+  else). The extension only breaks an SRT tie. The MM3 `.txt` export and Otter/Plaud-style `time name` header lines are
+  read by `timestamped-text` (a "name" of more than six words, or ending in a full stop, is a sentence). Markers
+  inside code fences never count, and label words such as "Note" or "Step" are not speakers. A leading YAML
+  frontmatter gives the title and date. Parsers raise only `MM3Error`; anything else becomes `E_IMPORT_UNREADABLE`.
+- **The role heuristic and its accuracy.** Prefix collapsing on word tokens (exact, or `SequenceMatcher` ≥ 0.85 for
+  four words or more), a per-paragraph log-odds score (fillers, stutters, openings, first person and questions for the
+  user; tool-status lines, em dashes, Markdown, length, figures and second person for the assistant) and a two-state
+  forward-backward pass (user first 0.8; stay 0.12 user, 0.45 assistant) whose posterior is the turn's confidence.
+  **Measured:** 28/28 paragraphs on the synthetic fixture; on Nick's private example, 99/101 paragraphs (98 %) right
+  before fixes, i.e. 2 of 96 turns to flip after tool-status lines are joined, and **both were among the 8
+  highlighted** (below 0.8). The 95 % target is met, so no LLM-assisted role pass (still a possible follow-up).
+- **Untimed rule.** `Transcript.timed` (default true). `"timed": false` is written to the data block's header only
+  for an untimed transcript, so every existing file and every new timed one stays byte-identical (ADR-0012). Untimed
+  segments are `start = end = 0`, `duration` is null; the companion's turns are `**Name:** text`; the readable
+  transcript keeps one paragraph per segment and no clock; the text export, review page (no time buttons or
+  `data-t`), Search passages (`start_s` null) and prompt (no stamps, no Length line, an explicit "no timestamps"
+  rule) carry none. Because templates show `[mm:ss]` in their formats, `clean_section(timed=False)` also **removes**
+  any clock reference the model writes (the private run's note had none).
+- **API shape.** A separate route, `POST /api/imports`, rather than `options.job_type` on `POST /api/jobs`: the
+  upload streams to disk before the options part may arrive, so only a separate route can apply the 10 MB text limit
+  while streaming (not the 2 GB audio one) and skip ffprobe cleanly. Same multipart shape, CSRF and preflight. The
+  file is parsed before the job exists (bad files leave nothing). The upload is `source.<ext>`, not `original.*`,
+  so the audio retention code never treats it as audio.
+- **Check step.** The import's own `ImportConfirmationStage` keeps the stage name `await_speaker_confirmation`
+  (question kind `import_confirmation`); the answer `{"speakers": {label: name}, "turns": {"<i>": label}}` writes
+  `transcript.imported.json`, which `generate`/`write` read (`load_final_transcript` falls back to it when there is
+  no `diarize` artifact). One segment per turn, so a turn is moved by segment id. Each side of an AI conversation has
+  one label; an unlabelled one always has both. The page uses an Alpine component (CSP build) and a plain form post.
+- **Smaller choices.** Pinning an imported meeting is refused (`E_AUDIO_MISSING`, 409). New settings
+  `importing.max_mb` (10) and `importing.user_name` ("Me"), on the Settings screen too. Import options
+  `import_speakers` and `import_confirmed`. The note keeps the tag `meeting` (no new tag). `mm3 import` without
+  `--yes` asks on a terminal and otherwise stops with a hint (`E_INPUT_NEEDED`).

@@ -69,8 +69,9 @@ A YAML block that starts on the first line with `---` and ends at the next line 
 | `mm3-generated` | ISO-8601 datetime | when generated |
 | `mm3-backend`, `mm3-model` | provenance text | when set |
 | `mm3-audio` | wikilink to an audio copy in the vault (R8, opt-in) | when set |
+| `mm3-source`, `mm3-source-format` | `import` and the parser id (`chat-unlabelled`, `timestamped-text`…) | on an imported meeting (R32) |
 
-Any other key is a **user property**: MM3 keeps it, its value and its position.
+`mm3-source` and `mm3-source-format` are written after MM3's own keys and kept like user properties, so every later rewrite (regeneration, template switch, rename) keeps them; they are also written on the imported meeting's companion. Any other key is a **user property**: MM3 keeps it, its value and its position.
 
 ### 3.2 Companion transcript properties
 | Key | Value |
@@ -84,7 +85,7 @@ Any other key is a **user property**: MM3 keeps it, its value and its position.
 | `mm3-transcription-model` | model id (display copy) |
 | `mm3-diarized` | `true` / `false` (display copy) |
 
-The "display copy" values are derived from the data block (§6), which is authoritative.
+An imported meeting's companion has no `mm3-transcription-model` (there was no transcription), and an untimed one has no `duration`. The "display copy" values are derived from the data block (§6), which is authoritative.
 
 ### 3.3 Archive properties
 Archives carry `mm3-archived` (ISO-8601 datetime) and `mm3-archived-from` (wikilink to the note).
@@ -215,6 +216,13 @@ with the errors and the R11 options: append a fresh section, or cancel. MM3 neve
   spaces) and `words` as `[start, end, score, text]` arrays (`null` where WhisperX gave none).
   JSON is ASCII-only, with `<` and `>` escaped as `<` / `>`, so speech can never end the
   comment early. Floats use the shortest exact representation.
+* **Untimed transcripts (R32, Phase 15k):** an imported AI conversation has no times. Its header
+  carries `"timed":false` (the key is written **only** then, so timed files stay byte-identical;
+  a header without it is timed), every segment has `start = end = 0`, and the readable turns are
+  `**Name:** text` without a stamp. Nothing derived from it shows a clock: the readable transcript
+  (one paragraph per segment), the text export, the review page (no time buttons, no `data-t`),
+  Search passages (`start_s` null, no `#t=` links), the prompt (no `[mm:ss]`, no Length line, a
+  "no timestamps" rule) and the generated sections (clock references are removed).
 * The data block is the **source of truth** for segments, timings, labels and words. If the
   readable turns no longer match it, `ParsedTranscript.body_matches_data` is `false` and the
   user's text is left alone.

@@ -59,9 +59,16 @@ template and gets a note, with `[mm:ss]` references that match the conversation'
     validate it as `[A-Za-z0-9_-]{8,200}`.
   - The `x.com/i/grok/share/<id>` page itself is a JavaScript shell: its HTML does not contain the messages'
     timestamps, so do not scrape HTML.
-- **15k's interface** (by plan; confirm in its Phase Log): `importing.detect_and_parse`, `ImportedConversation(turns,
-  title, started_at, source_format, warnings)`, the `import` job type with `import_parse`, the confirmation preview, the
-  untimed rule and `mm3 import`.
+- **15k's interface** (as built, 2026-10-24; `docs/dev-guide/importing.md`): `importing.detect_and_parse(data,
+  filename, *, max_bytes)` and the registry `importing.detect.PARSERS` (id → `parse(text, filename)`, plus
+  `model.FORMAT_NAMES` for the UI name); `ImportedConversation(turns, title, started_at, source_format, warnings)` with
+  `ImportedTurn(speaker, role, text, start, end, confidence, words)`; `importing.chat.collapse_prefixes` /
+  `is_growing_prefix` for growing human prefixes; `importing.convert.to_transcript`. The **separate route
+  `POST /api/imports`** (not `options.job_type` on `/api/jobs`) parses the upload before creating the job; job type
+  `import` with stages `import_parse` → `await_speaker_confirmation` (`ImportConfirmationStage`, question kind
+  `import_confirmation`, preview `import.json`) → `generate` → `write`. The upload is stored as **`source.<ext>`**
+  (never `original.*`, which the retention code treats as audio). Untimed rule: `Transcript.timed`. CLI
+  `mm3 import <file> [--speaker user=… --speaker assistant=… --yes]`.
 - **HTTP:** `httpx` is a dependency (LLM adapters, `llm/_http.py` has bounded retries and error normalisation). The
   app is localhost-only (S1); outbound requests so far go only to configured LLM backends.
 
@@ -84,9 +91,10 @@ template and gets a note, with `[mm:ss]` references that match the conversation'
    `conversation.title` (generic titles like "Discussion Request" fall back to the first user sentence, shortened);
    date from `conversation.createTime` in the user's local time zone; assistant name "Grok". Keep Markdown in
    messages; strip nothing else.
-4. **Job and API.** The import job accepts either a file or `options.share_url`; the fetch happens in the
-   `import_parse` stage (so it shows progress, can be cancelled and resumed), and the fetched JSON is stored as the
-   job's original (`original.json`) so a resume does not fetch again. `mm3 import <url>` works too.
+4. **Job and API.** `POST /api/imports` accepts either a file or `options.share_url` (validate the link before the
+   job is created, as 15k does for files); the fetch happens in the `import_parse` stage (so it shows progress, can be
+   cancelled and resumed), and the fetched JSON is stored as the job's source (`source.json`, never `original.*`) so a
+   resume does not fetch again. `mm3 import <url>` works too.
 5. **UI.** The Import choice on New meeting gets a **Paste a Grok share link** field next to the file input (one or
    the other), with a one-line note that MeetingMaster3 will download that conversation from grok.com. The confirmation
    preview shows times. Errors from Tasks 1-2 appear inline with their hint.

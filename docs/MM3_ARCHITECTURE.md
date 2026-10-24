@@ -307,3 +307,29 @@ writers ──────────────────────▶ Se
   renderer with meeting links rewritten to `/meetings/{mm3-id}`), `/ask/{id}/delete|forget`. The review page lists
   answers citing the meeting. Decision records: ADR-0049, ADR-0051.
 
+
+### Import of transcripts and AI conversations (Phase 15k)
+```
+New meeting "Import…" · POST /api/imports · mm3 import ─▶ source.<ext> (≤ importing.max_mb) ─▶ parsed once (refused early)
+                                                                │
+importing/detect.py  decode (UTF-8, BOM, no binary) ─ frontmatter title/date ─ detect by content ─▶ PARSERS[id]
+   mm3-companion · webvtt · srt · timestamped-text (timestamped.py) · chat-markdown · chat-unlabelled (chat.py)
+                                                                ▼
+                         ImportedConversation(turns: speaker, role, text, start?, confidence)
+                                                                ▼
+importing/convert.py ── one segment per turn, SPEAKER_xx per side/person, timed=False when no times ─▶ Transcript
+                                                                ▼
+job type "import": import_parse ─▶ await_speaker_confirmation (check page: move turns, name speakers)
+                                ─▶ generate ─▶ write   (shared with meetings; mm3-source: import)
+```
+- **Parsers** are pure (bytes in, `ImportedConversation` out, only `MM3Error` raised; Hypothesis-tested). The
+  unlabelled heuristic collapses speech-to-text's growing prefixes, scores each paragraph (fillers, stutters, first
+  person vs em dashes, Markdown, length, figures) and assigns roles with a two-state forward-backward pass that allows
+  multi-paragraph answers; the posterior is the turn's confidence (below 0.8 highlighted).
+- **Untimed transcripts:** `Transcript.timed` (written to the data block only when false) keeps every clock out of
+  the companion, readable transcript, review page, Search passages, prompt and generated sections.
+- **No audio:** `audio_path` is null, so retention, the player, pin and re-transcription do not apply; the job folder
+  keeps `source.<ext>`, `import.json` (the preview) and `transcript.parsed.json` / `transcript.imported.json`.
+- **Pages:** the New meeting form's *Start from* choice (`app.js` `uploader`, `mode`), `/jobs/{id}/speakers` →
+  `import_check.html` (`importCheck` component, form post `/ui/jobs/{id}/import-check`), the review page's
+  *Imported from …* badge. Decision record: ADR-0052. Details: `docs/dev-guide/importing.md`.

@@ -33,6 +33,11 @@ The CI badge above is a placeholder until the repository is published (Phase 16)
   meeting's page, and shown in Obsidian's backlinks.
 
   ![The Ask-AI page: a cited answer with the table of meetings built from the files](docs/assets/11-ask.png)
+- **Start from text instead of audio**: import a conversation with an AI assistant exported as Markdown
+  (even a Grok voice-mode export with no speaker labels) or a transcript made elsewhere (`[hh:mm:ss] Name:`
+  lines, `.vtt`, `.srt`, a MeetingMaster3 `.transcript.md`). Check who said each turn with one click per turn,
+  and get an ordinary meeting note: review, regenerate, rename, Search and Ask-AI all work, and no
+  timestamps are invented ([importing](docs/user-guide/importing.md), `mm3 import`).
 - Fix a meeting's title or date after the fact: every file is renamed and the links to it in your other
   notes follow (backed up first).
 - Local-first LLMs through Ollama; optional BYOK cloud backends (AWS Bedrock, OpenAI-compatible
@@ -98,6 +103,10 @@ It transcribes, separates and names the speakers, writes the notes with a local 
 `Meetings/2026/2026-10-11 - Product Sync.md` plus its `.transcript.md` in the vault. Leave out
 `--speakers` to be asked on the terminal (the speakers are listed with their talk time). Without the
 `ml` extra or a model, `MM3_FAKE_PIPELINE=1` runs the same flow with simulated results.
+A transcript or an exported AI conversation works the same way, without audio:
+```bash
+uv run mm3 import "privacy chat.md" --speaker user=Alice --speaker assistant=Grok --yes
+```
 `uv run mm3 templates list` shows the templates; `uv run mm3 serve` starts the API server
 (<http://127.0.0.1:8765/>, health check `/healthz`).
 

@@ -11,6 +11,7 @@ Pages are added as the code lands. Planned index:
 | `transcription.md` (WhisperX, VRAM handling) | 06 |
 | [`adding-a-backend.md`](adding-a-backend.md) | 08 (written) |
 | [`template-format.md`](template-format.md) (normative: template files, validation, prompt assembly, writing good prompts, map-reduce; replaces the planned `adding-a-template.md`) | 09 (written), 13 |
+| [`importing.md`](importing.md) (the import parser interface, detection, the unlabelled-conversation heuristic, the `import` job, `POST /api/imports`) | 15k (written), 15l |
 | `web-ui.md` (HTMX/Alpine conventions, vendored assets) | 10 |
 | `release-process.md` | 16 |
 

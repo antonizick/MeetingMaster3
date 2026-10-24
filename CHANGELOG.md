@@ -8,6 +8,22 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Import a transcript or an AI conversation** (Phase 15k, R32, ADR-0052): New meeting has a *Start from* choice,
+  **Import a transcript or AI conversation**, beside the audio upload (`POST /api/imports`, `mm3 import <file>
+  [--speaker user=… --speaker assistant=… --yes]`). Supported: AI chats exported as Markdown, labelled (`## User`,
+  `**You:**`, `Grok:`, `ChatGPT said:`, `Human:`/`Claude:`, repeated `Name:`) or **unlabelled** like Grok voice-mode
+  exports; `[hh:mm:ss] Name:` transcripts and MM3's own `.txt` export; MM3 companion `.transcript.md` files (used
+  exactly); WebVTT and SRT. The format is recognised from the content. For unlabelled chats the repeated growing
+  copies left by speech-to-text are collapsed and each paragraph's speaker is guessed (98 % right on the example
+  the feature was built for); a **Check the speakers** page lists every turn with its speaker as a one-click toggle
+  (keyboard-accessible), highlights the doubtful ones and names both sides (you: the first participant or
+  `importing.user_name`; the assistant: the name in the export, else "AI"). The result is an ordinary meeting:
+  note, companion and readable transcript, Meetings entry, review, regenerate, template switch, rename, Search and
+  Ask-AI, marked `mm3-source: import` / `mm3-source-format` and "Imported from …" on the review page.
+- **Untimed transcripts** (R32): a transcript without times (`timed: false` in the data block, written only then)
+  shows no clock anywhere (companion, readable transcript, export, review page, Search) and the notes carry no
+  `[mm:ss]` references: the model is told there are none and any it writes are removed.
+- Settings `importing.max_mb` (10) and `importing.user_name` ("Me"), also on the Settings screen.
 - **Ask-AI agent** (Phase 15j, R31, ADR-0049, ADR-0051): an **Ask-AI** page (`/ask`) and `mm3 ask "<question>"`
   answer broad questions from the meetings on file ("how many times did we discuss X, who led it and in what role,
   and a table of the meetings, dates and attendees"). A fixed, bounded pipeline: the model plans 2-6 searches,

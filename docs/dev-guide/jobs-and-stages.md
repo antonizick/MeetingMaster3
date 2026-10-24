@@ -128,6 +128,22 @@ Rules:
 \* `GenerateStage.gpu_for(options)` is true when the job's backend is a local Ollama, which shares
 the GPU with transcription (R5).
 
+### The `import` pipeline (Phase 15k, R32)
+`build_pipeline("import", …)` (job type `import`, created by `POST /api/imports` or `mm3 import`)
+runs a text file instead of audio. Details: [`importing.md`](importing.md).
+
+| # | Stage | GPU | Artifact | Notes |
+|---|---|---|---|---|
+| 1 | `import_parse` | no | `transcript.parsed.json` (`import.json` preview alongside; the upload is `source.<ext>`) | parses and converts; records `options.import_format` |
+| 2 | `await_speaker_confirmation` | no | `speakers.confirmed.json` (`transcript.imported.json`, `speaker_map.json`, `transcript.named.json`) | `ImportConfirmationStage`, question kind `import_confirmation`; answer `{"speakers": {label: name}, "turns": {"<i>": label}}`; skipped with `options.import_confirmed` |
+| 3 | `generate` | local Ollama only | as above | reads `transcript.imported.json`; adds `mm3-source*` |
+| 4 | `write` | no | as above | the companion gets `mm3-source*` too |
+
+There is no audio (`audio_path` is null): retention and pruning do nothing, `/audio` is 404 and
+pinning is refused (`E_AUDIO_MISSING`). The registry overrides the import's own stages under
+`import:import_parse` and `import:await_speaker_confirmation`; `generate` and `write` are shared.
+An unknown job type is `E_JOB_TYPE` (400).
+
 ### Transcription stages (Phase 06)
 Implemented in `transcription/stages.py` (user guide: [`../user-guide/transcription.md`](../user-guide/transcription.md);
 ADR-0014). Each stage loads its own model through `transcription.engine.Engine` and frees it before
@@ -318,11 +334,12 @@ retention period. The pruner (`jobs.retention.prune`) runs at startup, every
 | Method and path | Purpose |
 |---|---|
 | `POST /api/jobs` | multipart `file` + optional JSON `options` (`JobOptions`: `title`, `meeting_date`, `diarize`, `min_speakers`, `max_speakers`, `template`, `backend`, `model` (LLM), `cloud_consent`, `transcription_model`, `compute_type`, `batch_size`, `language`, `on_non_english`, plus any extra keys). Title and date are pre-filled from the filename. `"remember_template": true` (sent by the New meeting page, not stored with the job) saves a valid `template` as `generation.default_template` (R29). 201 + the job. |
+| `POST /api/imports` | Start an `import` job (Phase 15k): the same multipart shape and options, a text file under `importing.max_mb`, parsed before the job is created (422 `E_IMPORT_UNREADABLE` / `E_IMPORT_EMPTY`, 413 `E_IMPORT_TOO_LARGE`, nothing kept). Title and date default to the file's own, then the file name. 201 + the job. |
 | `GET /api/jobs?status=…&limit=&offset=` | List jobs, newest first. |
 | `GET /api/jobs/{id}` | Job, stages (with live fraction, message, ETA, `detail.warnings`, `detail.error.details`), `waiting_for` and `warnings` (all stages' warnings). |
 | `POST /api/jobs/{id}/cancel` | Cancel a queued, running, waiting or interrupted job. |
 | `POST /api/jobs/{id}/resume` | Resume a failed, cancelled or interrupted job; body `{"overrides": {...}}` optional. |
-| `POST /api/jobs/{id}/input` | Answer a waiting job, e.g. `{"speakers": {"SPEAKER_00": "Alice"}}`, for the language question `{"action": "proceed"}`, for cloud consent `{"consent": true}`. |
+| `POST /api/jobs/{id}/input` | Answer a waiting job, e.g. `{"speakers": {"SPEAKER_00": "Alice"}}` (an import: `{"speakers": {...}, "turns": {"3": "SPEAKER_01"}}`), for the language question `{"action": "proceed"}`, for cloud consent `{"consent": true}`. |
 | `POST /api/jobs/{id}/generate` | `{"template"?, "backend"?, "model"?, "instructions"?, "cloud_consent"?}`. Queued or waiting job: stores the options (and answers a pending `cloud_consent` question when the new backend is local or consent is given). Failed, cancelled or interrupted job: resumes from `generate`. Running or written job: 409 `E_JOB_STATE`. Returns the job. |
 | `GET /api/templates` | `{"default", "templates": [{id, name, description, tags, favorite, source (builtin/vault), overrides_builtin, file, valid, sections, issues}]}`, favourites first, invalid files last. |
 | `POST /api/templates/install` | Copy the built-in templates into the vault (`results`: `installed`, `updated`, `unchanged` or `kept` per file). |

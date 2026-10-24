@@ -83,6 +83,8 @@ Every setting below can also be changed on the **Settings** screen ([`settings.m
 | `ask.keep_history` | `MM3_ASK__KEEP_HISTORY` | `true` | Save every answer as a vault note and list it on the Ask-AI page. Off: answers are shown once and kept nowhere. |
 | `audio.max_upload_mb` | `MM3_AUDIO__MAX_UPLOAD_MB` | `2048` | Largest accepted upload, in MiB (R7). Larger uploads get HTTP 413 `E_UPLOAD_TOO_LARGE`. |
 | `audio.opus_bitrate_kbps` | `MM3_AUDIO__OPUS_BITRATE_KBPS` | `24` | Bitrate of the Opus copy kept after a note is written (6-128). |
+| `importing.max_mb` | `MM3_IMPORTING__MAX_MB` | `10` | Largest transcript or AI conversation file that can be imported, in MiB (1-200). Larger files get HTTP 413 `E_IMPORT_TOO_LARGE`. See [`importing.md`](importing.md). |
+| `importing.user_name` | `MM3_IMPORTING__USER_NAME` | `Me` | Name for your side of an imported AI conversation when New meeting lists no participant (the first participant wins; `mm3 import --speaker user=…` overrides both). |
 | `jobs.max_concurrent` | `MM3_JOBS__MAX_CONCURRENT` | `2` | Jobs processed at once (1-8). GPU stages never overlap regardless (R5); this lets one job's CPU work run beside another's GPU work. |
 | `jobs.prune_interval_hours` | `MM3_JOBS__PRUNE_INTERVAL_HOURS` | `24` | How often the audio retention pruner runs (it also runs at startup). |
 | `privacy.audio_retention` | `MM3_PRIVACY__AUDIO_RETENTION` | `days` | `forever`, `days` or `delete_after_write` (ADR-0006, ADR-0013). Applied by the pruner to every job using the **current** value. `delete_after_write` deletes the audio as soon as the note is written. |
@@ -116,6 +118,10 @@ The upload's `options` JSON (and `POST /api/jobs/{id}/resume` `overrides`) accep
   `tags` (lists), `location`, `template`, `backend`, `model` (the **LLM** model), `instructions`
   (extra instructions for every section, up to 4000 characters) and `cloud_consent` (true = the
   user already agreed to send this job's transcript to the chosen cloud backend, S6);
+* imports (`POST /api/imports`, R32): `import_speakers` (`{"user": "Nick", "assistant": "Grok"}`
+  or labels such as `{"SPEAKER_00": "Alice"}`: default names on the check page) and
+  `import_confirmed` (`true` accepts the speakers as detected and skips the check, like
+  `mm3 import --yes`); the transcription options do not apply;
 * `remember_template` (upload only, not stored): `true` saves a valid `template` as
   `generation.default_template`. The New meeting page always sends it, so the template you start
   a meeting with is pre-selected next time (R29).
