@@ -1,0 +1,11 @@
+00:04 Alice
+Morning, everyone. Let's start with the release.
+
+00:11 Bob
+The build is green. I'll tag it this afternoon. The changelog still needs one entry.
+
+01:02 Carol
+Support saw two tickets about the login page.
+
+1:02:30 Alice
+Thanks, all. Same time next week.

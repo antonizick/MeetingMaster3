@@ -37,7 +37,8 @@ def leave_note(job: dict[str, Any]) -> str | None:
         return "running"
     if status == "waiting_for_input":
         wf = job.get("waiting_for") or {}
-        return "speakers" if wf.get("kind") == "speaker_confirmation" else "waiting"
+        kind = wf.get("kind")
+        return "speakers" if kind in ("speaker_confirmation", "import_confirmation") else "waiting"
     return None
 
 

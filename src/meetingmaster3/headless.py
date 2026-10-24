@@ -1,4 +1,5 @@
-"""Headless processing: audio file → note in the vault, without the web UI (``mm3 process``).
+"""Headless processing: audio file → note in the vault, without the web UI (``mm3 process``), and
+a transcript or AI conversation → note (``mm3 import``, Phase 15k).
 
 Drives a :class:`~meetingmaster3.jobs.runner.JobRunner` in its own event loop and answers the
 job's questions from arguments (``--speakers``, ``--cloud-consent``) or, on a terminal, by
@@ -51,9 +52,11 @@ Echo = Callable[[str], None]
 @dataclass
 class ProcessRequest:
     audio: Path
+    """The recording, or for an ``import`` the text file."""
     options: JobOptions
     speakers: dict[str, str] | None = None
     cloud_consent: bool = False
+    job_type: str = "meeting"
 
 
 @dataclass
@@ -83,12 +86,36 @@ def build_options(
         raise MM3Error("E_OPTIONS_INVALID", f"Invalid options: {exc}", "") from exc
 
 
+def build_import_options(
+    path: Path,
+    data: bytes,
+    settings: Settings,
+    *,
+    title: str | None,
+    date: dt.date | None,
+    **extra: Any,
+) -> JobOptions:
+    """Job options for ``mm3 import``: the title and date from the arguments, else from the file
+    itself (its heading or frontmatter), else from the file name."""
+    from meetingmaster3.importing.stages import import_defaults, parse_upload
+
+    found = import_defaults(parse_upload(data, path.name, settings))
+    title = title or found.get("title")
+    if date is None and found.get("meeting_date"):
+        date = dt.date.fromisoformat(found["meeting_date"])
+    if "meeting_time" in found and not extra.get("meeting_time"):
+        extra["meeting_time"] = dt.time.fromisoformat(found["meeting_time"])
+    return build_options(path, title=title, date=date, **extra)
+
+
 def answer_for(
     kind: str, payload: dict[str, Any], request: ProcessRequest, ask: Ask | None
 ) -> dict[str, Any]:
     """The answer to a job question, from the request or (if allowed) the terminal."""
     if kind == "speaker_confirmation" and request.speakers is not None:
         return {"speakers": dict(request.speakers)}
+    if kind == "import_confirmation" and request.speakers is not None:
+        return {"speakers": dict(request.speakers), "turns": {}}
     if kind == "cloud_consent" and request.cloud_consent:
         return {"consent": True}
     answer = ask(kind, payload) if ask is not None else None
@@ -96,6 +123,8 @@ def answer_for(
         return answer
     hints = {
         "speaker_confirmation": 'Pass --speakers "SPEAKER_00=Alice,SPEAKER_01=Bob".',
+        "import_confirmation": "Pass --yes to accept the speakers as detected (name them with "
+        "--speaker user=Nick --speaker assistant=Grok), or check them in the web app.",
         "cloud_consent": "Pass --cloud-consent to allow sending the transcript to the cloud "
         "backend, or choose a local backend.",
         "language": "Set transcription.on_non_english to 'proceed' or 'abort'.",
@@ -118,14 +147,17 @@ async def process(
 ) -> ProcessResult:
     """Run one recording through the full pipeline and return the outcome."""
     from meetingmaster3.audio.ingest import probe, safe_extension
+    from meetingmaster3.importing.stages import import_duration, parse_upload, stored_name
     from meetingmaster3.jobs.files import job_dir, new_job_id, remove_job_dir
     from meetingmaster3.jobs.runner import JobRunner
     from meetingmaster3.llm.registry import BackendRegistry
     from meetingmaster3.storage.db import Database
     from meetingmaster3.templates.model_check import preflight
 
+    importing = request.job_type == "import"
     if not request.audio.is_file():
-        raise MM3Error("E_AUDIO_MISSING", f"No audio file at {str(request.audio)!r}.", "")
+        what = "file" if importing else "audio file"
+        raise MM3Error("E_AUDIO_MISSING", f"No {what} at {str(request.audio)!r}.", "")
     await preflight(
         BackendRegistry(settings), settings, request.options.backend, request.options.model
     )
@@ -139,10 +171,19 @@ async def process(
     job_id = new_job_id()
     try:
         folder = job_dir(runner.jobs_root, job_id, create=True)
-        name = f"original.{safe_extension(request.audio.name)}"
+        if importing:
+            name = stored_name(request.audio.name)
+        else:
+            name = f"original.{safe_extension(request.audio.name)}"
         await asyncio.to_thread(shutil.copyfile, request.audio, folder / name)
         try:
-            info = await asyncio.to_thread(probe, folder / name)
+            if importing:
+                data = await asyncio.to_thread((folder / name).read_bytes)
+                conv = parse_upload(data, request.audio.name, settings)
+                duration, audio_name = import_duration(conv), None
+            else:
+                info = await asyncio.to_thread(probe, folder / name)
+                duration, audio_name = info.duration_seconds, name
         except BaseException:
             remove_job_dir(runner.jobs_root, job_id)
             raise
@@ -151,8 +192,9 @@ async def process(
                 job_id,
                 options=request.options,
                 source_filename=request.audio.name,
-                audio_name=name,
-                duration_seconds=info.duration_seconds,
+                audio_name=audio_name,
+                duration_seconds=duration,
+                job_type=request.job_type,
             )
             echo(f"Job {job_id}: {request.options.title}")
             await _follow(runner, job_id, queue, request, ask, echo)

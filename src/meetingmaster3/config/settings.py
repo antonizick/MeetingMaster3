@@ -176,6 +176,14 @@ class AudioSettings(BaseModel):
     opus_bitrate_kbps: int = Field(default=24, ge=6, le=128)  # retained audio (R8)
 
 
+class ImportingSettings(BaseModel):
+    """Importing a transcript or an AI conversation from a text file (R32)."""
+
+    max_mb: int = Field(default=10, ge=1, le=200)  # size limit of one imported file
+    user_name: str = Field(default="Me", min_length=1, max_length=100)
+    """Default name of the user's side of an AI conversation (the first participant wins)."""
+
+
 class JobsSettings(BaseModel):
     max_concurrent: int = Field(default=2, ge=1, le=8)  # jobs in flight; GPU stages are serial
     prune_interval_hours: float = Field(default=24.0, gt=0)  # audio retention pruner (R8)
@@ -218,6 +226,7 @@ class Settings(BaseSettings):
     search: SearchSettings = Field(default_factory=SearchSettings)
     ask: AskSettings = Field(default_factory=AskSettings)
     audio: AudioSettings = Field(default_factory=AudioSettings)
+    importing: ImportingSettings = Field(default_factory=ImportingSettings)
     jobs: JobsSettings = Field(default_factory=JobsSettings)
     privacy: PrivacySettings = Field(default_factory=PrivacySettings)
     speakers: SpeakerSettings = Field(default_factory=SpeakerSettings)

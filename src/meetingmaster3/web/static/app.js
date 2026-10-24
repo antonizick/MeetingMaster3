@@ -158,15 +158,36 @@
 
       dateEdited: false,
       dateFromName: false,
+      mode: "audio", // or "import": a transcript or AI conversation (Phase 15k)
 
       today() { return new Date().toLocaleDateString("en-CA"); }, // in the browser's time zone
 
       init() {
+        const picked = this.$root.querySelector('input[name="mode"]:checked');
+        this.mode = picked ? picked.value : "audio";
         const date = this.field("meeting_date");
         date.value = this.today();
         date.addEventListener("input", () => { this.dateEdited = true; this.dateFromName = false; });
         this.backendChanged();
         this.templateChanged();
+      },
+
+      get isImport() { return this.mode === "import"; },
+      get isAudio() { return this.mode !== "import"; },
+      get maxMb() { return this.$root.dataset[this.isImport ? "importMaxMb" : "maxMb"]; },
+      get accept() { return this.$root.dataset[this.isImport ? "importAccept" : "audioAccept"]; },
+      get fileHeading() { return this.isImport ? "1. Transcript or conversation" : "1. Audio"; },
+      get pickLabel() {
+        return this.isImport ? "Choose a transcript or conversation file" : "Choose an audio or video file";
+      },
+      get titlePlaceholder() { return this.isImport ? "From the file (its heading, else its name)" : ""; },
+      modeChanged(evt) {
+        this.mode = evt.target.value;
+        this.file = null;
+        this.error = "";
+        this.field("file").value = "";
+        this.audioMinutes = 0;
+        this.refreshPicker();
       },
 
       get hasError() { return this.error !== ""; },
@@ -179,9 +200,7 @@
         return this.needsConsent && this.consented === this.backendName ? "true" : "false";
       },
       get fileLabel() {
-        if (this.file === null) {
-          return "No file chosen. Up to " + this.$root.dataset.maxMb + " MB.";
-        }
+        if (this.file === null) return "No file chosen. Up to " + this.maxMb + " MB.";
         return this.file.name + " (" + (this.file.size / 1048576).toFixed(1) + " MB)";
       },
 
@@ -205,13 +224,14 @@
       async setFile(file) {
         this.file = file;
         this.error = "";
-        const max = Number(this.$root.dataset.maxMb) * 1048576;
+        const max = Number(this.maxMb) * 1048576;
         if (file.size > max) {
-          this.error = "That file is larger than the " + this.$root.dataset.maxMb + " MB limit.";
-          this.errorHint = "Trim or compress the recording first.";
+          this.error = "That file is larger than the " + this.maxMb + " MB limit.";
+          this.errorHint = this.isImport ? "Split the conversation into parts first."
+            : "Trim or compress the recording first.";
         }
         this.prefill(file.name);
-        this.loadHardware();
+        if (this.isAudio) this.loadHardware();
       },
 
       async prefill(name) {
@@ -223,7 +243,8 @@
         const title = this.field("title");
         const date = this.field("meeting_date");
         const time = this.field("meeting_time");
-        if (!title.value) title.value = guess.title || name.replace(/\.[^.]+$/, "");
+        // An import's title comes from the file itself (its heading) on the server.
+        if (!title.value && this.isAudio) title.value = guess.title || name.replace(/\.[^.]+$/, "");
         // A date found in the file name beats the "today" default, but never an edit by the user.
         if (!this.dateEdited) {
           date.value = guess.date || this.today();
@@ -355,11 +376,20 @@
           remember_template: true,
           backend: v("backend"),
           cloud_consent: this.consentValue === "true",
-          diarize: form.elements.diarize.checked,
           participants: list("participants"),
           tags: list("tags"),
         };
         const put = (key, value) => { if (value !== "") opts[key] = value; };
+        if (this.isImport) {
+          // Today's date is only a default: a date in the file (or its name) wins on the server.
+          if (this.dateEdited || this.dateFromName) put("meeting_date", v("meeting_date"));
+          put("meeting_time", v("meeting_time"));
+          put("location", v("location"));
+          put("model", v("model"));
+          put("instructions", v("instructions"));
+          return opts;
+        }
+        opts.diarize = form.elements.diarize.checked;
         put("meeting_date", v("meeting_date"));
         put("meeting_time", v("meeting_time"));
         put("location", v("location"));
@@ -395,7 +425,7 @@
         body.append("options", JSON.stringify(this.options()));
         body.append("file", this.file, this.file.name);
         const xhr = new XMLHttpRequest();
-        xhr.open("POST", "/api/jobs");
+        xhr.open("POST", this.isImport ? "/api/imports" : "/api/jobs");
         xhr.setRequestHeader("X-CSRF-Token", csrfToken());
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) this.progress = Math.round((e.loaded / e.total) * 100);
@@ -416,6 +446,45 @@
         this.uploading = false;
         this.error = message;
         this.errorHint = hint;
+      },
+    }));
+
+    // Import check (Phase 15k): a turn's name button gives the turn to the next speaker.
+    Alpine.data("importCheck", () => ({
+      speakers() {
+        return Array.from(this.$root.querySelectorAll('input[name^="name__"]')).map((el, i) => ({
+          label: el.dataset.label,
+          name: el.value.trim() || el.defaultValue || el.dataset.label,
+          colour: i % 8,
+        }));
+      },
+
+      paint(btn, speaker) {
+        btn.dataset.label = speaker.label;
+        btn.textContent = speaker.name;
+        btn.className = "who spk-" + speaker.colour;
+        const n = Number(btn.closest("li").dataset.i) + 1;
+        btn.setAttribute("aria-label", "Turn " + n + ": said by " + speaker.name +
+          ". Press to give it to the next speaker.");
+      },
+
+      flip(evt) {
+        const btn = evt.currentTarget;
+        const list = this.speakers();
+        if (list.length < 2) return;
+        const at = list.findIndex((s) => s.label === btn.dataset.label);
+        const next = list[(at + 1) % list.length];
+        this.paint(btn, next);
+        btn.parentElement.querySelector('input[type="hidden"]').value = next.label;
+        btn.closest("li").classList.add("changed");
+      },
+
+      renamed(evt) {
+        const label = evt.target.dataset.label;
+        const speaker = this.speakers().find((s) => s.label === label);
+        for (const btn of this.$root.querySelectorAll(".who")) {
+          if (btn.dataset.label === label) this.paint(btn, speaker);
+        }
       },
     }));
 

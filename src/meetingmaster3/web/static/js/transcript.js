@@ -45,8 +45,9 @@
   }
 
   function seek(t, play) {
-    highlight(indexAt(t + 0.01), false);
     if (follow) follow.checked = true;
+    // Without a player (an imported transcript) the click itself scrolls to that moment.
+    highlight(indexAt(t + 0.01), !audio);
     if (!audio) return;
     const go = () => {
       audio.currentTime = Math.max(0, t);

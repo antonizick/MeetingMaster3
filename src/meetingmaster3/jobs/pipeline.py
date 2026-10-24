@@ -7,6 +7,8 @@ extra is installed, and an "engine not installed" placeholder otherwise.
 ``speaker_suggest`` and ``await_speaker_confirmation`` (Phase 07, :mod:`meetingmaster3.speakers`)
 are always available; voice suggestions need the ``ml`` extra and opt-in voiceprints.
 ``generate`` and ``write`` (Phase 09, :mod:`meetingmaster3.templates.stages`) are built in too.
+An ``import`` job (Phase 15k) reads a text file instead: ``import_parse`` and its own speaker
+check (:mod:`meetingmaster3.importing.stages`), then the same ``generate`` and ``write``.
 ``MM3_FAKE_PIPELINE=1`` swaps every ML/LLM stage for a fake (generation uses the offline
 :class:`~meetingmaster3.llm.fake.FakeLLMBackend`; writing still writes to the vault when one is
 configured).
@@ -39,6 +41,19 @@ MEETING_STAGES: list[tuple[str, str, bool]] = [
     ("generate", "Generating notes", False),
     ("write", "Writing to vault", False),
 ]
+
+#: Stage order of an ``import`` job: a transcript or AI conversation from a text file (R32).
+IMPORT_STAGES: list[tuple[str, str, bool]] = [
+    ("import_parse", "Reading the file", False),
+    ("await_speaker_confirmation", "Check the speakers", False),
+    ("generate", "Generating notes", False),
+    ("write", "Writing to vault", False),
+]
+
+PIPELINES = {"meeting": MEETING_STAGES, "import": IMPORT_STAGES}
+JOB_TYPES = tuple(PIPELINES)
+_IMPORT_OWN = frozenset({"import_parse", "await_speaker_confirmation"})
+"""Stages an import implements itself; the registry overrides them as ``import:<name>``."""
 
 TRANSCRIPTION_STAGES = frozenset({"transcribe", "align", "diarize"})
 
@@ -107,10 +122,24 @@ class Pipeline:
         raise KeyError(name)
 
 
+def _import_factory(name: str) -> StageFactory:
+    from meetingmaster3.importing.stages import ImportConfirmationStage, ImportParseStage
+
+    if name == "import_parse":
+        return lambda settings: ImportParseStage()
+    return lambda settings: ImportConfirmationStage()
+
+
 def build_pipeline(job_type: str, settings: Settings, *, fake: bool | None = None) -> Pipeline:
-    """The pipeline for ``job_type`` (only ``meeting`` exists in the MVP)."""
-    if job_type != "meeting":
-        raise MM3Error("E_JOB_TYPE", f"Unknown job type {job_type!r}.", "", status_code=400)
+    """The pipeline for ``job_type``: ``meeting`` (audio) or ``import`` (a text file)."""
+    spec = PIPELINES.get(job_type)
+    if spec is None:
+        raise MM3Error(
+            "E_JOB_TYPE",
+            f"Unknown job type {job_type!r}.",
+            f"Use one of: {', '.join(JOB_TYPES)}.",
+            status_code=400,
+        )
     fake = fake_pipeline_enabled() if fake is None else fake
     fakes: dict[str, StageFactory] = {}
     if fake:
@@ -118,7 +147,10 @@ def build_pipeline(job_type: str, settings: Settings, *, fake: bool | None = Non
 
         fakes = fake_factories()
     stages: list[Stage] = []
-    for name, display, gpu in MEETING_STAGES:
-        factory = fakes.get(name) or _REGISTRY.get(name) or _default_factory(name, display, gpu)
+    for name, display, gpu in spec:
+        if job_type == "import" and name in _IMPORT_OWN:
+            factory = _REGISTRY.get(f"import:{name}") or _import_factory(name)
+        else:
+            factory = fakes.get(name) or _REGISTRY.get(name) or _default_factory(name, display, gpu)
         stages.append(factory(settings))
     return Pipeline(job_type, tuple(stages))

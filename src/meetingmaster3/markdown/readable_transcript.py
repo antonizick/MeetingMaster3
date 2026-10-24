@@ -88,14 +88,16 @@ def _html(text: str) -> str:
     return "".join(_HTML.get(c, c) for c in " ".join(text.split()))
 
 
-def _paragraphs(segments: list[Segment], limit: float) -> list[str]:
+def _paragraphs(segments: list[Segment], limit: float, *, timed: bool = True) -> list[str]:
+    """Paragraphs of about ``limit`` seconds each; untimed (imported) turns keep one paragraph
+    per segment, as the source had them."""
     paragraphs: list[list[str]] = []
     start = 0.0
     for seg in segments:
         words = " ".join(seg.text.split())
         if not words:
             continue
-        if not paragraphs or seg.start - start >= limit:
+        if not paragraphs or not timed or seg.start - start >= limit:
             paragraphs.append([])
             start = seg.start
         paragraphs[-1].append(words)
@@ -119,6 +121,7 @@ def render_body(doc: CompanionTranscript, *, paragraph_seconds: float = PARAGRAP
     nl = doc.newline
     labels = doc.transcript.speaker_labels
     colours = colour_map(doc)
+    timed = doc.transcript.timed
     parts = [f'<span style="{MUTED}; font-size: smaller">{NOTICE}</span>{nl}{nl}']
     turns = group_turns(doc.transcript)
     for turn in turns:
@@ -126,11 +129,11 @@ def render_body(doc: CompanionTranscript, *, paragraph_seconds: float = PARAGRAP
         label = turn.speaker_label
         named = label is not None and label in doc.speakers.names
         background = SPEAKER_COLOURS[colours[label]] if named and label else NEUTRAL
+        stamp = f'<span style="{MUTED}">{clock(turn.start)}</span> ' if timed else ""
         heading = (
-            f'<span style="{MUTED}">{clock(turn.start)}</span> '
-            f'<mark style="background: {background}; font-weight: 600">{_html(name)}</mark>'
+            f'{stamp}<mark style="background: {background}; font-weight: 600">{_html(name)}</mark>'
         )
-        paragraphs = _paragraphs(turn.segments, paragraph_seconds) or [""]
+        paragraphs = _paragraphs(turn.segments, paragraph_seconds, timed=timed) or [""]
         parts.append(heading + nl + (nl + nl).join(paragraphs).rstrip() + nl + nl)
     if not turns:
         parts.append(f"_No speech was detected._{nl}")

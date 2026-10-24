@@ -4,24 +4,36 @@
 <picture class="hero"><source type="image/webp" srcset="{{ url_for('static', path='brand/hero.webp') }} 1x, {{ url_for('static', path='brand/hero@2x.webp') }} 2x"><img class="hero-logo" src="{{ url_for('static', path='brand/hero.png') }}" srcset="{{ url_for('static', path='brand/hero@2x.png') }} 2x" alt="MeetingMaster3 logo: a wizard with a crystal ball at a boardroom table" width="320" height="230"></picture>
 <h1>New meeting</h1>
 <form id="upload-form" class="stack" x-data="uploader" x-on:submit.prevent="submit" novalidate
-      data-max-mb="{{ max_upload_mb }}">
+      data-max-mb="{{ max_upload_mb }}" data-import-max-mb="{{ import_max_mb }}"
+      data-audio-accept="audio/*,video/*,.m4a,.mp3,.wav,.flac,.ogg,.opus,.mp4,.mkv,.webm"
+      data-import-accept="{{ import_accept }}">
+
+  <fieldset class="mode-choice">
+    <legend>Start from</legend>
+    <label class="check"><input type="radio" name="mode" value="audio"{% if mode != 'import' %} checked{% endif %} x-on:change="modeChanged"> Record or upload audio</label>
+    <label class="check"><input type="radio" name="mode" value="import"{% if mode == 'import' %} checked{% endif %} x-on:change="modeChanged"> Import a transcript or AI conversation</label>
+  </fieldset>
 
   <section class="card stack" aria-labelledby="h-audio">
-    <h2 id="h-audio">1. Audio</h2>
+    <h2 id="h-audio" x-text="fileHeading">1. Audio</h2>
     <div class="dropzone" x-bind:class="dropClass" x-on:dragover.prevent="dragOver"
          x-on:dragleave="dragLeave" x-on:drop.prevent="onDrop">
-      <p><label for="file" class="button">Choose an audio or video file</label> or drop it here</p>
+      <p><label for="file" class="button" x-text="pickLabel">Choose an audio or video file</label> or drop it here</p>
       <input id="file" name="file" type="file" accept="audio/*,video/*,.m4a,.mp3,.wav,.flac,.ogg,.opus,.mp4,.mkv,.webm"
-             class="sr-only-focusable" x-on:change="onPick">
+             class="sr-only-focusable" x-on:change="onPick" x-bind:accept="accept">
       <p class="hint" x-text="fileLabel">No file chosen. Up to {{ max_upload_mb }} MB.</p>
     </div>
+    <p class="hint" x-show="isImport" x-cloak>An AI conversation exported as Markdown (Grok, ChatGPT, Claude…, with or
+      without speaker labels) or a transcript: <code>[hh:mm:ss] Name: text</code> lines, a MeetingMaster3
+      <code>.transcript.md</code> or <code>.txt</code> export, WebVTT (<code>.vtt</code>) or SubRip (<code>.srt</code>).
+      Next you check who said each turn. No audio is needed.</p>
   </section>
 
   <section class="card stack" aria-labelledby="h-details">
     <h2 id="h-details">2. Meeting details</h2>
     <div class="grid">
       <div class="field"><label for="title">Title</label>
-        <input id="title" name="title" type="text" maxlength="200" autocomplete="off"></div>
+        <input id="title" name="title" type="text" maxlength="200" autocomplete="off" x-bind:placeholder="titlePlaceholder"></div>
       <div class="field"><label for="meeting_date">Date</label>
         <input id="meeting_date" name="meeting_date" type="date" aria-describedby="date-hint">
         <p id="date-hint" class="hint" x-show="dateFromName" x-cloak>From the file name</p></div>
@@ -89,7 +101,7 @@
     <input type="hidden" name="cloud_consent" x-bind:value="consentValue">
   </section>
 
-  <section class="card stack" aria-labelledby="h-speakers">
+  <section class="card stack" aria-labelledby="h-speakers" x-show="isAudio">
     <h2 id="h-speakers">4. Speakers</h2>
     <label class="check"><input type="checkbox" name="diarize" value="1"
            {% if diarize_default %}checked{% endif %} x-on:change="diarizeChanged"> Separate the speakers (diarization)</label>
@@ -101,7 +113,7 @@
     </div>
   </section>
 
-  <section class="card stack" aria-labelledby="h-hw">
+  <section class="card stack" aria-labelledby="h-hw" x-show="isAudio">
     <h2 id="h-hw">5. Hardware</h2>
     <div id="hardware-panel" class="stack"><p class="hint">Choose a file to see how long it should take on this machine.</p></div>
   </section>

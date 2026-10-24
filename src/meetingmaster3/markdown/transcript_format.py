@@ -73,6 +73,11 @@ _TURN_RE = re.compile(
     r"(?: (?P<text>.*?))?[ \t]*\r?$",
     re.M,
 )
+_UNTIMED_TURN_RE = re.compile(
+    r"^\*\*(?P<name>[^\n]+?):\*\*(?: (?P<text>.*?))?[ \t]*\r?$",
+    re.M,
+)
+"""A turn heading of an untimed (imported) transcript: ``**Name:** text``."""
 _H1_RE = re.compile(r"^# (?P<title>.+?)[ \t]*\r?$", re.M)
 
 
@@ -96,7 +101,7 @@ class VisibleTurn:
     """A turn as it appears in the readable part of the file (possibly edited by the user)."""
 
     start: int
-    """Seconds, from the ``[hh:mm:ss]`` stamp."""
+    """Seconds, from the ``[hh:mm:ss]`` stamp (0 in an untimed transcript)."""
     name: str
     text: str
     name_start: int
@@ -132,6 +137,8 @@ def render_data_block(transcript: Transcript, newline: str = "\n") -> str:
         "model": transcript.model,
         "diarized": transcript.diarized,
     }
+    if not transcript.timed:  # only then, so timed files stay byte-identical (ADR-0012)
+        header["timed"] = False
     lines = [f"<!-- mm3:transcript-data v{DATA_VERSION}", _json_line(header)]
     for s in transcript.segments:
         lines.append(
@@ -191,6 +198,7 @@ def parse_data_block(body: str) -> Transcript:
             duration=header.get("duration"),
             model=header.get("model"),
             diarized=bool(header.get("diarized", False)),
+            timed=header.get("timed", True) is not False,
         )
     except (ValueError, KeyError, IndexError, TypeError, ValidationError) as exc:
         raise _data_error(type(exc).__name__) from exc
@@ -202,9 +210,11 @@ def parse_data_block(body: str) -> Transcript:
 def _turn_lines(doc: CompanionTranscript) -> list[str]:
     labels = doc.transcript.speaker_labels
     lines = []
+    timed = doc.transcript.timed
     for turn in group_turns(doc.transcript):
         name = doc.speakers.display_name(turn.speaker_label, labels)
-        lines.append(f"**[{timestamp(turn.start)}] {name}:** {turn.text}".rstrip())
+        stamp = f"[{timestamp(turn.start)}] " if timed else ""
+        lines.append(f"**{stamp}{name}:** {turn.text}".rstrip())
     return lines
 
 
@@ -219,18 +229,19 @@ def render_body(doc: CompanionTranscript) -> str:
     return "".join(parts)
 
 
-def _visible_turns(body: str) -> list[VisibleTurn]:
+def _visible_turns(body: str, *, timed: bool = True) -> list[VisibleTurn]:
     data = _DATA_RE.search(body)
     end = data.start() if data else len(body)
+    pattern = _TURN_RE if timed else _UNTIMED_TURN_RE
     return [
         VisibleTurn(
-            start=int(m["h"]) * 3600 + int(m["m"]) * 60 + int(m["s"]),
+            start=int(m["h"]) * 3600 + int(m["m"]) * 60 + int(m["s"]) if timed else 0,
             name=m["name"],
             text=m["text"] or "",
             name_start=m.start("name"),
             name_end=m.end("name"),
         )
-        for m in _TURN_RE.finditer(body, 0, end)
+        for m in pattern.finditer(body, 0, end)
     ]
 
 
@@ -306,7 +317,7 @@ def parse_transcript(text: str) -> ParsedTranscript:
         format_version=version if isinstance(version, int) and not isinstance(version, bool) else 1,
         newline=detect_newline(text),
     )
-    visible = _visible_turns(body)
+    visible = _visible_turns(body, timed=transcript.timed)
     expected = _turn_lines(doc)
     actual = [body[_line_bounds(body, v.name_start)] for v in visible]
     return ParsedTranscript(

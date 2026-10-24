@@ -57,6 +57,11 @@
     <h2 id="h-input">Who is speaking?</h2>
     <p>The transcript is ready. Name the speakers so the notes can say who decided and who owns each task.</p>
     <p><a class="button primary" href="/jobs/{{ job.id }}/speakers">Name speakers</a></p>
+  {% elif wf.kind == 'import_confirmation' %}
+    <h2 id="h-input">Who said what?</h2>
+    <p>{{ wf.turns }} turns were read from the file{% if wf.format_name %} ({{ wf.format_name }}){% endif %}.
+      {% if wf.low_confidence %}{{ wf.low_confidence }} of them were guessed with low confidence. {% endif %}Check who said each turn and name the speakers.</p>
+    <p><a class="button primary" href="/jobs/{{ job.id }}/speakers">Check the speakers</a></p>
   {% elif wf.kind == 'language' %}
     <h2 id="h-input">This does not sound like English</h2>
     <p>{{ wf.message or ('Detected ' ~ wf.language_name ~ '.') }}</p>

@@ -9,7 +9,7 @@ import asyncio
 import contextlib
 import json
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Query, Request
@@ -133,13 +133,22 @@ class _MultipartUpload:
 
 
 async def _receive_upload(
-    request: Request, runner: JobRunner, job_id: str
+    request: Request,
+    runner: JobRunner,
+    job_id: str,
+    *,
+    max_bytes: int | None = None,
+    stored_name: Callable[[str | None], str] | None = None,
 ) -> tuple[_MultipartUpload, str, int]:
+    """Stream the ``file`` part into the job folder (as ``original.<ext>`` unless
+    ``stored_name`` says otherwise), keeping the ``options`` part; ``max_bytes`` defaults to the
+    audio upload limit (R7)."""
     content_type, params = parse_options_header(request.headers.get("content-type", ""))
     boundary = params.get(b"boundary")
     if content_type != b"multipart/form-data" or not boundary:
         raise _bad_upload("The upload must be multipart/form-data.")
-    max_bytes = runner.settings.audio.max_upload_mb * 1024 * 1024
+    if max_bytes is None:
+        max_bytes = runner.settings.audio.max_upload_mb * 1024 * 1024
     declared = request.headers.get("content-length")
     if declared and declared.isdigit() and int(declared) > max_bytes + UPLOAD_SLACK_BYTES:
         raise UploadTooLarge(max_bytes)
@@ -164,13 +173,20 @@ async def _receive_upload(
     if size == 0:
         tmp.unlink(missing_ok=True)
         raise _bad_upload("The uploaded file is empty.")
-    name = f"original.{safe_extension(upload.filename)}"
+    name = (
+        stored_name(upload.filename)
+        if stored_name is not None
+        else f"original.{safe_extension(upload.filename)}"
+    )
     tmp.rename(folder / name)
     return upload, name, size
 
 
-def _parse_options(raw: bytes, filename: str) -> tuple[JobOptions, bool]:
-    """The job options, and whether the page asked to remember the template."""
+def _parse_options(
+    raw: bytes, filename: str, *, defaults: dict[str, Any] | None = None
+) -> tuple[JobOptions, bool]:
+    """The job options, and whether the page asked to remember the template. A missing title
+    or date comes from ``defaults`` (an import's own title and date), then the file name."""
     try:
         data: Any = json.loads(raw) if raw.strip() else {}
     except json.JSONDecodeError as exc:
@@ -178,6 +194,9 @@ def _parse_options(raw: bytes, filename: str) -> tuple[JobOptions, bool]:
     if not isinstance(data, dict):
         raise _bad_upload("The options field must be a JSON object.")
     remember = data.pop(REMEMBER_TEMPLATE, False) is True
+    for key, value in (defaults or {}).items():
+        if not data.get(key) and value:
+            data[key] = value
     guess = parse_filename(filename)
     if not data.get("title") and guess.title:
         data["title"] = guess.title

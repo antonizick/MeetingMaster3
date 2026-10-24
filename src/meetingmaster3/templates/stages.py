@@ -127,7 +127,13 @@ def load_named_transcript(ctx: StageContext, speaker_map: SpeakerMap) -> Transcr
 
 
 def load_final_transcript(ctx: StageContext) -> Transcript:
+    """The diarized transcript of a meeting, or the checked transcript of an import."""
+    from meetingmaster3.importing.stages import IMPORTED_TRANSCRIPT_FILE
+
     path = ctx.artifacts.get("diarize")
+    if path is None:
+        imported = ctx.job_dir / IMPORTED_TRANSCRIPT_FILE
+        path = imported if imported.is_file() else ctx.artifacts.get("import_parse")
     if path is None or not path.is_file():
         raise MM3Error(
             "E_TRANSCRIPT_MISSING",
@@ -136,6 +142,16 @@ def load_final_transcript(ctx: StageContext) -> Transcript:
             status_code=409,
         )
     return Transcript.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+def source_properties(ctx: StageContext) -> dict[str, str]:
+    """``mm3-source`` and ``mm3-source-format`` for an imported meeting (R32); none otherwise."""
+    if ctx.job.job_type != "import":
+        return {}
+    from meetingmaster3.importing.stages import SOURCE_FORMAT_OPTION
+
+    fmt = ctx.options.get(SOURCE_FORMAT_OPTION)
+    return {"mm3-source": "import", **({"mm3-source-format": str(fmt)} if fmt else {})}
 
 
 def _fingerprint(*parts: str) -> str:
@@ -302,7 +318,7 @@ class GenerateStage(BaseStage):
 
             free_gpu_memory()
         result = asyncio.run(generator.generate(meta, named, done=done, on_section=checkpoint))
-        note = build_note(meta, result.sections)
+        note = build_note(meta, result.sections, extra_properties=source_properties(ctx))
         path = ctx.artifact(DRAFT_FILE)
         atomic_write_text(path, render_note(note), overwrite=True)
         ctx.write_json(
@@ -374,6 +390,9 @@ class WriteStage(BaseStage):
                 speaker_map,
                 note_ref=paths.note_link,
             )
+            source = source_properties(ctx)
+            if source:
+                doc = doc.model_copy(update={"extra_properties": source})
             self._write(paths.transcript, render_transcript(doc), root, mm3_id)
             if settings.generation.readable_transcript:
                 try:

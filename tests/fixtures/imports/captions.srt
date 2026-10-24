@@ -1,0 +1,11 @@
+1
+00:00:01,000 --> 00:00:03,000
+Frank: Is the projector working?
+
+2
+00:00:03,500 --> 00:00:06,000
+Gina: Yes, it is <i>finally</i> working.
+
+3
+00:00:06,500 --> 00:00:09,000
+Then let's begin.

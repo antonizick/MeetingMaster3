@@ -20,6 +20,7 @@
         {% if meta %}Template <strong>{{ meta.template_id or 'unknown' }}</strong>
         {% if meta.backend %}· {{ meta.backend }}{% if meta.model %} / {{ meta.model }}{% endif %}{% endif %}
         {% if meta.date %}· {{ meta.date.strftime('%Y-%m-%d') }}{% endif %} ·{% endif %}
+        {% if ws.imported_from %}<span class="badge imported" id="imported-badge">Imported from {{ ws.imported_from }}</span> ·{% endif %}
         <code>{{ ws.relative }}</code>
       </p>
     </div>
@@ -131,8 +132,11 @@
       <div class="transcript" id="transcript" tabindex="0" aria-label="Transcript">
         {% for turn in ws.transcript.turns %}
         <div class="turn spk-{{ turn.colour if turn.colour is not none else 'x' }}">
-          <div class="turn-head"><button type="button" class="ts" data-t="{{ turn.start }}">{{ turn.start|clock }}</button> <strong>{{ turn.name }}</strong></div>
+          {% if ws.transcript.timed %}<div class="turn-head"><button type="button" class="ts" data-t="{{ turn.start }}">{{ turn.start|clock }}</button> <strong>{{ turn.name }}</strong></div>
           <p>{% for seg in turn.segments %}<span class="seg" data-i="{{ seg.index }}" data-t="{{ seg.start }}">{% if seg.words %}{% for w in seg.words %}<span class="w" data-t="{{ w.start }}">{{ w.text }}</span> {% endfor %}{% else %}{{ seg.text }} {% endif %}</span>{% endfor %}</p>
+          {% else %}<div class="turn-head"><strong>{{ turn.name }}</strong></div>
+          {% for seg in turn.segments %}<p><span class="seg" data-i="{{ seg.index }}">{{ seg.text }}</span></p>{% endfor %}
+          {% endif %}
         </div>
         {% else %}
         <p class="muted">The transcript is empty.</p>

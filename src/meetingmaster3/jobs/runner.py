@@ -175,11 +175,12 @@ class JobRunner:
         *,
         options: JobOptions,
         source_filename: str,
-        audio_name: str,
+        audio_name: str | None,
         duration_seconds: float | None,
         job_type: str = "meeting",
     ) -> JobRecord:
-        """Register a job whose upload already sits in its folder, and queue it."""
+        """Register a job whose upload already sits in its folder, and queue it. An ``import``
+        job has no audio (``audio_name=None``): retention, pin and the player do nothing."""
         pipeline = self.pipeline_for(job_type)
         job = self.jobs.create(
             job_id,

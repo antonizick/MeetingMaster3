@@ -764,6 +764,22 @@ def _ask_on_tty(kind: str, payload: dict[str, Any]) -> dict[str, Any] | None:
             extra = f" ({talk:.0f} s of speech)" if isinstance(talk, int | float) else ""
             answer[label] = typer.prompt(f"  {label}{extra}", default=suggestion)
         return {"speakers": answer}
+    if kind == "import_confirmation":
+        name = payload.get("format_name") or "the file"
+        typer.echo(f"Read {payload.get('turns', 0)} turns from {name}.")
+        low = payload.get("low_confidence") or 0
+        if low:
+            typer.echo(
+                f"{low} turn(s) were guessed with low confidence; check them in the web app "
+                "if the speakers matter."
+            )
+        typer.echo("Name the speakers (Enter keeps the name shown):")
+        names: dict[str, str] = {}
+        for sp in payload.get("speakers", []):
+            label = sp.get("label")
+            role = f" ({sp['role']})" if sp.get("role") in ("user", "assistant") else ""
+            names[label] = typer.prompt(f"  {label}{role}", default=sp.get("default_name") or label)
+        return {"speakers": names, "turns": {}}
     if kind == "cloud_consent":
         ok = typer.confirm(str(payload.get("message") or "Send the transcript to the cloud?"))
         return {"consent": ok}
@@ -850,6 +866,11 @@ def process(
     except KeyboardInterrupt:
         typer.echo("Cancelled.", err=True)
         raise typer.Exit(130) from None
+    _report(result)
+
+
+def _report(result: Any) -> None:
+    """Print the outcome of ``mm3 process`` / ``mm3 import`` (exit 1 unless written)."""
     for warning in result.warnings:
         typer.secho(f"Warning: {warning}", fg=typer.colors.YELLOW, err=True)
     if result.status.value != "written":
@@ -862,6 +883,93 @@ def process(
             typer.echo(f"Transcript: {w['transcript_path']}")
     else:
         typer.echo("Done (no vault configured; nothing was written).")
+
+
+@app.command("import")
+def import_file(
+    source: str = typer.Argument(..., metavar="FILE", help="Transcript or AI conversation."),
+    title: str | None = typer.Option(
+        None, help="Title (default: the file's heading, else its name)."
+    ),
+    date: str | None = typer.Option(None, help="Date, YYYY-MM-DD (default: file, else today)."),
+    time: str | None = typer.Option(None, help="Start time, HH:MM."),
+    template: str | None = typer.Option(None, help="Template id (default from settings)."),
+    backend: str | None = typer.Option(None, help="LLM backend name (default from settings)."),
+    model: str | None = typer.Option(None, help="LLM model (default: the backend's)."),
+    speaker: list[str] = typer.Option(  # noqa: B008
+        [],
+        "--speaker",
+        help="A speaker's name: user=Nick, assistant=Grok or SPEAKER_00=Alice (repeatable).",
+    ),
+    yes: bool = typer.Option(
+        False, "--yes", "-y", help="Accept the detected speakers without asking."
+    ),
+    participants: str | None = typer.Option(None, help="Comma-separated participants."),
+    tags: str | None = typer.Option(None, help="Comma-separated note tags."),
+    location: str | None = typer.Option(None, help="Location or context."),
+    instructions: str | None = typer.Option(None, help="Extra instructions for every section."),
+    cloud_consent: bool = typer.Option(
+        False, "--cloud-consent", help="Allow sending the text to a cloud backend."
+    ),
+    vault: str | None = typer.Option(None, help="Vault folder (default from settings)."),
+) -> None:
+    """Import a transcript or an AI conversation (Markdown chat export, [hh:mm:ss] Name: text,
+    MeetingMaster3 .transcript.md, .vtt, .srt) and write its notes to the vault, like a
+    meeting. No audio and no transcription."""
+    import asyncio
+    import datetime as dt
+
+    from meetingmaster3.headless import ProcessRequest, build_import_options, parse_speakers
+    from meetingmaster3.headless import process as run_process
+    from meetingmaster3.importing.stages import CONFIRMED_OPTION, SPEAKERS_OPTION
+    from meetingmaster3.vault.paths import resolve_vault_root
+
+    configure_logging()
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    settings = _library_settings(vault)
+    paths = resolve_paths()
+    path = Path(source)
+
+    def split(text: str | None) -> list[str]:
+        return [p.strip() for p in (text or "").split(",") if p.strip()]
+
+    try:
+        resolve_vault_root(settings.vault.path)
+        if not path.is_file():
+            raise MM3Error("E_IMPORT_MISSING", f"No file at {source!r}.", "")
+        try:
+            day = dt.date.fromisoformat(date) if date else None
+            start = dt.time.fromisoformat(time) if time else None
+        except ValueError as exc:
+            raise MM3Error("E_OPTIONS_INVALID", f"Invalid date or time: {exc}.", "") from exc
+        names = parse_speakers(",".join(speaker)) if speaker else {}
+        options = build_import_options(
+            path,
+            path.read_bytes(),
+            settings,
+            title=title,
+            date=day,
+            meeting_time=start,
+            template=template,
+            backend=backend,
+            model=model,
+            participants=split(participants),
+            tags=split(tags),
+            location=location,
+            instructions=instructions,
+            cloud_consent=cloud_consent,
+            **{SPEAKERS_OPTION: names, CONFIRMED_OPTION: yes or None},
+        )
+        request = ProcessRequest(path, options, None, cloud_consent, job_type="import")
+        result = asyncio.run(
+            run_process(settings, paths, request, ask=_ask_on_tty, echo=typer.echo)
+        )
+    except MM3Error as exc:
+        _fail(exc)
+    except KeyboardInterrupt:
+        typer.echo("Cancelled.", err=True)
+        raise typer.Exit(130) from None
+    _report(result)
 
 
 # -- search (Phase 15i) ------------------------------------------------------------------------

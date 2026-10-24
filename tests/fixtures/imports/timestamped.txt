@@ -1,0 +1,9 @@
+Weekly sync
+
+[00:00:04] Alice: Morning, everyone. Let's start with the release.
+[00:00:11] Bob: The build is green. I'll tag it this afternoon.
+[00:00:19] Bob: The changelog still needs one entry.
+[00:00:27] Alice: I can write that entry today.
+[00:01:02] Carol: Support saw two tickets about the login page.
+[00:01:15] Alice: Carol, can you send me the ticket numbers?
+[00:01:20] Carol: Sure, after this call.

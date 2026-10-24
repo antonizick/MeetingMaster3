@@ -211,8 +211,8 @@ def chunk_transcript(
             _passage(
                 head,
                 _render(chosen),
-                start_s=chosen[0].start,
-                end_s=chosen[-1].end,
+                start_s=chosen[0].start if transcript.timed else None,
+                end_s=chosen[-1].end if transcript.timed else None,
                 speakers=names,
             )
         )

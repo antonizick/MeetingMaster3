@@ -153,6 +153,7 @@ class TranscriptView:
     duration: float | None
     diarized: bool
     segment_count: int
+    timed: bool = True
 
 
 def clock(seconds: float) -> str:
@@ -199,7 +200,7 @@ def transcript_view(doc: CompanionTranscript) -> TranscriptView:
         for label in sorted(labels, key=natural_key)
     )
     return TranscriptView(
-        tuple(turns), speakers, named.duration, named.diarized, len(named.segments)
+        tuple(turns), speakers, named.duration, named.diarized, len(named.segments), named.timed
     )
 
 
@@ -233,6 +234,20 @@ class Workspace:
     @property
     def readonly(self) -> bool:
         return bool(self.readonly_reason)
+
+    @property
+    def imported_from(self) -> str | None:
+        """The format a meeting was imported from ("AI conversation (unlabelled)"), or
+        ``None`` for a recorded meeting (R32)."""
+        if self.parsed is None:
+            return None
+        extra = self.parsed.note.extra_properties
+        if extra.get("mm3-source") != "import":
+            return None
+        from meetingmaster3.importing.model import format_name
+
+        fmt = extra.get("mm3-source-format")
+        return format_name(fmt if isinstance(fmt, str) else None)
 
     @property
     def can_regenerate(self) -> bool:
@@ -289,6 +304,10 @@ def load_workspace(
     if runner is not None:
         ws.job_id = find_job(runner, mm3_id, entry)
         ws.audio, ws.audio_message = audio_state(runner, ws.job_id)
+        if ws.imported_from and ws.audio != "ok":
+            ws.audio, ws.audio_message = "none", (
+                f"Imported from a text file ({ws.imported_from}), so there is no recording."
+            )
         if ws.job_id is not None:
             ws.audio_pinned = runner.jobs.get(ws.job_id).audio_pinned
             ws.retention = runner.retention_status(runner.jobs.get(ws.job_id))

@@ -83,9 +83,11 @@ def transcript_to_text(markdown: str) -> str:
     except TranscriptParseError:
         return markdown
     blocks = []
+    timed = parsed.doc.transcript.timed
     for turn in parsed.visible_turns:
         text = " ".join(turn.text.split())
-        blocks.append(f"{clock(turn.start)} {turn.name}" + (f"\n{text}" if text else ""))
+        head = f"{clock(turn.start)} {turn.name}" if timed else turn.name
+        blocks.append(head + (f"\n{text}" if text else ""))
     return "\n\n".join(blocks) + ("\n" if blocks else "")
 
 

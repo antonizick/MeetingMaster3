@@ -26,10 +26,11 @@ from meetingmaster3.feedback.context import feedback_context
 from meetingmaster3.feedback.store import FeedbackStore
 from meetingmaster3.hardware.detect import get_hardware
 from meetingmaster3.hardware.recommend import format_eta, recommend
+from meetingmaster3.importing import stages as import_stages
 from meetingmaster3.jobs.files import check_job_id, job_dir
 from meetingmaster3.jobs.models import FINAL, JobStatus
 from meetingmaster3.llm.registry import BackendRegistry
-from meetingmaster3.speakers.stages import SPEAKERS_FILE, normalise_answer
+from meetingmaster3.speakers.stages import CONFIRMED_FILE, SPEAKERS_FILE, normalise_answer
 from meetingmaster3.speakers.store import VoiceprintStore
 from meetingmaster3.storage.repositories import RecentMeetingsRepository
 from meetingmaster3.templates import model_check
@@ -40,6 +41,7 @@ from meetingmaster3.vault.io import read_text
 from meetingmaster3.vault.paths import is_inside, resolve_vault_root
 from meetingmaster3.vault.picker import browse, read_identity
 from meetingmaster3.web import views
+from meetingmaster3.web.api.imports import ACCEPT as IMPORT_ACCEPT
 from meetingmaster3.web.api.jobs import get_runner
 from meetingmaster3.web.api.speakers import _read as read_json_file
 from meetingmaster3.web.paging import (
@@ -175,7 +177,7 @@ def _backend_choices(registry: BackendRegistry) -> list[dict[str, object]]:
 
 
 @router.get("/", response_class=HTMLResponse)
-async def new_meeting(request: Request) -> Response:
+async def new_meeting(request: Request, mode: str = "audio") -> Response:
     if not _vault_configured(request):
         return RedirectResponse("/setup", status_code=303)
     settings = _settings(request)
@@ -195,6 +197,9 @@ async def new_meeting(request: Request) -> Response:
             "backends": backends,
             "default_backend": default_backend,
             "max_upload_mb": settings.audio.max_upload_mb,
+            "import_max_mb": settings.importing.max_mb,
+            "import_accept": IMPORT_ACCEPT,
+            "mode": "import" if mode == "import" else "audio",
             "diarize_default": settings.transcription.diarize,
         },
     )
@@ -458,6 +463,8 @@ async def speakers_page(request: Request, job_id: str) -> Response:
     from meetingmaster3.web.api.speakers import get_speakers
 
     runner = get_runner(request)
+    if runner.jobs.get(check_job_id(job_id)).job_type == "import":
+        return await _import_check_page(request, job_id)
     data = await get_speakers(request, job_id)
     job = runner.jobs.get(check_job_id(job_id))
     people: list[dict[str, Any]] = []
@@ -526,6 +533,84 @@ async def speakers_submit(request: Request, job_id: str) -> Response:
                     "Pick another suggestion or type a name.",
                     status_code=422,
                 )
+    template = form.get("template")
+    if isinstance(template, str) and template and template != job.settings.get("template"):
+        runner.update_options(job.id, {"template": template})
+    runner.submit_input(job.id, answer)
+    return _hx_redirect(f"/jobs/{job.id}")
+
+
+# -- import check (Phase 15k) ----------------------------------------------------------------------
+
+PREVIEW_TURNS = 200
+"""Turns shown before "Show all" on the import check page."""
+
+
+async def _import_check_page(request: Request, job_id: str) -> HTMLResponse:
+    runner = get_runner(request)
+    job = runner.jobs.get(job_id)
+    data = import_stages.read_preview(job_dir(runner.jobs_root, job.id))
+    waiting = (
+        job.status is JobStatus.WAITING_FOR_INPUT
+        and runner.waiting_stage(job.id) == "await_speaker_confirmation"
+    )
+    confirmed = read_json_file(job_dir(runner.jobs_root, job.id) / CONFIRMED_FILE) or {}
+    speakers = data.get("speakers", [])
+    colours = {s["label"]: i % 8 for i, s in enumerate(speakers)}
+    names = {s["label"]: s["default_name"] or s["label"] for s in speakers}
+    library = await asyncio.to_thread(
+        template_library, _settings(request), request.app.state.paths.data_dir
+    )
+    turns = data.get("turns", [])
+    return render(
+        request,
+        "import_check.html",
+        {
+            "active": "recent",
+            "job": job.to_dict(),
+            "title": views.job_title(job.to_dict()),
+            "data": data,
+            "waiting": waiting,
+            "confirmed": confirmed.get("speaker_map") or {},
+            "speakers": speakers,
+            "names": names,
+            "colours": colours,
+            "first": turns[:PREVIEW_TURNS],
+            "rest": turns[PREVIEW_TURNS:],
+            "low_count": sum(1 for t in turns if t.get("low")),
+            "templates_list": [e.to_dict() for e in library.listing() if e.valid],
+            "template_id": job.settings.get("template")
+            or _settings(request).generation.default_template,
+        },
+    )
+
+
+@router.post("/ui/jobs/{job_id}/import-check")
+async def import_check_submit(request: Request, job_id: str) -> Response:
+    """Form post of the import check page: ``name__<label>`` for each speaker, ``turn__<i>``
+    (the label chosen for turn ``i``) and ``template``. Only turns whose speaker changed are
+    sent on to the job; every label and turn is checked against the job's preview."""
+    runner = get_runner(request)
+    job = runner.jobs.get(check_job_id(job_id))
+    form = await request.form()
+    data = import_stages.read_preview(job_dir(runner.jobs_root, job.id))
+
+    def field(name: str) -> str:
+        value = form.get(name)
+        return value.strip() if isinstance(value, str) else ""
+
+    names = {}
+    for s in data.get("speakers", []):
+        name = field(f"name__{s['label']}") or s.get("default_name") or ""
+        if name:
+            names[s["label"]] = name
+    moved = {}
+    for t in data.get("turns", []):
+        label = field(f"turn__{t['index']}")
+        if label and label != t["label"]:
+            moved[str(t["index"])] = label
+    answer = import_stages.normalise_answer({"speakers": names, "turns": moved})
+    import_stages.check_answer(answer, data)
     template = form.get("template")
     if isinstance(template, str) and template and template != job.settings.get("template"):
         runner.update_options(job.id, {"template": template})

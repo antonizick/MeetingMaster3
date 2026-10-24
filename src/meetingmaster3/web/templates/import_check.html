@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{# Import check (Phase 15k): who said each turn of an imported transcript or AI conversation. #}
+{% block brand_logo %}{% endblock %}
+{% block title %}Check the speakers · MeetingMaster3{% endblock %}
+{% macro turn_row(t) %}
+  {% set label = t.label %}
+  <li class="import-turn{% if t.low %} low{% endif %}" data-i="{{ t.index }}">
+    <div class="import-turn-head">
+      {% if label %}
+      <button type="button" class="who spk-{{ colours.get(label, 0) }}" data-label="{{ label }}" x-on:click="flip"
+              aria-label="Turn {{ t.index + 1 }}: said by {{ names.get(label, label) }}. Press to give it to the next speaker.">{{ names.get(label, label) }}</button>
+      <input type="hidden" name="turn__{{ t.index }}" value="{{ label }}">
+      {% else %}<span class="muted">No speaker</span>{% endif %}
+      {% if t.start is not none %}<span class="muted">{{ t.start|clock }}</span>{% endif %}
+      {% if t.low %}<span class="badge warn" title="The speaker of this turn was guessed with low confidence ({{ (t.confidence * 100)|round|int }}%).">check</span>{% endif %}
+    </div>
+    <div class="import-text">{{ t.text }}</div>
+  </li>
+{% endmacro %}
+{% block content %}
+<h1>Check the speakers</h1>
+<p class="muted">{{ title }} · {{ job.source_filename }}{% if data.format_name %} · {{ data.format_name }}{% endif %} · <a href="/jobs/{{ job.id }}">back to progress</a></p>
+
+{% if not waiting %}
+<div class="alert info" role="status">
+  <p>{% if confirmed %}The speakers of this import are already confirmed.{% else %}This import is not waiting for the speakers right now.{% endif %}</p>
+  {% if confirmed %}<ul>{% for label, name in confirmed.items() %}<li><code>{{ label }}</code> → {{ name }}</li>{% endfor %}</ul>{% endif %}
+</div>
+{% else %}
+<form id="import-form" class="stack" hx-post="/ui/jobs/{{ job.id }}/import-check" hx-swap="none" x-data="importCheck">
+  {% for w in data.warnings %}<p class="hint">{{ w }}</p>{% endfor %}
+  <section class="card stack" aria-labelledby="h-names">
+    <h2 id="h-names">Speakers</h2>
+    <div class="grid">
+      {% for s in speakers %}
+      <div class="field spk-field spk-{{ colours.get(s.label, 0) }}">
+        <label for="name-{{ s.label }}">{% if s.role == 'user' %}You (the user){% elif s.role == 'assistant' %}The assistant{% else %}{{ s.detected or s.label }}{% endif %}</label>
+        <input id="name-{{ s.label }}" name="name__{{ s.label }}" type="text" maxlength="100" autocomplete="off"
+               value="{{ s.default_name }}" data-label="{{ s.label }}" x-on:input="renamed">
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="card stack" aria-labelledby="h-turns">
+    <h2 id="h-turns">Who said each turn</h2>
+    <p>{{ data.turns|length }} turns.{% if low_count %} <strong>{{ low_count }}</strong> {{ 'is' if low_count == 1 else 'are' }} marked <span class="badge warn">check</span>: the speaker was guessed with low confidence.{% endif %}
+      Press a name to give that turn to {{ 'the other speaker' if speakers|length == 2 else 'the next speaker' }}.</p>
+    <ol class="plain import-turns">
+      {% for t in first %}{{ turn_row(t) }}{% endfor %}
+    </ol>
+    {% if rest %}
+    <details>
+      <summary>Show all {{ data.turns|length }} turns</summary>
+      <ol class="plain import-turns">
+        {% for t in rest %}{{ turn_row(t) }}{% endfor %}
+      </ol>
+    </details>
+    {% endif %}
+  </section>
+
+  <section class="card stack">
+    <h2>Notes template</h2>
+    <label for="template">Write the notes with</label>
+    <select id="template" name="template">
+      {% for t in templates_list %}<option value="{{ t.id }}"{% if t.id == template_id %} selected{% endif %}>{{ t.name }}</option>{% endfor %}
+    </select>
+  </section>
+  <div class="row"><button type="submit" class="primary">Confirm &amp; write notes</button></div>
+</form>
+{% endif %}
+{% endblock %}

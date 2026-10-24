@@ -69,7 +69,7 @@ def transcript_turns(transcript: Transcript) -> list[Turn]:
         name = t.segments[0].speaker_name or "Speaker"
         text = t.text
         if text:
-            turns.append(Turn(speaker=name, text=text, start=t.start))
+            turns.append(Turn(speaker=name, text=text, start=t.start if transcript.timed else None))
     return turns
 
 
@@ -95,6 +95,7 @@ class MeetingFacts:
     language: str | None = None
     duration: float | None = None
     diarized: bool = True
+    timed: bool = True
 
     @classmethod
     def from_meta(cls, meta: MeetingMeta, transcript: Transcript) -> MeetingFacts:
@@ -108,8 +109,9 @@ class MeetingFacts:
             speakers=tuple(speakers),
             location=meta.location,
             language=transcript.language,
-            duration=transcript.duration,
+            duration=transcript.duration if transcript.timed else None,
             diarized=transcript.diarized,
+            timed=transcript.timed,
         )
 
 
@@ -135,6 +137,11 @@ def meeting_block(facts: MeetingFacts, today: dt.date) -> str:
         )
     elif facts.speakers:
         lines.append(f"- Speakers in the transcript: {', '.join(facts.speakers)}")
+    if not facts.timed:
+        lines.append(
+            "- The transcript has no timestamps (it was imported from a text file): do not add "
+            "any timestamps or times of day to the notes."
+        )
     if facts.language and facts.language != "en":
         lines.append(f"- Spoken language: {facts.language}")
     lines.append(

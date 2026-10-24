@@ -20,6 +20,7 @@ from meetingmaster3.llm.base import LLMBackend
 from meetingmaster3.llm.registry import BackendRegistry
 from meetingmaster3.web.api.export import router as export_router
 from meetingmaster3.web.api.feedback import router as feedback_router
+from meetingmaster3.web.api.imports import router as imports_router
 from meetingmaster3.web.api.jobs import router as jobs_router
 from meetingmaster3.web.api.speakers import speakers_router, voiceprints_router
 from meetingmaster3.web.api.templates import router as templates_router
@@ -130,6 +131,7 @@ def create_app(settings: Settings | None = None, paths: AppPaths | None = None) 
     app.include_router(hardware_router)
     app.include_router(llm_router)
     app.include_router(jobs_router)
+    app.include_router(imports_router)
     app.include_router(speakers_router)
     app.include_router(voiceprints_router)
     app.include_router(templates_router)

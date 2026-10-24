@@ -51,6 +51,9 @@ class Transcript(DomainModel):
     duration: float | None = Field(default=None, ge=0)
     model: str | None = None
     diarized: bool = False
+    timed: bool = True
+    """``False`` for an imported transcript with no times (an AI conversation): every segment
+    then has ``start = end = 0`` and nothing shows or cites a clock (R32)."""
 
     @model_validator(mode="after")
     def _unique_ids(self) -> Self:
