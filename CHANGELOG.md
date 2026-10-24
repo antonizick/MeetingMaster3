@@ -8,6 +8,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Create Project Plan template** (Phase 15m, R33, ADR-0052), the 24th built-in (`create-project-plan`; not the
+  default): turns a planning conversation with an AI assistant (an import) or a planning meeting into a **pre-plan** to
+  hand to Claude Code's `/phased-project "<note>" <repo dir>`. Goal and success criteria, context and constraints,
+  requirements (Must / Should / Won't), **Decisions Made** (only what the owner decided or accepted; the assistant's
+  suggestions are proposals), Options Considered (with why each was chosen or rejected), Proposed Solution, Rough
+  Phases (3-8 milestones), Risks and Mitigations, **Facts to Verify** (every price, version, package name or figure
+  the plan relies on, with who stated it, marked unverified), Open Questions for the Owner, Definition of Done, Next
+  Steps and AI Recommendations for the agent's review. Side questions are left out. Guide: "From an AI conversation to
+  a Claude Code project" in `docs/user-guide/importing.md`. The generation eval gains untimed conversations
+  (`timed: false`), `expected.absent` and list-style `expected.numbered`, and two synthetic planning conversations.
 - **Import a Grok conversation from its share link** (Phase 15l, R32, ADR-0052): on New meeting's import, paste an
   `https://x.com/i/grok/share/…` (or `twitter.com`, `grok.com/share/…`) link instead of choosing a file, or run
   `mm3 import <link>`. MeetingMaster3 downloads that one shared conversation from grok.com and imports it with **exact

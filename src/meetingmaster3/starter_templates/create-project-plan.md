@@ -15,8 +15,8 @@ sections:
   - {id: options-considered, title: Options Considered, kind: extraction, max_tokens: 1000}
   - {id: solution-outline, title: Proposed Solution, kind: narrative, max_tokens: 700}
   - {id: milestones, title: Rough Phases, kind: extraction, max_tokens: 700}
-  - {id: risks, title: Risks and Mitigations, kind: extraction, max_tokens: 600}
-  - {id: facts-to-verify, title: Facts to Verify, kind: extraction, max_tokens: 1200}
+  - {id: risks, title: Risks and Mitigations, kind: extraction, max_tokens: 800}
+  - {id: facts-to-verify, title: Facts to Verify, kind: extraction, max_tokens: 900}
   - {id: open-questions, title: Open Questions for the Owner, kind: extraction, max_tokens: 600}
   - {id: acceptance, title: Definition of Done, kind: extraction, max_tokens: 500}
   - {id: action-items, title: Next Steps, kind: extraction, format: tasks, max_tokens: 700}
@@ -55,7 +55,9 @@ Never invent a requirement, a phase, a number or a fact that was not said.
 Focus. Leave out side questions and digressions that do not change the plan (background
 explanations, curiosity questions, history of a company or a technology), small talk, and
 how the conversation itself went. Write plainly and concretely, in the third person, using the
-participants' names.
+participants' names; refer to a person by name or as "they", never as "he" or "she". Keep each
+section to its own job: a task someone will do is not a decision, a requirement or a check, and
+a product choice is a decision, not a requirement.
 
 <!-- mm3:prompt:summary -->
 In one or two sentences (at most 50 words in all), say what the owner wants to build or set up
@@ -81,7 +83,7 @@ the owner's own words for their priorities, for example a stated "north star" or
 Success criteria proposed only by the AI assistant count only if the owner agreed with them;
 mark them "(proposed by <Name>, agreed by <Owner>)".
 
-Structure:
+Every line starts with "- ". Structure:
 - **Problem:** <what the owner wants solved, and why>
 - **Desired outcome:** <the end result the owner wants>
 - **Priority:** <what the owner said matters most>
@@ -108,11 +110,13 @@ If the owner stated no constraints, write exactly: No constraints were stated.
 <!-- mm3:prompt:requirements -->
 List what the result must do, grouped as **Must**, **Should** and **Won't**. A requirement
 comes from what the owner asked for, insisted on or accepted; a Won't comes from what they
-excluded or rejected. Each requirement is one line, specific and testable where the conversation
-allows ("loads a local HTML file", not "is easy to use"). Do not add requirements that were not
-discussed.
+excluded or rejected. A requirement says what the result must do or be (a capability, a quality,
+a limit), not which product to use, which task to do or by when: those belong under Decisions,
+Rough Phases and Next Steps. Each requirement is one line, specific and testable where the
+conversation allows ("loads a local HTML file", not "is easy to use"). At most 8 Must items. Do
+not add requirements that were not discussed.
 
-Structure:
+Structure (replace everything in angle brackets, including the brackets):
 **Must**
 - <requirement> (<who stated or accepted it>)
 **Should**
@@ -128,11 +132,18 @@ List only the decisions the owner made or clearly agreed to, in the order they w
 with its reason. A suggestion from the AI assistant becomes a decision only when the owner
 accepted it; then say so. A suggestion the owner did not take up, an option still being
 compared, a question the owner asked and an answer the assistant gave are not decisions: leave
-them out (they belong under Options Considered or Open Questions). Task assignments are not
-decisions either.
+them out (they belong under Options Considered or Open Questions). A decision is a choice: what
+to use or not use, how to do it, what is in or out of scope. A step or task someone will carry
+out ("install X this weekend", "<Name> will send the list", "<Name> will check the budget") is
+not a decision, even when someone agreed to do it: it belongs under Rough Phases or Next Steps.
+Never write a decision of the form "<Name> will <do something>". State each decision in your own
+words, not as a quotation.
+
+Typically 2-6 decisions. Write each one as the choice itself (what will be used, kept, dropped
+or done differently), without saying who will do the work or when.
 
 Structure:
-1. **<Decision, stated as an outcome>** [mm:ss]
+1. **<The choice, e.g. "Use <product> for <purpose>" or "Keep <thing> until <condition>">** [mm:ss]
    - **Reason:** <the reason given, or "not stated">
    - **Decided by:** <Name>, <"on their own" or "accepting <Name>'s suggestion">
 
@@ -141,8 +152,11 @@ If nothing was decided, write exactly: No decisions were made.
 <!-- mm3:prompt:options-considered -->
 List the alternatives that were discussed for the main choices, including the owner's first
 idea if they had one, with the pros and cons that were given and the outcome: **Chosen**,
-**Rejected** (with the reason) or **Open**. Use a table. Attribute a pro or con to the person
-who gave it when that matters. Only options that were actually discussed; never add one.
+**Rejected** (with the reason) or **Open**. An option the owner moved away from, or that lost to
+the chosen one, is Rejected, not Open; Open is only for a choice the owner left undecided. Use a
+table of at most 8 rows: one row per real alternative for the main choices, with variants of the
+same idea merged and minor settings left out. Attribute a pro or con to the person who gave it
+when that matters. Only options that were actually discussed; never add one.
 
 Structure:
 | Option | Pros | Cons | Outcome |
@@ -158,7 +172,8 @@ were named. Write 1-3 short paragraphs, then, if useful, a bullet list of compon
 
 - **<Component>:** <role in the solution; how it is installed, configured or built, as said>
 
-Describe only what the owner chose or agreed to. If no approach was chosen, describe the leading
+Describe only what the owner chose or agreed to. A choice that is still open is not part of the
+solution: name it in one sentence as open. If no approach was chosen, describe the leading
 options in one sentence each and say that the choice is open.
 
 <!-- mm3:prompt:milestones -->
@@ -177,34 +192,50 @@ If the conversation did not get as far as steps, write exactly: No phases were d
 <!-- mm3:prompt:risks -->
 List the risks, limitations and pitfalls that were raised for the chosen approach, each with the
 mitigation that was discussed, or "none discussed". Attribute each to the person who raised it.
-Leave out risks of the options that were rejected.
+Leave out risks that belong only to the options that were rejected (for example the problems of
+an approach the owner dropped). Typically 3-7 risks, most serious first; keep each to one or two
+sentences.
 
-Structure:
+Every risk starts with "- ". Structure:
 - **<Risk in a few words>:** <what could go wrong and why> (raised by <Name>). **Mitigation:**
   <as discussed, or "none discussed">
 
 If no risks were raised, write exactly: No risks were raised.
 
 <!-- mm3:prompt:facts-to-verify -->
-List every specific factual claim made in the conversation that the plan or the owner's choice
-relies on and that should be checked before acting on it: prices and payment terms, versions,
-package, repository and command names, where software is available, counts and sizes, dates of
-changes, test or survey results, speeds, and legal or security claims. Most will have been
-stated by the AI assistant. Keep the exact figures and names as said. Each line says who stated
-it and is marked unverified. Do not judge whether a claim is true, and do not add claims of
-your own.
+List the claims about products, services and the outside world that the plan relies on and that
+must be checked against a source before acting on them: prices and payment terms, versions,
+package, repository and command names, where software is available, what a product can or
+cannot do, limits, counts, dates of changes, test or survey results, speeds, and legal or
+security claims. Most will have been stated by the AI assistant. Keep the exact figures and
+names as said. Do not judge whether a claim is true, and do not add claims of your own.
+
+Do not list:
+- what the owner or the participants said about their own situation: their equipment, budget,
+  team, volunteers, users or schedule (that is context, not a claim to check);
+- tasks, plans and deadlines for the work;
+- background from side questions that does not change the plan (what a name or an acronym
+  means, the history of a company or a project, digressions).
+
+Each line's label names an outside product, service, law or organisation (never the
+participants' own team, budget, list, timeline or task), and the claim is shortened to the
+checkable part, in your own words, not quoted. Typically 3-10 lines, the claims that matter most
+to the plan first; fewer is better than padding. Merge claims about the same product into one
+line and never repeat a claim. Number the lines and stop after line 15.
 
 Structure:
-- <claim, with the exact figure or name as stated> (stated by <Name>; unverified) [mm:ss]
+1. **<Product, service, law or organisation>:** <the checkable claim, with the exact figure or
+   name as stated> (stated by <Name>; unverified) [mm:ss]
+2. **<Product, service, law or organisation>:** <...>
 
-List the claims that matter most to the plan first. If no checkable claims were made, write
-exactly: No specific claims need checking.
+If no checkable claims were made, write exactly: No specific claims need checking.
 
 <!-- mm3:prompt:open-questions -->
 List the decisions the owner still has to make, phrased as questions to the owner, each with the
 options that were discussed and any recommendation that was made (and by whom). Include choices
 the owner left open or deferred and important points the conversation never settled. Do not
-list questions the owner asked that were already answered.
+list questions the owner asked that were already answered, and never ask about a choice listed
+under Decisions Made or an option that was rejected. Usually 0-5 questions.
 
 Structure:
 - **<Question to the owner>?** Options discussed: <option A>, <option B>. <Name> recommended
@@ -215,7 +246,8 @@ If nothing is left open, write exactly: No open questions remain.
 <!-- mm3:prompt:acceptance -->
 List how the owner will know the result works: the tests, checks and observable results that
 were mentioned or agreed, one per line, each specific enough to perform ("run <tool or site> and
-confirm <result>"). Say who proposed each check. If the owner agreed to it, say so.
+confirm <result>"). A check tests the finished result; a task to prepare the work is not a
+check. Say who proposed each check. If the owner agreed to it, say so.
 
 Structure:
 - <check to perform and the expected result> (proposed by <Name><, agreed by <Owner>>)
@@ -226,8 +258,11 @@ If no checks were discussed, write exactly: No acceptance checks were discussed.
 List the owner's immediate next steps to start the work, one per line, in the order they would
 be done. A step belongs here only if the owner said they will do it ("I need to...", "I'll...",
 "will do") or a participant agreed to take it on. Steps the AI assistant only suggested and the
-owner did not take up go under **Unassigned:** and end with "(suggested by <Name>)". The AI
-assistant is never the owner of a step.
+owner did not take up go under **Unassigned:** and end with "(suggested by <Name>)", but only
+when they still fit the chosen approach: never a step for a rejected option or a choice already
+made differently. At most 3 **Unassigned:** steps. The AI assistant is never the owner of a step. One step per line: split "I'll do A tonight and B this
+weekend" into two lines. Write each step as an instruction starting with a verb ("Start the
+export"), never as a quotation ("I'll start...").
 
 Structure:
 - [ ] **<Owner>:** <step, starting with a verb> (due: <deadline as said, or "not stated">) [mm:ss]
@@ -242,5 +277,6 @@ the conversation: a requirement that is vague or untestable, a decision taken on
 claim, a constraint that conflicts with the chosen approach, a missing piece (security, backup,
 updates, cost) that was not discussed, or a step without a clear order.
 
-Structure (replace everything in angle brackets with your own words):
-- **<Issue in a few words>:** <what to check and why, referring to the conversation>
+Structure (one bullet per point; the bold text is a short title for the issue in your own
+words):
+- **Short issue title:** what to check and why, referring to the conversation.

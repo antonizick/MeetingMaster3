@@ -221,8 +221,8 @@ If the system message, the transcript, the longest section prompt and the output
 3. **Reduce:** every section is generated from the merged notes instead of the raw transcript.
 
 ## 10. The built-in library (Phase 13)
-23 templates ship in `starter_templates/` (spec §15.1 A3, Appendix A; the 23rd, `default-notes`,
-is R29 and the default template). Conventions they follow, which
+24 templates ship in `starter_templates/` (spec §15.1 A3, Appendix A; the 23rd, `default-notes`,
+is R29 and the default template; the 24th, `create-project-plan`, is R33). Conventions they follow, which
 new built-ins should too:
 * The file name is the `id` (`test_builtin_templates_are_valid` checks it), kebab-case.
 * Reuse the common section ids (§3.1) where the section means the same thing; type-specific ids
@@ -239,10 +239,12 @@ new built-ins should too:
   `test_sensitive_templates_keep_their_guardrails`: `job-interview-notes` (job-relevant evidence
   only, no protected characteristics, advisory recommendation), `one-on-one-coaching` (respectful,
   non-judgmental tone), `board-governance-minutes` (formal style, motions and votes exactly as
-  stated, never an inferred outcome), and `default-notes` (used for interviews too: the
+  stated, never an inferred outcome), `default-notes` (used for interviews too: the
   job-relevant-only and protected-characteristics rules, no hiring decision; with `qwen3:8b` it can
   still keep a family remark a candidate volunteers, a known limitation recorded in the eval
-  baseline, ADR-0039).
+  baseline, ADR-0039), and `create-project-plan` (the owner decides and the AI assistant only
+  proposes: an assistant suggestion is never presented as decided unless the owner accepted it;
+  external claims go to Facts to Verify as unverified; nothing is invented; R33).
 * Golden prompt snapshots are in `tests/fixtures/assembler/<id>.txt`
   (`MM3_UPDATE_GOLDEN=1 uv run pytest tests/unit/templates/test_assembler.py`).
 * `docs/user-guide/template-catalogue.md` is generated: after changing a template run
@@ -252,5 +254,9 @@ new built-ins should too:
   `expected.sections` (keywords that must appear in a section) and `expected.forbidden` (words that
   must not appear anywhere in the note). Since Phase 15e they may also list `expected.numbered`
   (`{section, min, max}`: the number of `### N. <Title>` headings in a section) and
-  `expected.limits` (`{section, max_sentences, max_words}`). Run one with
+  `expected.limits` (`{section, max_sentences, max_words}`). Since Phase 15m, `expected.numbered`
+  takes `style: list` to count top-level `N.` list items instead of headings, `expected.absent`
+  (`{section, any}`) lists words that must not appear in one section (a rejected option in
+  Decisions), and a meeting with `timed: false` is an untimed conversation whose turns are
+  `[label, text]` (R32). Run one with
   `uv run python -m tests.eval.run_eval --model qwen3:8b --meetings <name> --templates <id>`.

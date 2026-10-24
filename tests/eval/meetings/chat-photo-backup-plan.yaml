@@ -58,7 +58,7 @@ expected:
       owner: Sam Okafor
       any: [["install", "Immich", "NUC"]]
   sections:
-    - {id: goal-never-lose, section: project-goal, any: [["lose", "loss", "lost"]]}
+    - {id: goal-never-lose, section: project-goal, any: [["lose", "losing", "loss", "lost"]]}
     - {id: no-cloud, section: context-constraints, any: [["cloud", "Google"]]}
     - {id: hardware, section: context-constraints, any: [["NUC"]]}
     - {id: photoprism-option, section: options-considered, any: [["PhotoPrism"]]}
@@ -71,6 +71,8 @@ expected:
   absent:
     - {id: rejected-not-decided, section: decisions, any: ["PhotoPrism", "Nextcloud", "uninterruptible"]}
     - {id: own-app-not-decided, section: decisions, any: ["own app", "write my own"]}
+    - {id: tasks-not-decisions, section: decisions, any: ["tonight", "this weekend"]}
+    - {id: own-situation-not-facts, section: facts-to-verify, any: ["Ubuntu 24.04", "four iPhones"]}
   numbered:
     - {id: phase-count, section: milestones, min: 3, max: 8, style: list}
   limits:

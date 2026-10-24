@@ -55,7 +55,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0050 | 2026-10-22 14:56 CDT | Meeting index layout and retrieval tuning: separate rebuildable `search.db` (not an `mm3.db` migration); FTS5 over passage body plus heading lines weighted 0.3; word candidates within 30 % of the best BM25 and vector candidates within 0.08 cosine of the best, fused by RRF (k = 60); pure-Python cosine over cached float32 arrays; vectors tagged with one model id; vault-change hook in `atomic_write_text`; GPU only while no job is active | Accepted | 15i |
 | ADR-0049 | 2026-10-22 13:47 CDT | Ask AI agent: hybrid (FTS5 + embeddings) retrieval with embeddings through the backends (local `nomic-embed-text` default, cloud only with its own consent); a JSON-driven pipeline with code-built facts, not tool-calling; per-question cloud consent or a separate sticky Ask switch; every answer saved as a linked vault note; split into 15i and 15j | Accepted (planning) | 15i, 15j |
 | ADR-0051 | 2026-10-22 15:44 CDT | Ask agent details: plan queries only (never the raw question) with dates used only when the question talks about time; Ask's own vector margin 0.12; quotes and people verified against the excerpts; model tables dropped and HTML defused; one question at a time holding the GPU per call; answers in `mm3.db` (migration 5) with the note as the answer; `keep_history` off keeps nothing; Obsidian links by path | Accepted | 15j |
-| ADR-0052 | 2026-10-24 11:42 CDT | Import transcripts and AI conversations as meetings (`import` job type; AI chat Markdown, labelled or not, and timestamped transcripts; untimed transcripts invent no times); Grok share links only, from a fixed host; Create Project Plan, the 24th built-in, writes a pre-plan for `/phased-project`; the example conversation stays private; split into 15k, 15l, 15m | Accepted (planning); 15k and 15l implemented | 15k, 15l, 15m |
+| ADR-0052 | 2026-10-24 11:42 CDT | Import transcripts and AI conversations as meetings (`import` job type; AI chat Markdown, labelled or not, and timestamped transcripts; untimed transcripts invent no times); Grok share links only, from a fixed host; Create Project Plan, the 24th built-in, writes a pre-plan for `/phased-project`; the example conversation stays private; split into 15k, 15l, 15m | Accepted; implemented in 15k, 15l and 15m | 15k, 15l, 15m |
 
 ---
 
@@ -1697,3 +1697,43 @@ include conversations; filtering them apart is a possible follow-up. The templat
   checked by hand to be a true prefix), 30 turns, every speaker exact (no low-confidence rows), times 00:00 to 17:15. qwen3:8b
   wrote Default Notes in 407 s with 40 `[mm:ss]` references, all within the conversation. The link Nick gave is not the
   privacy brainstorming conversation from 15k, so the comparison with that Markdown export was not possible.
+
+**Phase 15m implementation (2026-10-24 16:41 CDT).** `starter_templates/create-project-plan.md`, the 24th built-in
+(spec R33); no generator or schema change (the untimed rule of R32 applies unchanged).
+- **What a good source gives `/phased-project`** (from the skill's workflow, steps 2-6): the problem and goal, the
+  owner's constraints and environment, decisions with their reasons, open owner questions, risky assumptions, and
+  external facts kept apart so they are verified rather than copied (the skill never fabricates prices or versions).
+- **Findings from Nick's example (anonymised).** A 35-minute voice-mode feasibility chat (about 33 KB, 8-9 k tokens,
+  single pass at `max_context` 16 384): an idea, the assistant's critique, three existing products compared against
+  building, the user's constraints (platform, an excluded option, a preference for supported products, a stated
+  quality bar), a chosen approach and concrete steps. The assistant stated about 30 checkable claims (prices,
+  payment terms, package sources, server counts, a survey figure, a speed test, legal claims); about a third of the
+  user's turns are side questions answered by the assistant, and none of the user's questions is a decision.
+- **Sections** as planned (15): the owner's statements carry authority and the assistant's are proposals and claims;
+  `decisions`, `risks`, `open-questions` and `action-items` reuse the common ids. `params.detail: high` (unused on the
+  example, which fits in one pass) and `task_candidates: relevant`. Prompt lessons from five eval rounds with
+  `qwen3:8b`: positive shapes work better than exclusion lists ("write each decision as the choice itself, e.g. *Use
+  <product> for <purpose>*", "never a decision of the form *<Name> will …*"); a numbered Facts list with "stop after
+  line 15" ended a repetition loop that filled 1 200 tokens with the same ten claims; a labelled line per product or
+  service kept the owner's own budget and equipment out; "Rejected, not Open" and an 8-row cap made the options table
+  usable; a typical count beats a maximum (a maximum invites filling); placeholder brackets in an example get copied,
+  so AI Recommendations' example has none. Pronouns: people are named or "they".
+- **Hand-off.** The note reads as plain Markdown: the frontmatter and header are harmless, the section markers are
+  HTML comments, and the header links the source transcript, which the skill's step 2 can read. The skill's step 2
+  and the playbook (§0 A) now name an MM3 Create Project Plan note as a good source and say to drop the
+  `<!-- mm3:… -->` markers when copying it into the spec (Nick approved).
+- **Eval.** Two synthetic conversations (CC0): an untimed user/ChatGPT chat about a family photo backup and a
+  26-minute planning meeting. The checker gained `timed: false`, `expected.absent` (a rejected option or a task must
+  not appear in Decisions; the owner's own facts must not appear in Facts to Verify) and `style: list` for
+  `expected.numbered`. **Bedrock Sonnet 5.5: 2/2 pass** (about 60 s and $0.19 per note). **`qwen3:8b`: 0/2**, about
+  300 s per note; decisions 2/2 and 2/2, actions 2/2 and 4/4, 3-8 phases, rejected options never in Decisions, but
+  Facts to Verify pads its list with side-question trivia and a digression (`nothing_forbidden`), and one run left a
+  declined option out of the table. Recorded in `baseline.json` (77 notes) as a known 8B limitation.
+- **Private check (numbers only).** Nick's example through `mm3 import` into a throwaway vault, `qwen3:8b`, 877-1 001 s
+  per note (15 calls): three rounds. In the final note the Decisions were his seven choices, Options showed eight
+  approaches with the rejected ones and their reasons, Facts to Verify listed fifteen of the assistant's prices,
+  figures and package claims, and the Rough Phases followed the steps discussed; remaining 8B quirks: one rejected
+  product shown as Open, one settled question asked again, one unwanted Unassigned step. **Nick judged it good
+  enough to hand to Claude Code.** The cloud comparison on the private conversation was not run (Nick chose to keep
+  it local); the cloud model was measured on the synthetic conversations only.
+

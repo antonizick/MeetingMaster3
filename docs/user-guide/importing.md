@@ -59,6 +59,22 @@ A voice-mode export has no speaker names and no times, and speech-to-text leaves
 - **Claude:** copy the conversation (or use a Markdown export extension); `Human:` / `Claude:` and `## User` / `## Claude` headings both work.
 - **Meeting tools:** download captions as `.vtt` or `.srt`, or a transcript as text with timestamps.
 
+## From an AI conversation to a Claude Code project
+If you worked out a project idea in a conversation with an AI assistant (or in a planning
+meeting), MeetingMaster3 can turn it into a plan an engineering agent can start from:
+1. Import the conversation (a Markdown export or a Grok share link, above) and check the speakers.
+2. Pick the **Create Project Plan** template (or switch an existing note to it on the review page).
+3. Hand the note to Claude Code: `/phased-project "<path to the note in your vault>" <repo dir>`.
+   The phased-project skill reads it as its source document, reviews it, asks you the open
+   questions and designs the phases.
+
+The note keeps **your decisions** apart from what the AI only suggested, shows the options that
+were discussed and why they were rejected, and lists every price, version, package name and other
+figure the AI stated under **Facts to Verify**, marked unverified. Check those before you rely on
+them: an AI assistant can be wrong, and the template does not check facts. Side questions that
+don't change the plan are left out. MeetingMaster3's section markers and header do not get in the
+agent's way; the note reads as plain Markdown.
+
 ## What is and isn't kept
 - **No invented times.** An AI conversation has no times, so the transcript is marked untimed: no clocks in the companion, the readable transcript, the review page or Search results, no "Length" line, and the notes carry no `[mm:ss]` references (they are removed even if the model writes one).
 - **Times are kept** for timestamped transcripts, so clicking a line or a `[mm:ss]` in the note jumps to that moment in the transcript (there's no player).

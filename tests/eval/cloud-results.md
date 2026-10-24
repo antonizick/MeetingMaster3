@@ -105,3 +105,13 @@ page for the real figure): Bedrock about $12 (Sonnet 5.5 full eval $5.05, Opus s
 real-meeting comparison about $0.73, long meeting, non-Claude batch and probes about $1.5), OpenRouter about $1
 (Haiku eval $0.24, live checks on three Claude models, long meeting, batch). Nick lifted ADR-0041's $5-per-provider
 ceiling for Bedrock during the phase.
+
+## Create Project Plan (Phase 15m)
+
+The two synthetic planning conversations (`chat-photo-backup-plan`, untimed; `planning-volunteer-scheduler`)
+with `create-project-plan`, single pass (15 calls per note), 2026-10-24:
+
+| Backend / model | Pass | Time per note | Tokens in / out (both notes) | Cost | Notes |
+|---|---|---|---|---|---|
+| Bedrock `global.anthropic.claude-sonnet-5-5` | 2/2 | 58-62 s | 106,422 / 15,816 | $0.37 | Decisions only the owners' choices; SMS correctly Open; no side questions in Facts to Verify |
+| Local `qwen3:8b` (for comparison; in `baseline.json`) | 0/2 | 301-310 s | 75,311 / 6,114 | - | Decisions, actions and phases right; Facts to Verify pads its numbered list with side-question trivia and a digression (`nothing_forbidden`), and the chat note left the declined second NAS out of Options |

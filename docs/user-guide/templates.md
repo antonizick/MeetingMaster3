@@ -1,7 +1,7 @@
 # Templates and note generation
 
 A **template** decides which sections a meeting note has and how each one is written.
-MeetingMaster3 ships **23 built-in templates** and you can change them or write your own in
+MeetingMaster3 ships **24 built-in templates** and you can change them or write your own in
 Obsidian. The file format is specified in
 [`../dev-guide/template-format.md`](../dev-guide/template-format.md).
 
@@ -24,6 +24,7 @@ The full list, with when to use each one and its sections, is the generated
 | A sales or client call | **Sales & Client Call** |
 | A brainstorm, workshop, training or review | **Brainstorming & Ideation**, **Workshop & Training Recap**, **Retrospective & Lessons Learned** |
 | Mostly questions and answers | **Q&A Extraction** |
+| Planning a project, in a chat with an AI assistant or in a meeting | **Create Project Plan** (`create-project-plan`): a pre-plan to hand to an engineering agent such as Claude Code (`/phased-project`): goal, constraints, requirements, your decisions kept apart from the AI's suggestions, options considered, rough phases, risks, the AI's facts and figures listed to verify, open questions and next steps. See [Importing](importing.md#from-an-ai-conversation-to-a-claude-code-project). |
 
 Every note starts with the title and a header (date and time, participants, tags, location) built
 from the meeting details, not by the AI. **AI Recommendations** is the last section of every template except Board & Governance Minutes,

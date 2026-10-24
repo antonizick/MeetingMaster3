@@ -2406,6 +2406,100 @@
       "mode": "full",
       "calls": 6,
       "seconds": 23.2
+    },
+    {
+      "meeting": "chat-photo-backup-plan",
+      "template": "create-project-plan",
+      "passed": false,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "type_content": false,
+        "absent_rejected-not-decided": true,
+        "absent_own-app-not-decided": true,
+        "absent_tasks-not-decisions": true,
+        "absent_own-situation-not-facts": true,
+        "numbered_phase-count": true,
+        "limit_succinct-short": true,
+        "nothing_forbidden": false,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "decisions": 2,
+        "actions": 2,
+        "content": 9
+      },
+      "missing": {
+        "content": [
+          "second-nas-option"
+        ]
+      },
+      "metrics": {
+        "milestones_numbered": 6,
+        "detailed_paragraphs": 3,
+        "detailed_words": 279,
+        "succinct_sentences": 1,
+        "succinct_words": 36
+      },
+      "mode": "full",
+      "calls": 15,
+      "seconds": 309.9,
+      "input_tokens": 39282,
+      "output_tokens": 3089
+    },
+    {
+      "meeting": "planning-volunteer-scheduler",
+      "template": "create-project-plan",
+      "passed": false,
+      "checks": {
+        "markers_valid": true,
+        "sections_present": true,
+        "ai_recommendations_last": true,
+        "no_empty_sections": true,
+        "decisions_captured": true,
+        "actions_captured": true,
+        "no_invented_owners": true,
+        "checkbox_format": true,
+        "type_content": true,
+        "absent_rejected-not-decided": true,
+        "absent_sms-not-decided": true,
+        "absent_tasks-not-decisions": true,
+        "absent_own-situation-not-facts": false,
+        "numbered_phase-count": true,
+        "limit_succinct-short": true,
+        "nothing_forbidden": false,
+        "detailed_paragraphs": true,
+        "detailed_prose": true,
+        "detailed_length": true,
+        "succinct_short": true
+      },
+      "found": {
+        "decisions": 2,
+        "actions": 4,
+        "content": 8
+      },
+      "missing": {},
+      "metrics": {
+        "milestones_numbered": 6,
+        "detailed_paragraphs": 3,
+        "detailed_words": 283,
+        "succinct_sentences": 1,
+        "succinct_words": 28
+      },
+      "mode": "full",
+      "calls": 15,
+      "seconds": 301.0,
+      "input_tokens": 36029,
+      "output_tokens": 3025
     }
   ]
 }

@@ -74,7 +74,9 @@ expected:
     - {id: pilot, section: acceptance, any: [["pilot", "20 volunteers"]]}
   absent:
     - {id: rejected-not-decided, section: decisions, any: ["SignUpGenius will", "Google Form will"]}
-    - {id: sms-not-decided, section: decisions, any: ["Twilio"]}
+    - {id: sms-not-decided, section: decisions, any: ["Use Twilio", "Use text message", "Send text message", "Use SMS"]}
+    - {id: tasks-not-decisions, section: decisions, any: ["export the current", "board meeting"]}
+    - {id: own-situation-not-facts, section: facts-to-verify, any: ["120", "$200", "200 dollars", "200 a year"]}
   numbered:
     - {id: phase-count, section: milestones, min: 3, max: 8, style: list}
   limits:
