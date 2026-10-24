@@ -57,6 +57,9 @@ class ProcessRequest:
     speakers: dict[str, str] | None = None
     cloud_consent: bool = False
     job_type: str = "meeting"
+    share: bool = False
+    """An ``import`` of a Grok share link: ``options.import_share_id`` is downloaded by the job
+    and ``audio`` is not read (Phase 15l)."""
 
 
 @dataclass
@@ -108,6 +111,25 @@ def build_import_options(
     return build_options(path, title=title, date=date, **extra)
 
 
+def build_share_options(
+    link: str, *, title: str | None, date: dt.date | None, **extra: Any
+) -> JobOptions:
+    """Job options for ``mm3 import <share link>``: the link is checked here (no request is
+    made for an unsupported one); details left out are filled from the downloaded conversation."""
+    from meetingmaster3.importing.grok_share import parse_share_url
+    from meetingmaster3.importing.stages import share_options
+
+    data: dict[str, Any] = {k: v for k, v in extra.items() if v not in (None, [], "")}
+    if title:
+        data["title"] = title
+    if date:
+        data["meeting_date"] = date.isoformat()
+    try:
+        return JobOptions.model_validate(share_options(data, parse_share_url(link)))
+    except ValueError as exc:
+        raise MM3Error("E_OPTIONS_INVALID", f"Invalid options: {exc}", "") from exc
+
+
 def answer_for(
     kind: str, payload: dict[str, Any], request: ProcessRequest, ask: Ask | None
 ) -> dict[str, Any]:
@@ -147,7 +169,12 @@ async def process(
 ) -> ProcessResult:
     """Run one recording through the full pipeline and return the outcome."""
     from meetingmaster3.audio.ingest import probe, safe_extension
-    from meetingmaster3.importing.stages import import_duration, parse_upload, stored_name
+    from meetingmaster3.importing.stages import (
+        SHARE_SOURCE_NAME,
+        import_duration,
+        parse_upload,
+        stored_name,
+    )
     from meetingmaster3.jobs.files import job_dir, new_job_id, remove_job_dir
     from meetingmaster3.jobs.runner import JobRunner
     from meetingmaster3.llm.registry import BackendRegistry
@@ -155,7 +182,7 @@ async def process(
     from meetingmaster3.templates.model_check import preflight
 
     importing = request.job_type == "import"
-    if not request.audio.is_file():
+    if not request.share and not request.audio.is_file():
         what = "file" if importing else "audio file"
         raise MM3Error("E_AUDIO_MISSING", f"No {what} at {str(request.audio)!r}.", "")
     await preflight(
@@ -171,13 +198,17 @@ async def process(
     job_id = new_job_id()
     try:
         folder = job_dir(runner.jobs_root, job_id, create=True)
+        source_name = SHARE_SOURCE_NAME if request.share else request.audio.name
         if importing:
             name = stored_name(request.audio.name)
         else:
             name = f"original.{safe_extension(request.audio.name)}"
-        await asyncio.to_thread(shutil.copyfile, request.audio, folder / name)
+        if not request.share:
+            await asyncio.to_thread(shutil.copyfile, request.audio, folder / name)
         try:
-            if importing:
+            if request.share:
+                duration, audio_name = None, None
+            elif importing:
                 data = await asyncio.to_thread((folder / name).read_bytes)
                 conv = parse_upload(data, request.audio.name, settings)
                 duration, audio_name = import_duration(conv), None
@@ -191,7 +222,7 @@ async def process(
             runner.create_job(
                 job_id,
                 options=request.options,
-                source_filename=request.audio.name,
+                source_filename=source_name,
                 audio_name=audio_name,
                 duration_seconds=duration,
                 job_type=request.job_type,

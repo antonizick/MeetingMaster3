@@ -69,6 +69,7 @@ FORMAT_NAMES = {
     "srt": "SubRip captions",
     "chat-markdown": "AI conversation (labelled)",
     "chat-unlabelled": "AI conversation (unlabelled)",
+    "grok-share": "Grok share link",
 }
 """Parser id → name shown in the UI ("Imported from <name>")."""
 

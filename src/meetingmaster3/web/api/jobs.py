@@ -139,10 +139,12 @@ async def _receive_upload(
     *,
     max_bytes: int | None = None,
     stored_name: Callable[[str | None], str] | None = None,
+    require_file: bool = True,
 ) -> tuple[_MultipartUpload, str, int]:
     """Stream the ``file`` part into the job folder (as ``original.<ext>`` unless
     ``stored_name`` says otherwise), keeping the ``options`` part; ``max_bytes`` defaults to the
-    audio upload limit (R7)."""
+    audio upload limit (R7). Without ``require_file``, a request with no file part returns the
+    name ``""`` (a share-link import)."""
     content_type, params = parse_options_header(request.headers.get("content-type", ""))
     boundary = params.get(b"boundary")
     if content_type != b"multipart/form-data" or not boundary:
@@ -169,6 +171,8 @@ async def _receive_upload(
     size = await save_stream(file_chunks(), tmp, max_bytes)
     if not upload.file_parts:
         tmp.unlink(missing_ok=True)
+        if not require_file:
+            return upload, "", 0
         raise _bad_upload('No "file" part in the upload.')
     if size == 0:
         tmp.unlink(missing_ok=True)

@@ -19,7 +19,7 @@
 {% endmacro %}
 {% block content %}
 <h1>Check the speakers</h1>
-<p class="muted">{{ title }} · {{ job.source_filename }}{% if data.format_name %} · {{ data.format_name }}{% endif %} · <a href="/jobs/{{ job.id }}">back to progress</a></p>
+<p class="muted">{{ title }} · {{ job.source_filename }}{% if data.format_name and data.format_name != job.source_filename %} · {{ data.format_name }}{% endif %} · <a href="/jobs/{{ job.id }}">back to progress</a></p>
 
 {% if not waiting %}
 <div class="alert info" role="status">

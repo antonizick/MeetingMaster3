@@ -159,6 +159,8 @@
       dateEdited: false,
       dateFromName: false,
       mode: "audio", // or "import": a transcript or AI conversation (Phase 15k)
+      shareUrl: "", // or, for an import, a Grok share link (Phase 15l)
+      fetching: false, // the job is downloading the shared conversation
 
       today() { return new Date().toLocaleDateString("en-CA"); }, // in the browser's time zone
 
@@ -184,6 +186,7 @@
       modeChanged(evt) {
         this.mode = evt.target.value;
         this.file = null;
+        this.shareUrl = "";
         this.error = "";
         this.field("file").value = "";
         this.audioMinutes = 0;
@@ -192,8 +195,13 @@
 
       get hasError() { return this.error !== ""; },
       get hasFile() { return this.file !== null; },
-      get cannotStart() { return this.file === null || this.uploading; },
-      get startHint() { return this.file === null ? "Choose a file first." : ""; },
+      get hasLink() { return this.isImport && this.shareUrl.trim() !== ""; },
+      get hasSource() { return this.file !== null || this.hasLink; },
+      get cannotStart() { return !this.hasSource || this.uploading; },
+      get startHint() {
+        if (this.hasSource) return "";
+        return this.isImport ? "Choose a file or paste a Grok share link first." : "Choose a file first.";
+      },
       get dropClass() { return this.dragging ? "dragging" : ""; },
       get badgeClass() { return this.badge === "local" ? "local" : "cloud"; },
       get consentValue() {
@@ -381,6 +389,7 @@
         };
         const put = (key, value) => { if (value !== "") opts[key] = value; };
         if (this.isImport) {
+          if (this.hasLink) opts.share_url = this.shareUrl.trim();
           // Today's date is only a default: a date in the file (or its name) wins on the server.
           if (this.dateEdited || this.dateFromName) put("meeting_date", v("meeting_date"));
           put("meeting_time", v("meeting_time"));
@@ -407,7 +416,11 @@
       },
 
       submit() {
-        if (this.file === null || this.uploading) return;
+        if (!this.hasSource || this.uploading) return;
+        if (this.file !== null && this.hasLink) {
+          this.fail("Choose a file or paste a share link, not both.", "Clear one of them and start again.");
+          return;
+        }
         if (this.needsConsent && this.consented !== this.backendName) {
           this.$refs.consent.showModal();
           return;
@@ -423,7 +436,7 @@
         this.progress = 0;
         const body = new FormData();
         body.append("options", JSON.stringify(this.options()));
-        body.append("file", this.file, this.file.name);
+        if (!this.hasLink) body.append("file", this.file, this.file.name);
         const xhr = new XMLHttpRequest();
         xhr.open("POST", this.isImport ? "/api/imports" : "/api/jobs");
         xhr.setRequestHeader("X-CSRF-Token", csrfToken());
@@ -434,7 +447,8 @@
           let data = {};
           try { data = JSON.parse(xhr.responseText); } catch (e) { /* not JSON */ }
           if (xhr.status === 201 && data.id) {
-            window.location.assign("/jobs/" + data.id);
+            if (this.hasLink) this.awaitDownload(data.id);
+            else window.location.assign("/jobs/" + data.id);
             return;
           }
           this.fail(data.message || "The upload failed (" + xhr.status + ").", data.hint || "");
@@ -442,7 +456,28 @@
         xhr.onerror = () => this.fail("Cannot reach MeetingMaster3.", "Is the server still running?");
         xhr.send(body);
       },
+      // A share link is downloaded by the job's first stage: wait for it here, so a link that
+      // is not shared, an unreachable grok.com or a changed Grok shows its error on this page.
+      async awaitDownload(id) {
+        this.fetching = true;
+        const until = Date.now() + 90000;
+        while (Date.now() < until) {
+          await new Promise((r) => setTimeout(r, 700));
+          let job = null;
+          try { job = await (await fetch("/api/jobs/" + id)).json(); } catch (e) { continue; }
+          const parse = (job.stages || []).find((st) => st.stage === "import_parse");
+          if (job.status === "failed" && job.error) {
+            this.fetching = false;
+            this.fail(job.error.message, job.error.hint || "");
+            fetch("/api/jobs/" + id, { method: "DELETE", headers: { "X-CSRF-Token": csrfToken() } });
+            return;
+          }
+          if ((parse && parse.status === "completed") || !["queued", "running"].includes(job.status)) break;
+        }
+        window.location.assign("/jobs/" + id);
+      },
       fail(message, hint) {
+        this.fetching = false;
         this.uploading = false;
         this.error = message;
         this.errorHint = hint;

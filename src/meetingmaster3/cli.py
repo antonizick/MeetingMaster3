@@ -887,7 +887,9 @@ def _report(result: Any) -> None:
 
 @app.command("import")
 def import_file(
-    source: str = typer.Argument(..., metavar="FILE", help="Transcript or AI conversation."),
+    source: str = typer.Argument(
+        ..., metavar="FILE|LINK", help="Transcript or AI conversation file, or a Grok share link."
+    ),
     title: str | None = typer.Option(
         None, help="Title (default: the file's heading, else its name)."
     ),
@@ -914,13 +916,20 @@ def import_file(
     vault: str | None = typer.Option(None, help="Vault folder (default from settings)."),
 ) -> None:
     """Import a transcript or an AI conversation (Markdown chat export, [hh:mm:ss] Name: text,
-    MeetingMaster3 .transcript.md, .vtt, .srt) and write its notes to the vault, like a
-    meeting. No audio and no transcription."""
+    MeetingMaster3 .transcript.md, .vtt, .srt, or a Grok share link, which is downloaded from
+    grok.com) and write its notes to the vault, like a meeting. No audio and no transcription."""
     import asyncio
     import datetime as dt
+    import functools
 
-    from meetingmaster3.headless import ProcessRequest, build_import_options, parse_speakers
+    from meetingmaster3.headless import (
+        ProcessRequest,
+        build_import_options,
+        build_share_options,
+        parse_speakers,
+    )
     from meetingmaster3.headless import process as run_process
+    from meetingmaster3.importing.grok_share import looks_like_share_url
     from meetingmaster3.importing.stages import CONFIRMED_OPTION, SPEAKERS_OPTION
     from meetingmaster3.vault.paths import resolve_vault_root
 
@@ -935,7 +944,8 @@ def import_file(
 
     try:
         resolve_vault_root(settings.vault.path)
-        if not path.is_file():
+        share = not path.is_file() and looks_like_share_url(source)
+        if not share and not path.is_file():
             raise MM3Error("E_IMPORT_MISSING", f"No file at {source!r}.", "")
         try:
             day = dt.date.fromisoformat(date) if date else None
@@ -943,10 +953,12 @@ def import_file(
         except ValueError as exc:
             raise MM3Error("E_OPTIONS_INVALID", f"Invalid date or time: {exc}.", "") from exc
         names = parse_speakers(",".join(speaker)) if speaker else {}
-        options = build_import_options(
-            path,
-            path.read_bytes(),
-            settings,
+        build = (
+            functools.partial(build_share_options, source)
+            if share
+            else functools.partial(build_import_options, path, path.read_bytes(), settings)
+        )
+        options = build(
             title=title,
             date=day,
             meeting_time=start,
@@ -960,7 +972,7 @@ def import_file(
             cloud_consent=cloud_consent,
             **{SPEAKERS_OPTION: names, CONFIRMED_OPTION: yes or None},
         )
-        request = ProcessRequest(path, options, None, cloud_consent, job_type="import")
+        request = ProcessRequest(path, options, None, cloud_consent, job_type="import", share=share)
         result = asyncio.run(
             run_process(settings, paths, request, ask=_ask_on_tty, echo=typer.echo)
         )

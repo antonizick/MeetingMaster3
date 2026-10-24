@@ -9,6 +9,11 @@ speakers. The answer is ``{"speakers": {label: name}, "turns": {"<index>": label
 the speakers and the turns moved to another speaker. It writes the corrected transcript
 (``transcript.imported.json``, which ``generate`` and ``write`` read), the job's speaker map and
 ``speakers.confirmed.json``. ``options.import_confirmed`` (``mm3 import --yes``) skips the pause.
+
+A Grok share link (Phase 15l) has no upload: the job's ``options.import_share_id`` makes
+``import_parse`` download the share first (cancellable, with progress) and keep it as
+``source.json``, so a resume never downloads it again. The title, date and time the user left
+empty (``options.import_fill``) are then taken from the conversation.
 """
 
 from __future__ import annotations
@@ -20,13 +25,17 @@ from typing import Any
 
 from meetingmaster3.domain.transcript import SPEAKER_LABEL_RE, SpeakerMap, Transcript, clean_name
 from meetingmaster3.errors import MM3Error
+from meetingmaster3.importing import grok_share
 from meetingmaster3.importing.convert import LOW_CONFIDENCE, ImportSpeaker, to_transcript
-from meetingmaster3.importing.detect import detect_and_parse
-from meetingmaster3.importing.model import ImportedConversation, format_name
+from meetingmaster3.importing.detect import decode, detect_and_parse
+from meetingmaster3.importing.fetch import fetch_share
+from meetingmaster3.importing.model import ImportedConversation, empty, format_name
 from meetingmaster3.jobs.stage import AwaitInputStage, BaseStage, InputRequired, StageContext
 from meetingmaster3.speakers import cascade
 from meetingmaster3.speakers.stages import CONFIRMED_FILE
 from meetingmaster3.speakers.store import MAX_NAME_LENGTH
+from meetingmaster3.storage.repositories import JobRepository
+from meetingmaster3.vault.io import atomic_write_text
 
 SOURCE_PREFIX = "source."
 PREVIEW_FILE = "import.json"
@@ -38,22 +47,46 @@ CONFIRMED_OPTION = "import_confirmed"
 SPEAKERS_OPTION = "import_speakers"
 """Job option ``{"user": "Nick", "assistant": "Grok"}`` (or ``{"SPEAKER_00": …}``): names to
 use instead of the defaults (``mm3 import --speaker``)."""
+SHARE_OPTION = "import_share_id"
+"""Job option: the id of the Grok share to download (never a URL; Phase 15l)."""
+FILL_OPTION = "import_fill"
+"""Job option: the details (``title``, ``meeting_date``, ``meeting_time``) the user left empty,
+filled from the downloaded conversation."""
+SHARE_SOURCE = SOURCE_PREFIX + "json"
+SHARE_SOURCE_NAME = "Grok share link"
+"""The job's ``source_filename`` for a share link (the link itself is not kept)."""
+SHARE_PLACEHOLDER_TITLE = "Grok conversation"
+FILLABLE = ("title", "meeting_date", "meeting_time")
+
+
+def find_source(job_dir: Path) -> Path | None:
+    found = sorted(p for p in job_dir.glob(SOURCE_PREFIX + "*") if p.is_file())
+    return found[0] if found else None
 
 
 def source_file(job_dir: Path) -> Path:
-    found = sorted(p for p in job_dir.glob(SOURCE_PREFIX + "*") if p.is_file())
-    if not found:
+    found = find_source(job_dir)
+    if found is None:
         raise MM3Error(
             "E_IMPORT_MISSING",
             "The imported file of this job is missing.",
             "Import the file again.",
             status_code=409,
         )
-    return found[0]
+    return found
 
 
 def parse_upload(data: bytes, filename: str, settings: Any) -> ImportedConversation:
     return detect_and_parse(data, filename, max_bytes=settings.importing.max_mb * 1024 * 1024)
+
+
+def parse_share_source(data: bytes, settings: Any) -> ImportedConversation:
+    """A downloaded share is always read as one (never detected as some other format)."""
+    text = decode(data, max_bytes=settings.importing.max_mb * 1024 * 1024)
+    conv = grok_share.parse_share(text, SHARE_SOURCE)
+    if not conv.turns:
+        raise empty()
+    return conv
 
 
 IMPORT_EXTENSIONS = frozenset({"md", "markdown", "txt", "text", "vtt", "srt"})
@@ -118,15 +151,75 @@ def preview(
     }
 
 
+def share_options(data: dict[str, Any], share_id: str) -> dict[str, Any]:
+    """Options for a share-link import: the share id, which details to fill from the
+    conversation, and a placeholder title until it is downloaded."""
+    out = dict(data)
+    out[SHARE_OPTION] = share_id
+    out[FILL_OPTION] = [k for k in FILLABLE if not out.get(k)]
+    if not out.get("title"):
+        out["title"] = SHARE_PLACEHOLDER_TITLE
+    return out
+
+
+def download_share(ctx: StageContext, share_id: str) -> Path:
+    """Download the share into ``source.json`` (atomically, so a cancelled download leaves
+    nothing to resume from)."""
+    ctx.progress(None, "Downloading the conversation from grok.com")
+    data = fetch_share(
+        share_id,
+        max_bytes=ctx.settings.importing.max_mb * 1024 * 1024,
+        check=ctx.check_cancelled,
+        sleep=ctx.sleep,
+    )
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise grok_share.unavailable("Grok's answer is not readable text.") from exc
+    return atomic_write_text(ctx.job_dir / SHARE_SOURCE, text, overwrite=True)
+
+
+def fill_details(ctx: StageContext, conv: ImportedConversation) -> None:
+    """Put the conversation's title, date and time where the user left them empty, in the
+    options and in the job's row (the job list and the note read them)."""
+    fill = [k for k in ctx.options.get(FILL_OPTION) or [] if k in FILLABLE]
+    found = import_defaults(conv)
+    changed = {k: found[k] for k in fill if found.get(k)}
+    ctx.options.update(changed)
+    row: dict[str, Any] = {"duration_seconds": import_duration(conv)}
+    if "title" in changed:
+        row["title"] = changed["title"]
+    if "meeting_date" in changed:
+        row["meeting_date"] = dt.date.fromisoformat(changed["meeting_date"])
+    if ctx.db is not None:
+        JobRepository(ctx.db).update(ctx.job_id, **row)
+
+
 class ImportParseStage(BaseStage):
     name = "import_parse"
     display_name = "Reading the file"
 
     def run(self, ctx: StageContext) -> Path:
         settings = ctx.settings
-        path = source_file(ctx.job_dir)
+        share_id = ctx.options.get(SHARE_OPTION)
+        path = find_source(ctx.job_dir)
+        if path is None and isinstance(share_id, str) and share_id:
+            path = download_share(ctx, share_id)
+        path = path or source_file(ctx.job_dir)
+        ctx.check_cancelled()
         ctx.progress(0.1, "Reading the file")
-        conv = parse_upload(path.read_bytes(), ctx.job.source_filename or path.name, settings)
+        try:
+            data = path.read_bytes()
+            if share_id:
+                conv = parse_share_source(data, settings)
+            else:
+                conv = parse_upload(data, ctx.job.source_filename or path.name, settings)
+        except MM3Error:
+            if share_id:  # not a share we can read: a resume downloads it again
+                path.unlink(missing_ok=True)
+            raise
+        if share_id:
+            fill_details(ctx, conv)
         names = _named_overrides(ctx.options)
         participants = [p for p in ctx.options.get("participants") or [] if isinstance(p, str)]
         user_name = names.get("user") or (participants[0] if participants else "")

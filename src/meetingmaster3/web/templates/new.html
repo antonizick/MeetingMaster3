@@ -27,6 +27,14 @@
       without speaker labels) or a transcript: <code>[hh:mm:ss] Name: text</code> lines, a MeetingMaster3
       <code>.transcript.md</code> or <code>.txt</code> export, WebVTT (<code>.vtt</code>) or SubRip (<code>.srt</code>).
       Next you check who said each turn. No audio is needed.</p>
+    <div class="field" x-show="isImport" x-cloak>
+      <label for="share_url">Or paste a Grok share link</label>
+      <input id="share_url" name="share_url" type="url" inputmode="url" autocomplete="off" spellcheck="false"
+             placeholder="https://x.com/i/grok/share/…" maxlength="2048" aria-describedby="share-hint"
+             x-model="shareUrl" x-bind:disabled="hasFile">
+      <p id="share-hint" class="hint">MeetingMaster3 downloads that one conversation from grok.com (the link must be
+        shared). Speakers and times come from Grok, so there is nothing to fix. Use a file <em>or</em> a link.</p>
+    </div>
   </section>
 
   <section class="card stack" aria-labelledby="h-details">
@@ -121,7 +129,8 @@
   <div class="alert error" role="alert" x-show="hasError">
     <p><strong x-text="error"></strong></p><p x-text="errorHint"></p>
   </div>
-  <div class="stack" x-show="uploading">
+  <p class="hint" role="status" aria-live="polite" x-show="fetching" x-cloak>Downloading the conversation from grok.com…</p>
+  <div class="stack" x-show="uploading && !hasLink">
     <label for="upload-progress">Uploading…</label>
     <progress id="upload-progress" max="100" x-bind:value="progress"></progress>
   </div>

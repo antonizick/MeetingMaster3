@@ -1,9 +1,10 @@
 """Decoding and format detection: :func:`detect_and_parse` picks a parser by content.
 
-Order: an MM3 companion (frontmatter plus its data block), WebVTT (``WEBVTT`` header), SubRip
-(numbered cues with ``-->`` times), timestamped lines, a labelled AI conversation, and finally
-an unlabelled conversation (any other text). The file extension only breaks ties, so a ``.txt``
-holding captions or a ``.md`` holding a timestamped transcript is still read correctly.
+Order: a Grok share's JSON (Phase 15l), an MM3 companion (frontmatter plus its data block),
+WebVTT (``WEBVTT`` header), SubRip (numbered cues with ``-->`` times), timestamped lines, a
+labelled AI conversation, and finally an unlabelled conversation (any other text). The file
+extension only breaks ties, so a ``.txt`` holding captions or a ``.md`` holding a timestamped
+transcript is still read correctly.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ from typing import Any
 import yaml
 
 from meetingmaster3.errors import MM3Error
-from meetingmaster3.importing import chat, timestamped
+from meetingmaster3.importing import chat, grok_share, timestamped
 from meetingmaster3.importing.model import (
     MAX_TURNS,
     ImportedConversation,
@@ -36,8 +37,9 @@ PARSERS: dict[str, Parser] = {
     "timestamped-text": timestamped.parse_timestamped,
     "chat-markdown": chat.parse_labelled,
     "chat-unlabelled": chat.parse_unlabelled,
+    grok_share.FORMAT_ID: grok_share.parse_share,
 }
-"""Parser id → parser. Phase 15l adds the Grok share-link parser beside these."""
+"""Parser id → parser. ``grok-share`` reads the JSON a Grok share link downloads (Phase 15l)."""
 
 _FRONTMATTER = re.compile(r"\A---[ \t]*\n(?P<yaml>.*?)\n---[ \t]*(?:\n|\Z)", re.S)
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
@@ -98,6 +100,8 @@ def _meta_date(meta: dict[str, Any]) -> dt.datetime | None:
 def detect(text: str, filename: str = "") -> str:
     """The id of the parser for ``text``."""
     ext = filename.rsplit(".", 1)[-1].casefold() if "." in filename else ""
+    if grok_share.is_share_json(text):
+        return grok_share.FORMAT_ID
     if timestamped.is_companion(text):
         return "mm3-companion"
     if timestamped.is_vtt(text):

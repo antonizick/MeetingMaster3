@@ -82,3 +82,60 @@ def test_a_timed_import_jumps_to_the_clicked_time(server: tuple[str, Path]) -> N
         page.locator('.ts[data-t="62.0"]').click()
         current = page.locator(".seg.current")
         assert current.count() == 1 and "login page" in current.inner_text()
+
+
+# -- Phase 15l: a Grok share link (the download is faked; no request leaves the machine) ---------
+
+SHARE_LINK = "https://grok.com/share/c3ludGhldGlj_0f8b5c3e-1111-4222-8333-944445555666"
+
+
+def test_paste_a_share_link(server: tuple[str, Path], monkeypatch: pytest.MonkeyPatch) -> None:
+    from meetingmaster3.importing import stages as stages_mod
+
+    body = FIXTURE.with_name("grok-share-linear.json").read_bytes()
+    monkeypatch.setattr(stages_mod, "fetch_share", lambda share_id, **kw: body)
+    base, vault = server
+    with browser_page(base) as page:
+        page.goto(base + "/")
+        assert not page.is_visible("#share_url")
+        page.get_by_label("Import a transcript or AI conversation").check()
+        page.get_by_label("Or paste a Grok share link").fill(SHARE_LINK)
+        page.get_by_role("button", name="Accept settings & start").click()
+        page.wait_for_url(re.compile(r"/jobs/[0-9a-f-]{36}$"), timeout=20_000)
+        page.get_by_role("link", name="Check the speakers").click(timeout=20_000)
+        page.wait_for_selector("#import-form")
+        assert "00:12" in page.inner_text("#import-form")
+        assert page.locator("li.import-turn.low").count() == 0
+        violations = [v for v in _axe(page) if v["impact"] in BLOCKING]
+        assert not violations, violations
+        page.get_by_role("button", name="Confirm & write notes").click()
+        page.wait_for_selector("text=Written to your vault", timeout=30_000)
+    note = next(vault.rglob("*community garden*.transcript.md"))
+    assert parse_transcript(read_text(note)).doc.transcript.timed
+
+
+def test_a_failed_download_shows_inline_and_upload_still_works(
+    server: tuple[str, Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from meetingmaster3.importing import stages as stages_mod
+    from meetingmaster3.importing.fetch import offline
+
+    def fail(share_id: str, **kw: object) -> bytes:
+        raise offline("ConnectError")
+
+    monkeypatch.setattr(stages_mod, "fetch_share", fail)
+    base, _ = server
+    with browser_page(base) as page:
+        page.goto(base + "/?mode=import")
+        page.fill("#share_url", "https://chatgpt.com/share/abc")
+        page.get_by_role("button", name="Accept settings & start").click()
+        page.wait_for_selector("text=Only Grok share links")
+        page.fill("#share_url", SHARE_LINK)
+        page.get_by_role("button", name="Accept settings & start").click()
+        page.wait_for_selector("text=Are you offline?", timeout=20_000)
+        assert "export the conversation to Markdown" in page.inner_text("[role=alert]")
+        assert page.url.rstrip("/").endswith("?mode=import")
+        page.fill("#share_url", "")
+        page.set_input_files("#file", str(FIXTURE))
+        page.get_by_role("button", name="Accept settings & start").click()
+        page.wait_for_url(re.compile(r"/jobs/[0-9a-f-]{36}$"))

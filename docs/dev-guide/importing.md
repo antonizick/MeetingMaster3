@@ -6,20 +6,21 @@ Phase 15k (spec R32, ADR-0052). Package `src/meetingmaster3/importing/`. Phase 1
 ```python
 @dataclass(frozen=True)
 class ImportedTurn:
-    speaker: str                      # "Alice", "Grok"; "" when the file names nobody or only a role
+    speaker: str  # "Alice", "Grok"; "" when the file names nobody or only a role
     role: Literal["user", "assistant", "other"] | None
-    text: str                         # Markdown inside an AI answer is kept
-    start: float | None = None        # seconds; None = untimed (never invent a time)
+    text: str  # Markdown inside an AI answer is kept
+    start: float | None = None  # seconds; None = untimed (never invent a time)
     end: float | None = None
-    confidence: float = 1.0           # 0-1, how sure the parser is about speaker/role
-    words: tuple[Word, ...] = ()      # word timings (MM3 companions only)
+    confidence: float = 1.0  # 0-1, how sure the parser is about speaker/role
+    words: tuple[Word, ...] = ()  # word timings (MM3 companions only)
+
 
 @dataclass(frozen=True)
 class ImportedConversation:
     turns: list[ImportedTurn]
     title: str | None
     started_at: datetime | None
-    source_format: str                # the parser id
+    source_format: str  # the parser id
     warnings: list[str]
     timed: bool  # property: every turn has a start
 ```
