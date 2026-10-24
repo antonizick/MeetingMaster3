@@ -180,6 +180,8 @@ class PreparedContext:
     chunks: int = 0
     meeting_day: dt.date | None = None
     cues: tuple[Cue, ...] = ()
+    timed: bool = True
+    """``False`` for an untimed (imported) transcript: clock references are removed (R32)."""
 
 
 @dataclass
@@ -347,6 +349,7 @@ class NoteGenerator:
                 self._num_ctx(window, estimate_tokens(system + "\n" + context) + section_need),
                 meeting_day=day,
                 cues=cues,
+                timed=transcript.timed,
             )
 
         # Map: chunk on speaker turns so each extraction call fits the budget. A ``detail: high``
@@ -421,6 +424,7 @@ class NoteGenerator:
             len(chunks),
             meeting_day=day,
             cues=cues,
+            timed=transcript.timed,
         )
 
     def _map_prompt(
@@ -518,7 +522,11 @@ class NoteGenerator:
                 num_ctx=prepared.num_ctx,
             )
             body = clean_section(
-                text, title=section.title, fmt=section.format, meeting_day=prepared.meeting_day
+                text,
+                title=section.title,
+                fmt=section.format,
+                meeting_day=prepared.meeting_day,
+                timed=prepared.timed,
             )
             if section.format == "tasks" and prepared.cues:
                 body, unassigned = guard_owners(body, prepared.cues)
@@ -565,7 +573,11 @@ class NoteGenerator:
             num_ctx=prepared.num_ctx,
         )
         retry = clean_section(
-            text, title=section.title, fmt=section.format, meeting_day=prepared.meeting_day
+            text,
+            title=section.title,
+            fmt=section.format,
+            meeting_day=prepared.meeting_day,
+            timed=prepared.timed,
         )
         if retry != EMPTY_BODY and count_paragraphs(retry) > n:
             body, finish = retry, retry_finish

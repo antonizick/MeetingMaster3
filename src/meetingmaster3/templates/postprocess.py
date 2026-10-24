@@ -161,16 +161,28 @@ def _is_sentinel(lines: list[str]) -> bool:
     return len(lines) == 1 and not _BULLET_RE.match(lines[0]) and len(lines[0]) < 120
 
 
+CLOCK_REF_RE = re.compile(
+    r"[ \t]?\[(?:mm:ss|h:mm:ss|\d{1,2}:\d{2}(?::\d{2})?)"
+    r"(?:\s*[-\u2013]\s*(?:mm:ss|\d{1,2}:\d{2}(?::\d{2})?))?\]"
+)
+"""A ``[12:34]``, ``[1:02:03]``, ``[00:10-01:30]`` or template ``[mm:ss]`` reference."""
+
+
 def clean_section(
     text: str,
     *,
     title: str | None = None,
     fmt: SectionFormat = "markdown",
     meeting_day: dt.date | None = None,
+    timed: bool = True,
 ) -> str:
     """The section body to store: never empty, never containing an mm3 marker. For task
-    sections, weekday deadlines get their date relative to ``meeting_day``."""
+    sections, weekday deadlines get their date relative to ``meeting_day``. Without ``timed``
+    (an imported transcript with no times), ``[mm:ss]`` references are removed: there is no
+    time they could point to (R32)."""
     text = text.replace("\r\n", "\n").replace("\r", "\n")
+    if not timed:
+        text = CLOCK_REF_RE.sub("", text)
     text = _strip_reasoning(text)
     text = _strip_fence(text.strip("\n"))
     text = _HTML_COMMENT_MM3_RE.sub("", text)

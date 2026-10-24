@@ -1,0 +1,62 @@
+"""Phase 15k browser check: import the unlabelled voice-mode fixture from New meeting, flip one
+turn on the check page (keyboard), write the notes and open the review page (with an axe-core
+scan of the check page). Fake pipeline; needs Chromium (``MM3_E2E_BROWSER=/usr/bin/chromium``)."""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+import pytest
+
+from meetingmaster3.markdown.transcript_format import parse_transcript
+from meetingmaster3.vault.io import read_text
+from tests.e2e import test_qa_flows as qa
+from tests.e2e.test_qa_flows import BLOCKING, _axe, browser_page
+
+pytestmark = [pytest.mark.e2e]
+pytest.importorskip("playwright.sync_api")
+
+server = qa.server
+FIXTURE = Path(__file__).parents[1] / "fixtures" / "imports" / "voice-mode-unlabelled.md"
+
+
+def test_import_flip_a_turn_and_write(server: tuple[str, Path]) -> None:
+    base, vault = server
+    with browser_page(base) as page:
+        page.goto(base + "/")
+        assert page.is_visible("#h-speakers")
+        page.get_by_label("Import a transcript or AI conversation").check()
+        assert page.inner_text("#h-audio") == "1. Transcript or conversation"
+        assert not page.is_visible("#h-speakers") and not page.is_visible("#h-hw")
+        assert ".md" in (page.get_attribute("#file", "accept") or "")
+        page.set_input_files("#file", str(FIXTURE))
+        page.fill("#participants", "Nick")
+        page.get_by_role("button", name="Accept settings & start").click()
+        page.wait_for_url(re.compile(r"/jobs/[0-9a-f-]{36}$"))
+        page.get_by_role("link", name="Check the speakers").click(timeout=20_000)
+        page.wait_for_selector("#import-form")
+
+        violations = [v for v in _axe(page) if v["impact"] in BLOCKING]
+        assert not violations, violations
+        assert page.input_value("#name-SPEAKER_00") == "Nick"
+        page.fill("#name-SPEAKER_01", "Grok")
+        turn = page.locator('li.import-turn[data-i="1"] button.who')
+        assert turn.inner_text() == "Grok"  # renaming updates every turn of that speaker
+        turn.focus()
+        page.keyboard.press("Enter")  # keyboard-accessible toggle
+        assert turn.inner_text() == "Nick"
+        assert page.input_value('input[name="turn__1"]') == "SPEAKER_00"
+        assert page.locator("li.import-turn.low").count() >= 1
+        page.get_by_role("button", name="Confirm & write notes").click()
+        page.wait_for_selector("text=Written to your vault", timeout=30_000)
+        page.get_by_role("link", name="Review & edit").click()
+        page.wait_for_selector("#imported-badge")
+        assert "Imported from AI conversation (unlabelled)" in page.inner_text("#imported-badge")
+        assert page.locator("#audio").count() == 0
+        assert "Grok" in page.inner_text("#transcript")
+
+    companion = next(vault.rglob("*.transcript.md"))
+    doc = parse_transcript(read_text(companion)).doc
+    assert doc.transcript.segments[1].speaker_label == "SPEAKER_00"
+    assert doc.speakers.names == {"SPEAKER_00": "Nick", "SPEAKER_01": "Grok"}

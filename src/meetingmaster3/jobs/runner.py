@@ -383,6 +383,13 @@ class JobRunner:
         job = self.jobs.get(job_id)
         if pinned and job.audio_path is None and job.audio_pruned_at is not None:
             raise retention.audio_expired_error()
+        if pinned and job.job_type == "import":
+            raise MM3Error(
+                "E_AUDIO_MISSING",
+                "An imported meeting has no recording to keep.",
+                "Its note and transcripts stay in the vault; nothing expires.",
+                status_code=409,
+            )
         return self.jobs.update(job_id, audio_pinned=pinned)
 
     def prune(self, *, dry_run: bool = False) -> list[retention.PruneItem]:

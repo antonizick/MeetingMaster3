@@ -305,8 +305,9 @@ def load_workspace(
         ws.job_id = find_job(runner, mm3_id, entry)
         ws.audio, ws.audio_message = audio_state(runner, ws.job_id)
         if ws.imported_from and ws.audio != "ok":
-            ws.audio, ws.audio_message = "none", (
-                f"Imported from a text file ({ws.imported_from}), so there is no recording."
+            ws.audio, ws.audio_message = (
+                "none",
+                (f"Imported from a text file ({ws.imported_from}), so there is no recording."),
             )
         if ws.job_id is not None:
             ws.audio_pinned = runner.jobs.get(ws.job_id).audio_pinned
