@@ -41,6 +41,10 @@ is [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
   `ffprobe` and rejected unless they contain audio. ffmpeg/ffprobe run without a shell, from an
   argument list with `--` before the path, `-nostdin` and a timeout. ffmpeg's parsers remain attack
   surface (Phase 15 threat model).
+- **Untrusted text imports** (Phase 15k). Imported transcripts and AI conversations (`POST /api/imports`) are
+  size-limited while streaming (`importing.max_mb`, 10 MB), stored under a server-chosen name, decoded as
+  strict UTF-8 (binary refused) and parsed by pure-Python parsers before a job exists; the parsers raise
+  only `MM3Error` (fuzzed with Hypothesis). See T-IMPORT in the threat model.
 - **Secrets.** API keys and the Hugging Face token come from environment variables or a `0600`
   config file; they are never logged, never returned unmasked, never written to the vault. The HF
   token is only used to download the gated diarization model.
