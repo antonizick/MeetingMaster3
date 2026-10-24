@@ -78,7 +78,8 @@ To use an **AWS profile** instead of keys, uncomment the read-only `~/.aws` moun
 
 How to create the keys, step by step: [llm-backends.md](llm-backends.md#aws-bedrock). The container
 sends nothing to a cloud backend until you consent, exactly as outside Docker; with only local backends,
-the only outbound connections are model downloads from Hugging Face.
+the only outbound connections are model downloads from Hugging Face, and, only when you import a Grok share link,
+one HTTPS request to `grok.com` (the container needs outbound HTTPS for that feature; file imports work without it).
 
 ## Network posture (read this)
 MeetingMaster3 has no login, so the published port is bound to the **host's loopback only**

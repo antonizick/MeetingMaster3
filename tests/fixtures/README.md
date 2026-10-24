@@ -54,6 +54,10 @@ Synthetic files written for the import parsers (CC0, invented people and topics;
 | `claude-style.md` | `## Human` / `## Claude` headings, multi-line answers | parsers |
 | `voice-mode-unlabelled.md` | Mimics a Grok voice-mode export: no labels or times, user speech with fillers and **growing prefixes**, multi-paragraph answers, a tool-status line, short turns on both sides, a `2 / 2` counter. `voice-mode-unlabelled.labels` is the ground truth (`U`/`A` per paragraph after prefix collapsing) | parsers (≥ 95 % role accuracy), import jobs, `tests/e2e/test_import_flow.py` |
 | `timestamped.txt` | `[hh:mm:ss] Name: text` lines, one speaker continuing over two lines | parsers, import jobs |
+| `grok-share-linear.json` | Phase 15l. A Grok share's JSON (same shape and keys as the real endpoint, invented content and ids): a voice-mode chat with growing human prefixes, Markdown and a code fence in answers, the generic title "Discussion Request". Written by hand for this phase (CC0) | `tests/unit/importing/test_grok_share.py`, `test_share_jobs.py`, `tests/e2e/test_import_flow.py` |
+| `grok-share-branched.json` | Phase 15l. A regenerated answer and an edited question (two children of one parent each); the latest child must win | `test_grok_share.py` |
+| `grok-share-partial.json` | Phase 15l. An empty message, a `partial` reply and an unknown `system` sender, all dropped | `test_grok_share.py` |
+| `grok-share-unicode.json` | Phase 15l. French, Japanese, Arabic, Greek and an emoji | `test_grok_share.py` |
 | `mm3-export.txt` | The MM3 `.txt` export layout: `mm:ss Name` (and `h:mm:ss Name`) then the text | parsers |
 | `captions.vtt` | WebVTT with a header, a `NOTE`, `<v Name>` and `<v.class Name>` voice tags and a `Name:` prefix | parsers |
 | `captions.srt` | SubRip with `Name:` prefixes, an `<i>` tag and a cue with no speaker | parsers |

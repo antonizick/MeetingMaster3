@@ -8,6 +8,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Import a Grok conversation from its share link** (Phase 15l, R32, ADR-0052): on New meeting's import, paste an
+  `https://x.com/i/grok/share/…` (or `twitter.com`, `grok.com/share/…`) link instead of choosing a file, or run
+  `mm3 import <link>`. MeetingMaster3 downloads that one shared conversation from grok.com and imports it with **exact
+  speakers and real timing** (the notes' `[mm:ss]` references match the conversation); voice-mode's repeated partial
+  messages are merged, regenerated or edited alternatives are skipped (the latest version is kept), and the title, date and
+  start time come from the conversation unless you typed them. A resumed job never downloads again. Errors (link not
+  shared, Grok changed, offline) appear on the New meeting page and point to the Markdown upload. Other links are refused
+  before any request. A saved share JSON file can be imported too.
 - **Import a transcript or an AI conversation** (Phase 15k, R32, ADR-0052): New meeting has a *Start from* choice,
   **Import a transcript or AI conversation**, beside the audio upload (`POST /api/imports`, `mm3 import <file>
   [--speaker user=… --speaker assistant=… --yes]`). Supported: AI chats exported as Markdown, labelled (`## User`,
@@ -245,6 +253,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `markdown-it-py` is now a direct dependency (note preview); `playwright` is a dev dependency.
 
 ### Security
+- **First request to a non-LLM website** (Phase 15l): a Grok share-link import makes one confined HTTPS request to the fixed
+  host grok.com (the URL is built from a validated share id, so no SSRF; no redirects, cookies or credentials; size and time
+  limits). Documented in `docs/PRIVACY.md`, `docs/THREAT_MODEL.md` (T-SHARE-FETCH, T-SHARE-JSON) and `SECURITY.md`.
 - Phase 15 review fixes: a cloud-consent answer given while switching to a local model could later
   approve a cloud backend (S6, now single-use and cleared on resume; reprocessing no longer inherits
   consent); "Export all app data" could include a waiting job's voice embeddings (S7, now excluded and

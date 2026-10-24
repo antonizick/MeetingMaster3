@@ -55,7 +55,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0050 | 2026-10-22 14:56 CDT | Meeting index layout and retrieval tuning: separate rebuildable `search.db` (not an `mm3.db` migration); FTS5 over passage body plus heading lines weighted 0.3; word candidates within 30 % of the best BM25 and vector candidates within 0.08 cosine of the best, fused by RRF (k = 60); pure-Python cosine over cached float32 arrays; vectors tagged with one model id; vault-change hook in `atomic_write_text`; GPU only while no job is active | Accepted | 15i |
 | ADR-0049 | 2026-10-22 13:47 CDT | Ask AI agent: hybrid (FTS5 + embeddings) retrieval with embeddings through the backends (local `nomic-embed-text` default, cloud only with its own consent); a JSON-driven pipeline with code-built facts, not tool-calling; per-question cloud consent or a separate sticky Ask switch; every answer saved as a linked vault note; split into 15i and 15j | Accepted (planning) | 15i, 15j |
 | ADR-0051 | 2026-10-22 15:44 CDT | Ask agent details: plan queries only (never the raw question) with dates used only when the question talks about time; Ask's own vector margin 0.12; quotes and people verified against the excerpts; model tables dropped and HTML defused; one question at a time holding the GPU per call; answers in `mm3.db` (migration 5) with the note as the answer; `keep_history` off keeps nothing; Obsidian links by path | Accepted | 15j |
-| ADR-0052 | 2026-10-24 11:42 CDT | Import transcripts and AI conversations as meetings (`import` job type; AI chat Markdown, labelled or not, and timestamped transcripts; untimed transcripts invent no times); Grok share links only, from a fixed host; Create Project Plan, the 24th built-in, writes a pre-plan for `/phased-project`; the example conversation stays private; split into 15k, 15l, 15m | Accepted (planning) | 15k, 15l, 15m |
+| ADR-0052 | 2026-10-24 11:42 CDT | Import transcripts and AI conversations as meetings (`import` job type; AI chat Markdown, labelled or not, and timestamped transcripts; untimed transcripts invent no times); Grok share links only, from a fixed host; Create Project Plan, the 24th built-in, writes a pre-plan for `/phased-project`; the example conversation stays private; split into 15k, 15l, 15m | Accepted (planning); 15k and 15l implemented | 15k, 15l, 15m |
 
 ---
 
@@ -1647,3 +1647,53 @@ include conversations; filtering them apart is a possible follow-up. The templat
   `importing.max_mb` (10) and `importing.user_name` ("Me"), on the Settings screen too. Import options
   `import_speakers` and `import_confirmed`. The note keeps the tag `meeting` (no new tag). `mm3 import` without
   `--yes` asks on a terminal and otherwise stops with a hint (`E_INPUT_NEEDED`).
+
+**Phase 15l implementation (2026-10-24 14:12 CDT).** Grok share links, built as decided (`importing/grok_share.py`,
+`importing/fetch.py`; spec R32, S6).
+- **Links.** `parse_share_url` reduces `https://x.com/i/grok/share/<id>`, `https://twitter.com/…`, `https://grok.com/share/<id>`
+  (and the `www.` hosts; no scheme means https) to the id; the query and fragment are dropped, surrounding whitespace and
+  angle brackets trimmed. Refused with `E_IMPORT_URL_UNSUPPORTED` and the Markdown hint, before any request: `http://` and
+  other schemes, other hosts (compared exactly, ASCII only, so `grok.com.evil.com`, IDN and punycode look-alikes fail), user
+  info, ports, other paths, `..`, percent-encoding, backslashes, whitespace, an id outside `[A-Za-z0-9_-]{8,200}`.
+- **Endpoint and request.** One `GET https://grok.com/rest/app-chat/share_links/<id>`, the URL built from the id (no generic
+  fetcher, no SSRF surface). httpx with certificate verification, `follow_redirects=False` (any 3xx is an error), no cookies
+  (the jar is cleared after each attempt), no credentials, `Accept: application/json`, `User-Agent: MeetingMaster3/<version>
+  (Grok share import)`, 20 s per connect/read and 60 s overall, the body read as a stream under `importing.max_mb`
+  (`Content-Length` checked first), a cancel check between chunks, `HTTPS_PROXY` honoured (`trust_env`). 401/403/404/410 →
+  `E_IMPORT_SHARE_NOT_FOUND` ("not shared publicly, or deleted"), not retried; 5xx and timeouts retried once after 1 s;
+  other statuses, a redirect, a non-JSON content type or an unreadable body → `E_IMPORT_SHARE_UNAVAILABLE` ("Grok may have
+  changed how share links work"); connection errors → `E_IMPORT_OFFLINE` ("Cannot reach grok.com … Are you offline?").
+  Every hint points to the Markdown upload.
+- **JSON used.** `responses[]`: `responseId`, `parentResponseId`, `sender` (`human` → user, `assistant`; anything else
+  skipped with a warning), `message` (Markdown kept), `createTime`, `partial`; `conversation`: `title`, `createTime`. A
+  pydantic model ignores every other key (the real share has about 40 per response).
+- **Branch rule.** The thread starts at the root (a response whose parent is not in the share) and follows the **latest
+  child** (by `createTime`, then list order) at each step, which is what Grok shows after a regenerated answer or an edited
+  question; skipped alternatives are counted in a warning. Several roots: the latest wins. No parent links at all, or only
+  a cycle: time order. Partial and empty responses are dropped (warned).
+- **Prefix rule.** Consecutive user messages where one is a growing prefix of the next (15k's `is_growing_prefix`) merge into
+  the full text at the **first** copy's time: the first partial transcription is the closest record of when the person
+  started speaking, which matches an audio transcript's segment start (the last copy's time is when they stopped).
+- **Timing rule.** `start` = `createTime` minus the first kept message's `createTime` (never negative, never earlier than the
+  previous turn); `end` = the next turn's start; so the transcript is timed and its duration is the last start. If any
+  kept message lacks a time, the whole conversation is untimed (warned; no time is invented).
+- **Title and date.** `conversation.title`, unless generic ("Discussion Request", "New chat", "Voice chat"…): then the user's
+  first sentence without opening fillers and greetings, cut to ten words. Date and time from `conversation.createTime`
+  (else the first message) in the server's local time zone. The assistant is named "Grok"; the user side follows 15k.
+- **Job shape.** `POST /api/imports` with no file part and `options.share_url` (a file *and* a link → 422). The link is
+  validated before the job exists; the job stores only the id (`import_share_id`), the details the user left empty
+  (`import_fill`), the placeholder title "Grok conversation" and `source_filename` "Grok share link". `import_parse`
+  downloads when there is no `source.*` yet and writes `source.json` atomically, so a resume never downloads again and a
+  cancelled download leaves nothing; a downloaded share is always read by the `grok-share` parser (never re-detected), and
+  if it cannot be read the file is removed so a resume fetches afresh. Then the filled title, date, time and duration are
+  written to the options and the job row. The New meeting page waits for that stage and shows a download error inline
+  (deleting the failed job), otherwise it opens the job. `mm3 import <link>` works the same (`ProcessRequest.share`). A
+  saved share JSON is also detected by content (`grok-share`).
+- **Terms of service.** One unauthenticated request for a conversation its owner chose to share publicly, made only when
+  the user pastes the link and starts the import, equivalent to opening the share in a browser; no login, cookies,
+  crawling or other requests. If Grok objects or changes the endpoint, the feature fails safely to the Markdown upload.
+- **Measured (private check, numbers only).** On a real 17-minute voice-mode share Nick provided: 54 KB in 0.2 s, 39
+  responses (24 human, 15 assistant), one root, no branches or partial messages; 9 growing human prefixes merged (each
+  checked by hand to be a true prefix), 30 turns, every speaker exact (no low-confidence rows), times 00:00 to 17:15. qwen3:8b
+  wrote Default Notes in 407 s with 40 `[mm:ss]` references, all within the conversation. The link Nick gave is not the
+  privacy brainstorming conversation from 15k, so the comparison with that Markdown export was not possible.

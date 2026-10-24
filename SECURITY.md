@@ -45,6 +45,9 @@ is [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
   size-limited while streaming (`importing.max_mb`, 10 MB), stored under a server-chosen name, decoded as
   strict UTF-8 (binary refused) and parsed by pure-Python parsers before a job exists; the parsers raise
   only `MM3Error` (fuzzed with Hypothesis). See T-IMPORT in the threat model.
+- **Grok share links** (Phase 15l). The only outbound request to a non-LLM website: one HTTPS `GET` to the fixed host
+  `grok.com`, built from a share id validated before the job exists (no generic URL fetcher, so no SSRF), with no redirects,
+  cookies or credentials, TLS verification, size and time limits. See T-SHARE-FETCH and T-SHARE-JSON in the threat model.
 - **Secrets.** API keys and the Hugging Face token come from environment variables or a `0600`
   config file; they are never logged, never returned unmasked, never written to the vault. The HF
   token is only used to download the gated diarization model.
@@ -97,6 +100,7 @@ workspace's endpoints (threat model T-XSS, T-CSRF, T-PATH): unchanged, no findin
 | All-or-nothing validation | `config/editing.py` | A settings form is validated as a whole against the pydantic models before anything is applied or written, so a bad value never leaves the app half-changed. Settings cannot be edited through any GET route. |
 | Vault confinement (S4) | `settings_ui.py`, `templates/manage.py` | The templates and attachments folders are confined to the vault; template files are addressed by a strict file-name pattern (no separators, no `..`) and written atomically with `vault_root` confinement. Deleting or resetting a template archives the old copy first. |
 | Voiceprint wipe | `settings_ui.py` | Deleting every voiceprint needs a second request carrying a single-use, five-minute token issued by the first (the same token store as the API). |
+| Grok share download | `importing/fetch.py`, `importing/grok_share.py` | One `GET https://grok.com/rest/app-chat/share_links/<id>` per share-link import, only when the user starts it; the id is validated by an exact parser and the URL is built by the app; redirects refused; no cookies; streamed under `importing.max_mb`. |
 | Hugging Face token test | `transcription/hf_check.py` | Two HTTPS requests to `huggingface.co`, only on pressing *Test*; the token goes in a header and never into the result, a log line or the page. Refused in offline mode. |
 | Exports contain no secrets | `exporting.py` | "Export all app data" writes `settings.json` masked and omits the voiceprint tables and all audio; a test asserts no secret value, voiceprint name or audio is in the zip. Export paths are confined to the vault; feedback CSV neutralises spreadsheet formulas. |
 | No telemetry | UI, `docs/PRIVACY.md` | Ratings are stored in the local SQLite database and leave only when you download the export. |

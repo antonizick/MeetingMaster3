@@ -83,7 +83,7 @@ Every setting below can also be changed on the **Settings** screen ([`settings.m
 | `ask.keep_history` | `MM3_ASK__KEEP_HISTORY` | `true` | Save every answer as a vault note and list it on the Ask-AI page. Off: answers are shown once and kept nowhere. |
 | `audio.max_upload_mb` | `MM3_AUDIO__MAX_UPLOAD_MB` | `2048` | Largest accepted upload, in MiB (R7). Larger uploads get HTTP 413 `E_UPLOAD_TOO_LARGE`. |
 | `audio.opus_bitrate_kbps` | `MM3_AUDIO__OPUS_BITRATE_KBPS` | `24` | Bitrate of the Opus copy kept after a note is written (6-128). |
-| `importing.max_mb` | `MM3_IMPORTING__MAX_MB` | `10` | Largest transcript or AI conversation file that can be imported, in MiB (1-200). Larger files get HTTP 413 `E_IMPORT_TOO_LARGE`. See [`importing.md`](importing.md). |
+| `importing.max_mb` | `MM3_IMPORTING__MAX_MB` | `10` | Largest transcript or AI conversation file that can be imported, in MiB (1-200). Larger files get HTTP 413 `E_IMPORT_TOO_LARGE`. See [`importing.md`](importing.md). Also the limit for a downloaded Grok share (Phase 15l). |
 | `importing.user_name` | `MM3_IMPORTING__USER_NAME` | `Me` | Name for your side of an imported AI conversation when New meeting lists no participant (the first participant wins; `mm3 import --speaker user=…` overrides both). |
 | `jobs.max_concurrent` | `MM3_JOBS__MAX_CONCURRENT` | `2` | Jobs processed at once (1-8). GPU stages never overlap regardless (R5); this lets one job's CPU work run beside another's GPU work. |
 | `jobs.prune_interval_hours` | `MM3_JOBS__PRUNE_INTERVAL_HOURS` | `24` | How often the audio retention pruner runs (it also runs at startup). |

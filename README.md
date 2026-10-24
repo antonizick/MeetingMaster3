@@ -37,7 +37,8 @@ The CI badge above is a placeholder until the repository is published (Phase 16)
   (even a Grok voice-mode export with no speaker labels) or a transcript made elsewhere (`[hh:mm:ss] Name:`
   lines, `.vtt`, `.srt`, a MeetingMaster3 `.transcript.md`). Check who said each turn with one click per turn,
   and get an ordinary meeting note: review, regenerate, rename, Search and Ask-AI all work, and no
-  timestamps are invented ([importing](docs/user-guide/importing.md), `mm3 import`).
+  timestamps are invented ([importing](docs/user-guide/importing.md), `mm3 import`). Or paste a **Grok share link**:
+  speakers and times come straight from Grok, so there is nothing to fix (one download from grok.com).
 - Fix a meeting's title or date after the fact: every file is renamed and the links to it in your other
   notes follow (backed up first).
 - Local-first LLMs through Ollama; optional BYOK cloud backends (AWS Bedrock, OpenAI-compatible

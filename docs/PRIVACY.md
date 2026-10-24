@@ -10,6 +10,7 @@ leave your machine. Final inventory as of Phase 15 (2026-10-12); the threat mode
 | Your audio recordings | `$XDG_DATA_HOME/meetingmaster3/jobs/<job-id>/`. While a job runs: your upload (`original.<ext>`) and a 16 kHz mono WAV. When the note is written, both are replaced by a compressed Opus copy (`audio.opus`, about 11 MB per hour), which is deleted 90 days later by default (configurable, pinnable). Audio of jobs that never finish is deleted after the same period. |
 | Transcripts and notes | Your Obsidian vault (Markdown), plus working copies in job folders |
 | Imported transcripts and AI conversations (Phase 15k) | The file you import is kept in its job folder as `source.<ext>`, with the parsed preview (`import.json`) and the parsed and checked transcripts, until you delete the job (it is not audio, so audio retention does not delete it). It is never copied into the vault; the note, companion and readable transcript written from it are. Its text goes to the language model exactly like a spoken transcript (a cloud backend only with your consent) |
+| Downloaded Grok share (Phase 15l) | When you import a Grok share link, the downloaded conversation is kept in its job folder as `source.json` (the share's JSON as Grok sent it, including fields MeetingMaster3 does not use), like an imported file. The link itself is not stored, only its share id in the job's options. |
 | Job state, feedback ratings | Local SQLite database `mm3.db`. Ratings (stars or thumbs, an optional comment, the template, backend and model used) are only stored here; the Settings > About tab exports them as CSV or JSON for your own analysis. They are never sent anywhere. |
 | Voiceprints (opt-in, off by default) | Local SQLite only (`mm3.db`, tables `voiceprints` and `voiceprint_embeddings`): each remembered person's name, dates, sample count, seconds of speech and up to 20 voice signatures (256 numbers each). **Biometric data**: stored only for speakers you chose to remember, never written to the vault, logs or API responses. See [Naming speakers and voice recognition](user-guide/speakers.md). |
 | Speaker naming artifacts | Job folder: `speakers.json` (labels, talk time, clip times, candidate names and scores), `speaker_map.json`, `speakers.confirmed.json`, `transcript.named.json`. With voice recognition on, `speaker_embeddings.json` holds this meeting's voice signatures until you confirm the names, then it is deleted; if the job never gets that far, the file is deleted with the audio (retention) or by "delete all voiceprints", and it is never included in exports. |
@@ -57,6 +58,11 @@ leave your machine. Final inventory as of Phase 15 (2026-10-12); the threat mode
   passages of up to `ask.max_meetings` (25) meetings, with their titles, dates, participants, named speakers and
   Meeting Context sections, are sent to the provider. Consent for writing notes does not cover Ask-AI. The default is the
   local model, which sends nothing.
+- **A request to grok.com when you import a Grok share link** (Phase 15l), only when you paste a share link and start
+  that import. MeetingMaster3 makes one HTTPS request to `grok.com` for that one shared conversation. Grok sees the share's id,
+  your IP address, the time and the user agent `MeetingMaster3/<version> (Grok share import)`. Nothing from your vault or
+  your other meetings is sent, and no cookies, login or account. This is the only request MeetingMaster3 makes to a
+  website that is not a language model or a model download. File imports never contact anything.
 - **Your vault**, if you sync it (Obsidian Sync, cloud drives). That is outside this app's control.
   If you enable the optional "copy audio to vault" setting, the audio syncs too.
 

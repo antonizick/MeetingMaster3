@@ -142,7 +142,9 @@ enough that the phased-project skill's review needs few corrections.
    `decisions`, the assistant's figures in `facts-to-verify`, 3-8 milestones, no side-question topic in the plan
    (`expected.forbidden`). Run with local `qwen3:8b`; if Nick's keys are configured, also one cloud model (keep cost
    under about USD 1 and say what it was). Add the results to `baseline.json`.
-7. **Private check.** Import Nick's example through the 15k flow (or his share link, if 15l is done), generate with
+7. **Private check.** Import Nick's example through the 15k flow (or his share link: 15l is done, so `mm3 import <link>`
+   or the New meeting link field works; note that the share link Nick gave during 15l was a different voice chat, not
+   the privacy brainstorming one, so ask him for the right link or use the Markdown file), generate with
    `qwen3:8b` and, if keyed, one cloud model; show Nick both notes and ask whether the plan is good enough to hand to
    Claude Code. Iterate on the prompts with his feedback. Also try the template on one real recorded planning meeting
    if Nick names one.

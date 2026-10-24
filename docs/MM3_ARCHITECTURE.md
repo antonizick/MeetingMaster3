@@ -333,3 +333,12 @@ job type "import": import_parse ─▶ await_speaker_confirmation (check page: m
 - **Pages:** the New meeting form's *Start from* choice (`app.js` `uploader`, `mode`), `/jobs/{id}/speakers` →
   `import_check.html` (`importCheck` component, form post `/ui/jobs/{id}/import-check`), the review page's
   *Imported from …* badge. Decision record: ADR-0052. Details: `docs/dev-guide/importing.md`.
+- **Grok share links (Phase 15l).** `importing/grok_share.py` turns a pasted link into a share id (exact host/path parser)
+  and the share's JSON into an `ImportedConversation` (parser id `grok-share`); `importing/fetch.py` is the app's only
+  request to a non-LLM website (one confined `GET https://grok.com/rest/app-chat/share_links/<id>`). The API stores only the
+  id; `import_parse` downloads into `source.json` when it is missing, then parses and fills the title, date and time.
+
+```
+paste link ─▶ parse_share_url (refuse early) ─▶ job(import_share_id) ─▶ import_parse: fetch_share ─▶ source.json
+                                                                         ─▶ grok-share parser ─▶ (as above)
+```
