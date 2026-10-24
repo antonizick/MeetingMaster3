@@ -55,6 +55,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0050 | 2026-10-22 14:56 CDT | Meeting index layout and retrieval tuning: separate rebuildable `search.db` (not an `mm3.db` migration); FTS5 over passage body plus heading lines weighted 0.3; word candidates within 30 % of the best BM25 and vector candidates within 0.08 cosine of the best, fused by RRF (k = 60); pure-Python cosine over cached float32 arrays; vectors tagged with one model id; vault-change hook in `atomic_write_text`; GPU only while no job is active | Accepted | 15i |
 | ADR-0049 | 2026-10-22 13:47 CDT | Ask AI agent: hybrid (FTS5 + embeddings) retrieval with embeddings through the backends (local `nomic-embed-text` default, cloud only with its own consent); a JSON-driven pipeline with code-built facts, not tool-calling; per-question cloud consent or a separate sticky Ask switch; every answer saved as a linked vault note; split into 15i and 15j | Accepted (planning) | 15i, 15j |
 | ADR-0051 | 2026-10-22 15:44 CDT | Ask agent details: plan queries only (never the raw question) with dates used only when the question talks about time; Ask's own vector margin 0.12; quotes and people verified against the excerpts; model tables dropped and HTML defused; one question at a time holding the GPU per call; answers in `mm3.db` (migration 5) with the note as the answer; `keep_history` off keeps nothing; Obsidian links by path | Accepted | 15j |
+| ADR-0052 | 2026-10-24 11:42 CDT | Import transcripts and AI conversations as meetings (`import` job type; AI chat Markdown, labelled or not, and timestamped transcripts; untimed transcripts invent no times); Grok share links only, from a fixed host; Create Project Plan, the 24th built-in, writes a pre-plan for `/phased-project`; the example conversation stays private; split into 15k, 15l, 15m | Accepted (planning) | 15k, 15l, 15m |
 
 ---
 
@@ -1552,3 +1553,59 @@ the user sees or what is sent.
 in exchange for tables and counts that match the files. The eval (`tests/eval/ask_eval.py`) measures recall,
 precision, counts, rows, people, roles and citations per backend (results in ADR-0049 "Phase 15j implementation" and
 `docs/PERFORMANCE.md`).
+
+## ADR-0052: Import transcripts and AI conversations as meetings; Grok share links; Create Project Plan template (planning, Phases 15k, 15l and 15m)
+**Recorded:** 2026-10-24 11:42 CDT (planning with `/phase-add`; decided by Nick during intake)
+
+**Context.** Every workflow starts from audio today. Nick wants to start from text as well: transcripts made elsewhere
+and, above all, exports of his conversations with AI assistants (Grok voice mode), and to turn such a conversation
+into a project plan he can hand to Claude Code. His example, a Grok voice-mode chat exported to Markdown, has **no
+speaker labels and no times**, repeats the user's speech-to-text as growing prefixes, and has multi-paragraph assistant
+answers, so strict alternation cannot assign speakers. The same chat's share link
+(`x.com/i/grok/share/<id>`) is backed by an unauthenticated JSON endpoint
+(`grok.com/rest/app-chat/share_links/<id>`) that gives each message's `sender` and `createTime`. The job model already
+has an unused `job_type` column, `audio_path` is nullable, and the review page already copes without audio.
+
+**Options considered (where an import lives).**
+
+| Option | Pros | Cons |
+|---|---|---|
+| A. Same as a meeting: a new `import` job type producing a normal note, companion and Meetings entry, marked as imported | Review, regenerate, template switch, rename, Search and Ask-AI work unchanged; small surface | "Meeting" wording covers chats too; the transcript model must allow missing times |
+| B. A separate "Conversations" kind | Clean separation from meetings in lists, Search and Ask | Every feature needs a second path; much more work |
+
+**Options considered (share links).**
+
+| Option | Pros | Cons |
+|---|---|---|
+| A. Grok links only, from a fixed host allowlist, when the user pastes one | Exact speakers and real timing; Nick's preferred workflow; no generic URL fetcher (no SSRF) | Undocumented endpoint that can break without notice; the published app contains an x.com/grok.com fetcher (terms-of-service grey area: one request for a conversation the user shared publicly, like a browser) |
+| B. Grok, ChatGPT and Claude links | One box for every assistant | ChatGPT shares sit behind Cloudflare, Claude shares need JavaScript; fragile and large |
+| C. Files only | Fully offline; no third-party coupling | Loses the workflow Nick prefers |
+
+**Options considered (Create Project Plan output).** A pre-plan that the `phased-project` skill takes as its source
+document; the full phased plan itself (phases, tasks, acceptance) written by the template; or both. A local 8 GB model
+writes detailed phase designs poorly, and the skill already reviews a source, asks the owner decisions and designs the
+phases.
+
+**Decision.**
+1. **Imports are meetings (A)** (Nick, 2026-10-24): job type `import` (`import_parse` → confirm speakers → `generate`
+   → `write`), no GPU, ffmpeg or audio; the note carries `mm3-source: import` and `mm3-source-format`; untimed
+   transcripts are represented explicitly (default: a `timed` flag) so no clocks or `[mm:ss]` references are invented.
+2. **Formats in the first version** (Nick): AI chat Markdown, labelled or unlabelled (heuristic roles with a
+   per-turn fix-up preview), and timestamped transcripts (`[hh:mm:ss] Name:` text, MM3 companions, VTT, SRT). Official
+   JSON data exports and a paste box are left out.
+3. **Share links: Grok only (A)** (Nick), fetched only on the user's paste, HTTPS to the fixed endpoint built from a
+   validated id, no cookies, no redirects followed, size and time limits, clear failure with a pointer to the Markdown
+   upload.
+4. **Create Project Plan** (Nick's name, id `create-project-plan`, the 24th built-in, not the default) writes a
+   **pre-plan for `/phased-project`**: goal and success criteria, constraints, requirements, decisions (the user's
+   only), options considered, proposed solution, rough phases, risks, facts to verify (assistant-stated figures),
+   open owner questions, definition of done, next steps. The user's statements carry authority; the assistant's are
+   proposals and claims.
+5. **Privacy** (Nick): the example conversation and its share link are used only locally for checks and never
+   committed; committed fixtures and eval conversations are synthetic.
+6. **Split:** 15k (import pipeline, parsers, preview, untimed transcripts) → 15l (Grok share links) and 15m (the
+   template), which can run in parallel. All three Opus 5.5.
+
+**Consequences.** MM3 gains its first non-LLM outbound request (documented in PRIVACY and the threat model) and a
+dependency on an undocumented Grok endpoint, isolated in one parser that fails safely. Meetings, Search and Ask-AI
+include conversations; filtering them apart is a possible follow-up. The template count becomes 24.

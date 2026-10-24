@@ -1,6 +1,6 @@
 # Phase 16: Release v0.1.0 & GitHub Publication
 
-**Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 15, 15a, 15b, 15c, 15d, 15e, 15f, 15g, 15h, 15i, 15j (and any later inserted phase, ADR-0030, ADR-0034) · **Branch:** `phase-16-release`
+**Model:** Sonnet 5.5 (`/model claude-sonnet-5-5`) · **Depends on:** 15, 15a, 15b, 15c, 15d, 15e, 15f, 15g, 15h, 15i, 15j, 15k, 15l, 15m (and any later inserted phase, ADR-0030, ADR-0034) · **Branch:** `phase-16-release`
 
 ## Read first
 `CLAUDE.md`, `prompts/MM3_shared-instructions.md`, `MM3_IMPLEMENTATION_PLAN.md` (the MVP definition of done and all Phase Log entries), and `docs/MM3_SPECIFICATION.md` §1, §12 and §15.4. Open question Q3 (GitHub owner, name and visibility).
@@ -23,6 +23,8 @@ ones). **15h** added the filtered
 cloud model picker with prices and Best value / Best quality badges (ADR-0042): refresh the Bedrock price table's
 `as_of` date and the recommendations if they are older than about 90 days, and add a picker screenshot. **15i/15j** (ADR-0049) add a **Search** page and an **Ask** page (the Ask AI agent): a local `search.db` index with meaning vectors from an embedding model (default Ollama `nomic-embed-text`, which Docker's bundled Ollama and the install docs must tell users to pull), and answers saved as notes in `MM3 Answers/`; add both pages to the README feature list and screenshots, and the embedding model to the models listed in `THIRD_PARTY_NOTICES.md` and the privacy docs. 15j built the Ask page as planned (ADR-0051): the README already lists it with `docs/assets/11-ask.png`, which `tests/e2e/test_ask_flow.py` captures with `MM3_E2E_SCREENSHOTS=<dir>` (a fake model's answer); refresh it with the release build, and capture the Search page too (`tests/e2e/test_search_flow.py` writes `10-search.png`, not yet in `docs/assets/`). `mm3 ask` and the `ask.*` settings belong in the docs audit. The quality baseline is `tests/eval/baseline.json` (`tests/eval/baseline.py` flags
 regressions); measured numbers are in `docs/PERFORMANCE.md`; the README already has a "Known limitations" section.
+
+**15k/15l/15m** (ADR-0052) add **import**: a transcript or an AI conversation (Markdown file, or a Grok share link fetched from grok.com) becomes a meeting note without audio, and the 24th built-in template, **Create Project Plan**, writes a pre-plan for Claude Code's `/phased-project`. Add import to the README feature list and screenshots (the New meeting import choice and the who-said-what preview), check that every template count says 24, and make sure `docs/PRIVACY.md`, `SECURITY.md` and the threat model describe the Grok share fetch (MM3's first non-LLM outbound request) and that the Docker docs say it needs outbound HTTPS. Never publish Nick's example conversation or its share link.
 
 ## Goal
 Ship MeetingMaster3 **v0.1.0**: documentation complete and accurate, the repository clean and GitHub-ready, a tagged release, and, **only with Nick's explicit confirmation**, the repository published to GitHub.
