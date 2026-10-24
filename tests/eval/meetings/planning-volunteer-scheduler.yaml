@@ -1,0 +1,83 @@
+# Synthetic meeting written for MeetingMaster3's generation eval (Phase 15m). Fictional people
+# and organisation; no real recording. License: CC0. A 26-minute planning meeting of a small food
+# bank deciding how to replace its volunteer-shift spreadsheet: build vs adopt, a budget limit,
+# a rejected paid product, a chosen approach, rough steps, a pilot as the acceptance test, figures
+# that need checking, one choice left open, and a holiday digression that must stay out of the
+# plan (templates: create-project-plan).
+title: Volunteer scheduling planning
+date: 2026-10-20T18:00:00
+templates: [create-project-plan]
+speakers:
+  SPEAKER_00: Omar Haddad
+  SPEAKER_01: Grace Liu
+  SPEAKER_02: Tom Becker
+turns:
+  - [0, SPEAKER_00, "Thanks for staying late. The goal tonight is to decide how we replace the volunteer shift spreadsheet. Last month we had nine double bookings and three shifts nobody showed up for, because people edit the sheet and overwrite each other."]
+  - [55, SPEAKER_00, "For context: we have about 120 active volunteers, three shifts a day, six days a week. Most of them sign up from their phones, and a lot of them are retirees who won't install an app."]
+  - [120, SPEAKER_02, "And from the board's side, the budget for this is 200 dollars a year, all in. That's a hard limit for this year."]
+  - [160, SPEAKER_01, "I looked at three ways to do it. One, keep the spreadsheet and add a Google Form in front of it. Two, buy a scheduling service like SignUpGenius. Three, I build a small web app; I've built Django apps before."]
+  - [230, SPEAKER_00, "What does the form option actually fix?"]
+  - [250, SPEAKER_01, "It stops people overwriting each other, but a form can't see which shifts are already full, so double bookings would still happen. I don't think it solves the real problem."]
+  - [300, SPEAKER_02, "And SignUpGenius? I've used it for the school fundraiser."]
+  - [320, SPEAKER_01, "It works well, but the plan we'd need for reminders and more than one coordinator is around 30 dollars a month, so about 360 a year."]
+  - [365, SPEAKER_02, "That's well over the 200. We can't do that this year."]
+  - [390, SPEAKER_00, "Agreed, SignUpGenius is out on cost. And the form doesn't fix double bookings, so that's out too."]
+  - [420, SPEAKER_01, "Then the build. A Django app with SQLite, hosted on the DigitalOcean droplet we already pay 6 dollars a month for. Volunteers get a link, no app to install. Each shift has a fixed number of places, so it can't be overbooked."]
+  - [500, SPEAKER_00, "I like that. What does the coordinator side need?"]
+  - [520, SPEAKER_00, "I need to see the week at a glance, who's on each shift, and swap someone out when they cancel. And I need to export the hours for the annual report."]
+  - [575, SPEAKER_01, "That's all doable. Login for coordinators only; volunteers sign up with their email and a link, no password."]
+  - [630, SPEAKER_02, "Before I forget, did anyone sort out the catering for the holiday party? I was in Lisbon last week and found a great place that does pastries."]
+  - [660, SPEAKER_00, "Let's take that offline, Tom."]
+  - [675, SPEAKER_02, "Fair enough."]
+  - [690, SPEAKER_00, "OK, decision: Grace builds the Django app on our existing droplet. We stop using the spreadsheet once it's proven."]
+  - [730, SPEAKER_01, "Happy to. What about reminders? People forget shifts, that's the no-show problem."]
+  - [760, SPEAKER_01, "Email reminders are free with the droplet. Text messages would be better for the retirees. Twilio charges about 0.8 cents per text in the US, so roughly 100 dollars a year at our volume."]
+  - [810, SPEAKER_02, "100 dollars plus the droplet is close to our limit. I'd want to check that against the budget before we commit."]
+  - [840, SPEAKER_00, "Then email reminders for now, and we decide on text messages once Tom has checked the budget."]
+  - [870, SPEAKER_01, "Fine. One risk I should mention: I'm a volunteer too, so if I'm away nobody else knows the code. I'll keep it simple and write a short README so someone else can run it."]
+  - [920, SPEAKER_00, "Good. And we keep the spreadsheet as a backup until the pilot is done."]
+  - [950, SPEAKER_01, "Rough order: first the data model and an import of the current volunteer list; then the sign-up page; then the coordinator view with swaps and the hours export; then email reminders; then a pilot."]
+  - [1030, SPEAKER_00, "For the pilot, let's take 20 volunteers for two weeks in March. If there are no double bookings and the coordinators can run the week from the app, we switch everyone over in April."]
+  - [1100, SPEAKER_02, "Agreed."]
+  - [1130, SPEAKER_01, "I'll have a first prototype of the sign-up page by the end of the month."]
+  - [1170, SPEAKER_00, "I'll export the current volunteer list from the spreadsheet and send it to Grace this week."]
+  - [1210, SPEAKER_02, "And I'll check whether the budget can cover text messages before the next board meeting."]
+  - [1260, SPEAKER_00, "Someone should also write a one-page guide for volunteers before the pilot, but we can decide who later."]
+  - [1310, SPEAKER_00, "Great, thanks both. That's a plan."]
+expected:
+  decisions:
+    - id: build-django
+      any: [["Django", "web app", "build"]]
+    - id: email-reminders
+      any: [["email"], ["reminder"]]
+  actions:
+    - id: prototype
+      owner: Grace Liu
+      any: [["prototype", "sign-up page", "sign up page"]]
+    - id: export-list
+      owner: Omar Haddad
+      any: [["export", "volunteer list"]]
+    - id: check-budget
+      owner: Tom Becker
+      any: [["budget", "text message", "SMS"]]
+    - id: volunteer-guide
+      any: [["guide"]]
+      optional: true
+  sections:
+    - {id: budget-limit, section: context-constraints, any: [["200"]]}
+    - {id: no-app-install, section: context-constraints, any: [["install", "phone"]]}
+    - {id: signupgenius-option, section: options-considered, any: [["SignUpGenius"]]}
+    - {id: form-option, section: options-considered, any: [["Form"]]}
+    - {id: fact-signupgenius-price, section: facts-to-verify, any: [["30", "360"]]}
+    - {id: fact-twilio-price, section: facts-to-verify, any: [["0.8", "Twilio"]]}
+    - {id: open-sms, section: open-questions, any: [["text", "SMS"]]}
+    - {id: pilot, section: acceptance, any: [["pilot", "20 volunteers"]]}
+  absent:
+    - {id: rejected-not-decided, section: decisions, any: ["SignUpGenius will", "Google Form will"]}
+    - {id: sms-not-decided, section: decisions, any: ["Twilio"]}
+  numbered:
+    - {id: phase-count, section: milestones, min: 3, max: 8, style: list}
+  limits:
+    - {id: succinct-short, section: summary, max_sentences: 2, max_words: 60}
+  forbidden:
+    - {id: digression, any: ["Lisbon", "pastries", "catering"]}

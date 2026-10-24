@@ -83,7 +83,7 @@ def test_templates_are_installed_and_listed(api: TestClient, vault: Path) -> Non
     assert set(ids) == {p.stem for p in folder.glob("*.md")}
     assert ids["decision-log"]["source"] == "vault" and ids["decision-log"]["valid"]
     assert ids["decision-log"]["sections"][-1]["id"] == "ai-recommendations"
-    assert len(ids) == 23
+    assert len(ids) == 24
 
     (folder / "broken.md").write_text("---\nid: broken\n---\n", encoding="utf-8")
     listed = api.get("/api/templates").json()["templates"]

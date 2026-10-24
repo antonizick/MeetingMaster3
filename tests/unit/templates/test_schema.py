@@ -100,9 +100,9 @@ def test_builtin_templates_are_valid(path: Path) -> None:
     assert t.system_prompt.strip()
 
 
-def test_builtin_library_has_23_templates() -> None:
+def test_builtin_library_has_24_templates() -> None:
     assert sorted(p.stem for p in builtin_files()) == sorted(BUILTIN_IDS)
-    assert len(BUILTIN_IDS) == 23
+    assert len(BUILTIN_IDS) == 24
 
 
 def test_sensitive_templates_keep_their_guardrails() -> None:
@@ -126,6 +126,19 @@ def test_sensitive_templates_keep_their_guardrails() -> None:
     assert default is not None
     text = default.system_prompt.casefold()
     assert "protected characteristics" in text and "hiring decision" in text
+    # Create Project Plan (R33): the owner decides, the AI assistant only proposes and claims.
+    plan = parse_template_file(
+        next(p for p in builtin_files() if p.stem == "create-project-plan")
+    ).template
+    assert plan is not None
+    text = " ".join(plan.system_prompt.casefold().split())
+    assert "never present an assistant suggestion as decided" in text
+    assert "facts to verify" in text and "unverified" in text
+    assert "never invent" in text
+    assert "only when the owner accepted it" in " ".join(
+        plan.prompts["decisions"].casefold().split()
+    )
+    assert "unverified" in plan.prompts["facts-to-verify"].casefold()
 
 
 @pytest.mark.parametrize(

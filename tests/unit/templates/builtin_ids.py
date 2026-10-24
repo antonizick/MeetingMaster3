@@ -1,4 +1,4 @@
-"""The 23 built-in template ids (spec A3, Appendix A, R29)."""
+"""The 24 built-in template ids (spec A3, Appendix A, R29, R33)."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ BUILTIN_IDS = [
     "board-governance-minutes",
     "brainstorming-ideation",
     "chronological-timeline",
+    "create-project-plan",
     "decision-log",
     "default-notes",
     "detailed-meeting-minutes",

@@ -1,0 +1,80 @@
+# Synthetic AI conversation written for MeetingMaster3's generation eval (Phase 15m). Fictional
+# person; no real conversation. License: CC0. An untimed chat between a user and an AI assistant,
+# shaped like a typical planning chat: an idea, the assistant's critique, existing products
+# compared, the user's constraints, a chosen approach, concrete steps and figures the assistant
+# states (which a plan must list as unverified). The user also asks side questions (what HEIC
+# stands for, the history of restic's name) that must stay out of the plan, accepts some of the
+# assistant's suggestions and declines others (templates: create-project-plan).
+title: Family photo backup
+date: 2026-10-18T20:15:00
+timed: false
+templates: [create-project-plan]
+speakers:
+  SPEAKER_00: Sam Okafor
+  SPEAKER_01: ChatGPT
+turns:
+  - [SPEAKER_00, "I want to talk through a software idea and get your honest view on whether it's feasible. I'm thinking of writing my own app that copies every photo from our phones to a computer at home and removes duplicates."]
+  - [SPEAKER_01, "Happy to. The idea is sound, but the hard parts are not the copying. iPhones store photos as HEIC with Live Photo video pairs, edits are stored separately from originals, and iOS only lets an app upload in the background in short bursts. Duplicate detection across four phones is its own project. Most people who start this end up maintaining an iOS app forever."]
+  - [SPEAKER_00, "Fair. Let me set the ground rules. The one thing that matters to me is that we never lose a photo. I don't care whether I build it or use something that exists."]
+  - [SPEAKER_01, "Then I'd define success as three things: every photo from every phone arrives at home automatically within a day, there is a second copy somewhere other than your house, and you have actually tested restoring from that copy. If those hold, the rest is convenience."]
+  - [SPEAKER_00, "Agreed, that's exactly it. What exists already?"]
+  - [SPEAKER_01, "Three serious options. Immich is a self-hosted photo server with iPhone and Android apps that upload in the background; it's very actively developed, with a release roughly every two weeks. PhotoPrism is polished for browsing and search but has no official mobile app for automatic upload. Nextcloud with the Memories app works, but you'd be running a whole file-sync platform for one job. And of course there's the cloud: Google One's 2 TB plan is 9.99 dollars a month."]
+  - [SPEAKER_00, "No cloud photo service. I don't want our family photos in a big tech company's cloud, that's a firm no. And I'd rather not pay a monthly subscription for storage if I can avoid it."]
+  - [SPEAKER_01, "Understood. Then Immich is the closest match. What hardware do you have at home?"]
+  - [SPEAKER_00, "An Intel NUC running Ubuntu 24.04 with a 2 terabyte SSD, sitting in the closet doing nothing. Four iPhones in the family. And I'm comfortable with Docker, I use it at work."]
+  - [SPEAKER_01, "That NUC is a good fit. Immich needs at least 4 GB of RAM, 6 GB is recommended if you turn on machine learning for face recognition and smart search. It's installed with Docker Compose: one compose file and an env file. The iPhone app handles background upload, and it keeps HEIC originals and Live Photos intact."]
+  - [SPEAKER_00, "Before I forget, what does HEIC actually stand for?"]
+  - [SPEAKER_01, "High Efficiency Image Container. It's the MPEG group's format based on HEVC video compression, which is why the files are about half the size of a JPEG at similar quality."]
+  - [SPEAKER_00, "Interesting. OK, Immich on the NUC with Docker Compose sounds like the plan. Let's do that."]
+  - [SPEAKER_01, "Good choice. One thing I'd add: a second NAS, for example a small two-bay unit, at a relative's house that the NUC replicates to. That gives you a local-speed restore and an offsite copy."]
+  - [SPEAKER_00, "No, I'm not buying more hardware right now. What's the cheapest way to get an offsite copy without a photo cloud?"]
+  - [SPEAKER_01, "Encrypted backups to object storage. restic encrypts everything on your machine before it leaves, so the provider only sees encrypted blobs. Backblaze B2 costs 6 dollars per terabyte per month, and you only pay for what you store; your library sounds like it's well under a terabyte, so a few dollars a month. A nightly systemd timer runs restic against Immich's upload folder and a database dump."]
+  - [SPEAKER_00, "A few dollars for encrypted storage I can live with, because the provider can't see the photos. So restic to Backblaze B2 every night, yes, let's do that."]
+  - [SPEAKER_00, "Why is it called restic, by the way?"]
+  - [SPEAKER_01, "The author has said it comes from 'restore' and 'backup' mashed together, with a nod to being 'restic' as in stubborn. It started around 2014 as a single developer's project before growing a community."]
+  - [SPEAKER_00, "Ha. OK. What about our old photos? About eight years of them are in Google Photos right now."]
+  - [SPEAKER_01, "Use Google Takeout to export them, then Immich's command-line tool can bulk-import the folder. Takeout splits large libraries into 50 GB archives and puts the dates in separate JSON files, so pick the option in the import tool that reads those JSON dates."]
+  - [SPEAKER_00, "Makes sense. And should I turn on the face recognition?"]
+  - [SPEAKER_01, "It's genuinely useful for finding people, but it runs on your NUC and the first scan of eight years of photos could take a day or two. You can turn it on any time later."]
+  - [SPEAKER_00, "I'll think about face recognition later, not now. Let's get the basics working first."]
+  - [SPEAKER_01, "Sensible. The risks I'd watch: Immich still makes breaking changes between versions, so read the release notes before every upgrade and pin the version in the compose file. And a single SSD is a single point of failure until the offsite backup is running."]
+  - [SPEAKER_00, "Good points. How do I know the whole thing actually works?"]
+  - [SPEAKER_01, "Two checks. After a day, confirm each of the four phones shows everything uploaded in the Immich app. And once a month, restore a random album from B2 into a temporary folder and compare it with the originals, so you know the backup is real."]
+  - [SPEAKER_00, "I'll do the restore test, that's a good habit. So the order is: install Docker and Immich on the NUC, put the app on all four phones, import the Google Takeout export, then set up restic to B2."]
+  - [SPEAKER_01, "That's the right order. You could also put a small UPS on the NUC so a power cut doesn't corrupt the database."]
+  - [SPEAKER_00, "Maybe, we'll see. I'll start the Google Takeout export tonight, since it takes a while, and I'll install Immich on the NUC this weekend."]
+  - [SPEAKER_01, "Sounds like a plan. Good luck."]
+expected:
+  decisions:
+    - id: immich
+      any: [["Immich"]]
+    - id: offsite-b2
+      any: [["B2", "Backblaze", "restic"]]
+  actions:
+    - id: takeout-export
+      owner: Sam Okafor
+      any: [["Takeout", "export"]]
+    - id: install-immich
+      owner: Sam Okafor
+      any: [["install", "Immich", "NUC"]]
+  sections:
+    - {id: goal-never-lose, section: project-goal, any: [["lose", "loss", "lost"]]}
+    - {id: no-cloud, section: context-constraints, any: [["cloud", "Google"]]}
+    - {id: hardware, section: context-constraints, any: [["NUC"]]}
+    - {id: photoprism-option, section: options-considered, any: [["PhotoPrism"]]}
+    - {id: second-nas-option, section: options-considered, any: [["NAS"]]}
+    - {id: fact-b2-price, section: facts-to-verify, any: [["6 dollars", "$6", "6 USD", "US$6", "six dollars", "USD 6"]]}
+    - {id: fact-ram, section: facts-to-verify, any: [["4 GB", "4GB", "4 gigabytes"]]}
+    - {id: fact-unverified, section: facts-to-verify, any: [["unverified"]]}
+    - {id: open-face, section: open-questions, any: [["face"]]}
+    - {id: restore-test, section: acceptance, any: [["restore"]]}
+  absent:
+    - {id: rejected-not-decided, section: decisions, any: ["PhotoPrism", "Nextcloud", "uninterruptible"]}
+    - {id: own-app-not-decided, section: decisions, any: ["own app", "write my own"]}
+  numbered:
+    - {id: phase-count, section: milestones, min: 3, max: 8, style: list}
+  limits:
+    - {id: succinct-short, section: summary, max_sentences: 2, max_words: 60}
+  forbidden:
+    - {id: side-heic, any: ["High Efficiency", "MPEG"]}
+    - {id: side-restic-name, any: ["stubborn", "mashed"]}

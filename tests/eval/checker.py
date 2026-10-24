@@ -60,14 +60,20 @@ def load_meeting(path: Path) -> Meeting:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     turns = data["turns"]
     segments = []
-    for i, (start, label, text) in enumerate(turns):
-        end = turns[i + 1][0] if i + 1 < len(turns) else start + 5
-        segments.append(
-            Segment(id=i, start=float(start), end=float(end), speaker_label=label, text=text)
+    if data.get("timed", True):
+        for i, (start, label, text) in enumerate(turns):
+            end = turns[i + 1][0] if i + 1 < len(turns) else start + 5
+            segments.append(
+                Segment(id=i, start=float(start), end=float(end), speaker_label=label, text=text)
+            )
+        transcript = Transcript(
+            segments=segments, language="en", duration=float(turns[-1][0]) + 5, diarized=True
         )
-    transcript = Transcript(
-        segments=segments, language="en", duration=float(turns[-1][0]) + 5, diarized=True
-    )
+    else:
+        # Phase 15m: an imported AI conversation has no times (R32); turns are [label, text].
+        for i, (label, text) in enumerate(turns):
+            segments.append(Segment(id=i, start=0.0, end=0.0, speaker_label=label, text=text))
+        transcript = Transcript(segments=segments, language="en", diarized=True, timed=False)
     date = data["date"]
     if not isinstance(date, dt.datetime):
         date = dt.datetime.fromisoformat(str(date))
@@ -236,6 +242,8 @@ _LIST_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+", re.M)
 _HEADING_RE = re.compile(r"^#{1,6}\s", re.M)
 _SENTENCE_RE = re.compile(r"[.!?](?:\s|$)")
 _NUMBERED_RE = re.compile(r"^#{2,4}\s+\d+[.)]\s+\S", re.M)
+_NUMBERED_ITEM_RE = re.compile(r"^\d+[.)]\s+\S", re.M)
+"""A top-level numbered list item (``style: list`` in ``expected.numbered``, Phase 15m)."""
 
 
 def _check_summaries(s: Score, parsed: Any) -> None:
@@ -285,16 +293,28 @@ def _check_sections(s: Score, parsed: Any, template: Template, exp: dict[str, An
         (s.found if hit else s.missing).setdefault("content", []).append(entry["id"])
     if s.found.get("content") or s.missing.get("content"):
         s.checks["type_content"] = not s.missing.get("content")
+    # Phase 15m: ``expected.absent`` lists words that must not appear in one section (a
+    # rejected option is not a decision).
+    absent = [e for e in exp.get("absent", []) if applies(e)]
+    for entry in absent:
+        section = parsed.note.section(entry["section"])
+        body = section.body_markdown.casefold() if section is not None else ""
+        bad = [w for w in entry["any"] if w.casefold() in body]
+        s.checks[f"absent_{entry['id']}"] = not bad
+        if bad:
+            s.problems.append(f"{entry['section']} mentions {bad[0]!r} ({entry['id']})")
     # Phase 15e: ``expected.numbered`` bounds the number of ``### N. <Title>`` headings in a
-    # section; ``expected.limits`` caps a section's sentences and words.
+    # section (``style: list``: top-level ``N.`` list items, 15m); ``expected.limits`` caps a
+    # section's sentences and words.
     for entry in [e for e in exp.get("numbered", []) if applies(e)]:
         section = parsed.note.section(entry["section"])
-        count = len(_NUMBERED_RE.findall(section.body_markdown)) if section is not None else 0
+        pattern = _NUMBERED_ITEM_RE if entry.get("style") == "list" else _NUMBERED_RE
+        count = len(pattern.findall(section.body_markdown)) if section is not None else 0
         s.metrics[f"{entry['section']}_numbered"] = count
         ok = entry["min"] <= count <= entry["max"]
         s.checks[f"numbered_{entry['id']}"] = ok
         if not ok:
-            s.problems.append(f"{entry['section']} has {count} numbered headings")
+            s.problems.append(f"{entry['section']} has {count} numbered items")
     for entry in [e for e in exp.get("limits", []) if applies(e)]:
         section = parsed.note.section(entry["section"])
         body = section.body_markdown.strip() if section is not None else ""
