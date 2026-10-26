@@ -99,7 +99,7 @@ a planning Phase Log entry, ADRs for any decisions made now, the vault note, and
   prompt's "Depends on" matches the table; no `{{` remains; `/phase status` logic would list the new phase
   in the right order.
 - Commit only the planning files to `main`: `git commit -m "docs(plan): add phase <ID> (<title>)" -- <files>`.
-  This is **not** a claim. **Never push.**
+  This is **not** a claim. Push `main` afterwards if a remote exists (standing git authority, ADR-0004).
 
 ## Naming and timestamps
 Use the project prefix `MM3_` on every new project document (the prompt file is `prompts/MM3_phase-<ID>-<slug>.md`). Every date you write (Phase Log heading, ADR rows and a **Recorded** line, "Last updated", the prompt's "verbatim intent" and "verified" lines, the vault log) is a timestamp, `YYYY-MM-DD HH:MM TZ` (from `date '+%Y-%m-%d %H:%M %Z'`, never a bare or guessed date).
