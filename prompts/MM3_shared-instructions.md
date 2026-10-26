@@ -9,7 +9,7 @@ Read this file in full before starting any phase. Each phase prompt assumes it.
 2. Confirm that every phase listed under "Depends on" is `✅ Complete`. If one is not, stop and tell Nick.
 3. Read the Phase Log entries of the dependency phases. They may record deviations that change what you build.
 4. **Claim the phase on `main`** by following §1a. This is the first file change of every phase session. Do not start the Tasks until the claim is verified.
-5. If anything in the prompt is ambiguous or contradicts the spec, prefer the spec's §15. If it is still unclear, ask Nick before guessing on anything user-visible or hard to reverse.
+5. If anything in the prompt is ambiguous or contradicts the spec, prefer the spec's §15. If it is still unclear, ask Nick before guessing on anything user-visible or hard to reverse. (Hands-off mode: block-with-question, §1b.)
 
 ## 1a. Claiming a phase (mandatory; other agents may be running in parallel)
 Nick and other agents read the Status column from `main`. A status change made only on a phase branch, or left uncommitted in a worktree, is invisible to them. So every phase is claimed with a commit on `main` **before** any other work.
@@ -21,6 +21,21 @@ Nick and other agents read the Status column from `main`. A status change made o
 6. Verify: `git show main:MM3_IMPLEMENTATION_PLAN.md | grep '^| NN '` must show `🔄 In progress`.
 
 If the phase ends `⛔ Blocked`, commit that status to `main` the same way (`chore(plan): phase NN blocked`) so that `main` doesn't show a stale `🔄`. A `✅ Complete` status reaches `main` through the merge.
+
+## 1b. Hands-off mode: block-with-question (PhaseHypervisor contract 1)
+Applies only in hands-off mode (`/phase NN --auto` or `PHX_AUTO=1`, set only by PhaseHypervisor); manual sessions ignore this section. Wherever a manual session would ask Nick (an open owner question this phase needs, an ambiguity you must not guess, the risk rule in `CLAUDE.md`, or a failure you cannot fix within scope), do this instead, then end the session:
+1. In the worktree, commit all work on the phase branch: `wip(phase-NN): blocked, <short reason>`. Do not merge; keep the branch and worktree.
+2. In the main checkout, in `MM3_IMPLEMENTATION_PLAN.md`:
+   - add an Open questions row `| <next #> | <question> | Open (asked <TS>, Phase NN, auto mode). Proposed default: <default> | Phase NN |` (or, for an existing open question, name this phase in its Status cell and keep it `Open`);
+   - set the phase's Status to `⛔ Blocked`;
+   - add a Phase Log entry `### <TS>: Phase NN: <title> (⛔ Blocked)` with bullets: `- **Timeline:** started <claim TS> (claim commit <hash>) · blocked <TS> to (open)`, then `- **Model:** …`, then `- **Question:** #<id>: <question>`, then what is done, what remains and where to resume.
+3. Commit only that file to `main`: `git commit -m "chore(plan): phase NN blocked" -- MM3_IMPLEMENTATION_PLAN.md`, and push `main` if a remote exists.
+4. In the Obsidian note: row `⛔ Blocked`, `updated:` field, and a timestamped log line naming the question.
+5. Final message: what was done, the question and its proposed default, then the `PHX-RESULT` line with `"status":"blocked"` and the question IDs (see `/phase`).
+
+A question is **open** while its Status cell starts with `Open`; `Answered …`, `Decided …` and `Deferred …` are not open.
+
+**Resuming** a `⛔ Blocked` phase in hands-off mode: if a question needed by it is still open, refuse without changing anything. Otherwise set the row to `🔄 In progress`, change `blocked <TS> to (open)` to `blocked <TS> to <TS now>` in its Timeline, commit only the plan file to `main` (`chore(plan): resume phase NN`), update the Obsidian note, then run `git merge main` in the worktree, read the answer and continue as a normal resume.
 
 ## 2. Target repository layout (evolves; keep `docs/MM3_ARCHITECTURE.md` in sync)
 ```
@@ -75,5 +90,5 @@ MeetingMaster3/
 - [ ] Later phase prompts corrected if your work changed their assumptions.
 - [ ] Obsidian note `02 Projects/MM3 Implementation Plan.md` updated.
 - [ ] OSMods documentation updated if the host system was modified.
-- [ ] Work committed on the phase branch. Standing instruction from Nick (2026-10-11): once the phase is `✅ Complete` and every check passes, merge it into `main` locally without asking (fast-forward where possible), then remove the worktree (`git worktree remove ../MeetingMaster3-phase-NN`), delete the merged phase branch (`git branch -d`) and remove any temporary files or processes you created. Merge from the main checkout. Conflicts in `MM3_IMPLEMENTATION_PLAN.md` and `CHANGELOG.md` are expected when phases ran in parallel: keep every row and entry from both sides, and use the branch's final status for this phase's row. Do not merge a `⛔ Blocked` phase or one with failing checks. Never push, create a GitHub repo or open a PR without his explicit confirmation.
-- [ ] Final message to Nick: what was built, how to try it, what's next, and any open questions.
+- [ ] Work committed on the phase branch. Once the phase is `✅ Complete` and every check passes, merge it into `main` without asking (fast-forward where possible), from the main checkout. Conflicts in `MM3_IMPLEMENTATION_PLAN.md` and the changelog are expected when phases ran in parallel: keep every row and entry from both sides, and use the branch's final status for this phase's row. Then push `main` if a remote exists (create a **private** GitHub repo if the plan calls for one; ADR-0004), `git worktree remove ../MeetingMaster3-phase-NN` and `git branch -d phase-NN-<slug>`. Do not merge a `⛔ Blocked` phase or one with failing checks. Making a repo public or publishing a release needs Nick's explicit confirmation (hands-off mode: block-with-question, §1b).
+- [ ] Final message to Nick: what was built, how to try it, what's next, and any open questions. In hands-off mode, its last line is the `PHX-RESULT` line (see `/phase`).

@@ -56,6 +56,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0049 | 2026-10-22 13:47 CDT | Ask AI agent: hybrid (FTS5 + embeddings) retrieval with embeddings through the backends (local `nomic-embed-text` default, cloud only with its own consent); a JSON-driven pipeline with code-built facts, not tool-calling; per-question cloud consent or a separate sticky Ask switch; every answer saved as a linked vault note; split into 15i and 15j | Accepted (planning) | 15i, 15j |
 | ADR-0051 | 2026-10-22 15:44 CDT | Ask agent details: plan queries only (never the raw question) with dates used only when the question talks about time; Ask's own vector margin 0.12; quotes and people verified against the excerpts; model tables dropped and HTML defused; one question at a time holding the GPU per call; answers in `mm3.db` (migration 5) with the note as the answer; `keep_history` off keeps nothing; Obsidian links by path | Accepted | 15j |
 | ADR-0052 | 2026-10-24 11:42 CDT | Import transcripts and AI conversations as meetings (`import` job type; AI chat Markdown, labelled or not, and timestamped transcripts; untimed transcripts invent no times); Grok share links only, from a fixed host; Create Project Plan, the 24th built-in, writes a pre-plan for `/phased-project`; the example conversation stays private; split into 15k, 15l, 15m | Accepted; implemented in 15k, 15l and 15m | 15k, 15l, 15m |
+| ADR-0053 | 2026-10-26 17:11 CDT | Adopt the PhaseHypervisor hands-off phase contract and ADR-0004 git rules | Accepted | n/a (PHX Phase 09) |
 
 ---
 
@@ -1737,3 +1738,14 @@ include conversations; filtering them apart is a possible follow-up. The templat
   enough to hand to Claude Code.** The cloud comparison on the private conversation was not run (Nick chose to keep
   it local); the cloud model was measured on the synthetic conversations only.
 
+## ADR-0053: Adopt the PhaseHypervisor hands-off phase contract and ADR-0004 git rules
+**Recorded.** 2026-10-26 17:11 CDT (PhaseHypervisor Phase 09, rollout)
+**Context.** PhaseHypervisor (`phx`, `/home/nick/Work/PhaseHypervisor`) can run this plan's remaining phases hands-off through `/phase NN --auto`. That needs the `/phase` contract version 1 (`docs/PHX_AUTO_MODE_CONTRACT.md` there) and the git authority of PHX ADR-0004 (Nick's standing instruction, 2026-10-26 08:44 CDT). Manual `/phase` must keep working unchanged.
+**Options considered.**
+| Option | Pros | Cons |
+|---|---|---|
+| Adopt the contract now, while the repo is idle (chosen) | No phase is disturbed; `phx plan` reports `Contract: 1`; a later `phx run` works at once | One more block of text in `phase.md` and the shared instructions |
+| Wait until a phase needs `phx` | No change today | The migration would then land in the middle of a running phase |
+| Do not adopt | Nothing to maintain | The repo stays out of reach of `phx` |
+**Decision.** Adopted on 2026-10-26 17:11 CDT: `PHX-CONTRACT: 1`, step 0 (PHX check) and the "Hands-off mode" section in `.claude/commands/phase.md`; shared instructions §1b (block-with-question) with pointers in the owner-question and ambiguity steps, the ADR-0004 merge and push wording and the `PHX-RESULT` note in the close-out; the Risk rule and ADR-0004 git rule in `CLAUDE.md`; a Gate column in the plan (`auto` for every phase, `review` for the release or publication phase) with its legend.
+**Consequences.** Interactive `/phase` behaves as before; the only differences are the ADR-0004 git rules and an optional Gate column that manual runs ignore. The Gate column makes every row's Gate explicit, so a `phx preflight` recorded before this change is stale; run preflight after migrating. Undo: revert the `chore(phx): adopt hands-off phase contract` commit.

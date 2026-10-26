@@ -28,11 +28,14 @@ Documentation is part of the deliverable. A phase is **not complete** until all 
 6. The Obsidian project note `/home/nick/Documents/02 Projects/MM3 Implementation Plan.md`: update the status and add a short timestamped log line (and update `updated:` in the note's frontmatter).
 7. Any change to the host OS (installing packages or services, NVIDIA Container Toolkit, Docker config, systemd units) must also be documented in `/home/nick/Documents/04 Resources/OSMods/` per Nick's global instructions. Read that folder's README first.
 
+## Risk rule (mandatory)
+Sessions may run with bypassed permissions. **If an action looks high-risk, irreversible or a bad idea, stop and ask Nick instead of doing it.** In an interactive session, ask. In a hands-off session (`/phase NN --auto` or `PHX_AUTO=1`, started by PhaseHypervisor), block the phase with the question recorded (block-with-question, `prompts/MM3_shared-instructions.md` §1b). Examples: deleting data you did not create, touching another project's files outside the scope your prompt names, changing system-wide config not covered by the prompt, spending money beyond a stated cap, making a repo public, publishing a release, force-pushing shared history.
+
 ## Engineering rules
 - Work only within the phase's scope. Record out-of-scope findings in the Phase Log as follow-ups.
 - Tests are required: `uv run pytest` must pass, and `uv run ruff check` and `uv run mypy` must be clean, before a phase closes. Tests that need a GPU or models carry the markers `@pytest.mark.gpu` / `@pytest.mark.models` and are skipped in CI.
 - Never commit secrets, audio, vault contents, `.env`, model weights or personal data. Test fixtures must be synthetic or CC-licensed, with attribution in `tests/fixtures/README.md`.
 - Follow the security baseline in MM3_SPECIFICATION §15.3 (localhost bind, Host/Origin/CSRF checks, sanitised rendering, vault path confinement, atomic writes, masked secrets, cloud egress consent, voiceprint privacy).
 - Pin and lock dependencies (`uv add`, which updates `uv.lock`). Check licences before adding a dependency.
-- Git: work on branch `phase-NN-<slug>` in its own worktree `../MeetingMaster3-phase-NN`; the main checkout stays on `main`. Use Conventional Commits, and commit at logical checkpoints. **Never push, create a GitHub repo, or open a PR without Nick's explicit confirmation in the session.**
+- Git: work on branch `phase-NN-<slug>` in its own worktree `../MeetingMaster3-phase-NN`; the main checkout stays on `main`. Use Conventional Commits, and commit at logical checkpoints. **Git authority (standing instruction from Nick, 2026-10-26 08:44 CDT; ADR-0004 in PhaseHypervisor):** commit, merge, push and create **private** GitHub repos without asking, at checkpoints and at close-out. Only making a repo **public**, publishing a GitHub **release**, or force-pushing shared history needs Nick's explicit confirmation (in hands-off mode: block-with-question). If an action looks high-risk or a bad idea, stop and ask anyway.
 - The reference dev machine has an RTX 2070 Max-Q (8 GB VRAM), Arch-based Omarchy Linux, host Python 3.14 (use uv's 3.12), Docker and Ollama installed.
