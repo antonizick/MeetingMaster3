@@ -9,8 +9,9 @@ PHX-CONTRACT: 1
 **Hands-off mode** is on if the argument contains `--auto` or `printenv PHX_AUTO` prints `1`; only PhaseHypervisor (`phx`) sets either. When it is off, skip the "Hands-off mode" section at the end and follow the steps below as written. When it is on, that section overrides the steps it names.
 
 0. **PHX check** (hands-off mode off, every form): before anything else, run
-   `f="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/phx/$(basename "$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")").lock"; [ -e "$f" ] && ! flock -n -s "$f" true && echo "PHX-RUNNING $(cat "$f")"; printenv PHX_AUTO`.
+   `f="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/phx/$(basename "$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")").lock"; [ -e "$f" ] && ! flock -n -s "$f" true && echo "PHX-RUNNING $(cat "$f")"; printenv PHX_AUTO; echo PHX-CHECK-DONE`.
    If it prints `PHX-RUNNING`, a PhaseHypervisor supervisor is running this plan: tell Nick (its PID, phase and start time from that line; `phx status` / `phx stop` if installed) and stop without claiming or changing anything. For `status`, show that notice above the table and continue.
+   **Fail closed:** the check counts only if its output ends with `PHX-CHECK-DONE`. If it cannot run (the tool call is denied, errors or times out) or that line is missing, tell Nick that the PHX check could not run and stop before claiming or changing anything; do not skip it or work around it. For `status`, say so above the table and continue, since `status` changes nothing.
 
 Other agents may be running other phases at the same time. The Status column **on `main`** is how they know what is taken, so read it from `main` (`git show main:MM3_IMPLEMENTATION_PLAN.md`), not from a phase branch or worktree.
 
