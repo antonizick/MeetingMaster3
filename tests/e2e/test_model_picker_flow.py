@@ -102,6 +102,7 @@ def test_choose_a_recommended_cloud_model_on_new_meeting(server: str) -> None:
         page = browser.new_page(viewport={"width": 1100, "height": 1000})
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.goto(server)
+        page.wait_for_load_state("networkidle")  # Alpine must be running before we act
         page.select_option("#backend", "or_")
         page.click("text=Allow for this meeting")
         picker = page.locator("#model-picker select")

@@ -79,6 +79,7 @@ def test_happy_path_in_a_browser(server: tuple[str, Path], tmp_path: Path) -> No
         page.click("text=Save and continue")
         page.wait_for_url(base + "/")
 
+        page.wait_for_load_state("networkidle")  # Alpine must be running before the file is chosen
         page.set_input_files("#file", str(audio))
         playwright_sync.expect(page.locator("#title")).to_have_value("Product Sync")
         playwright_sync.expect(page.locator("#meeting_date")).to_have_value("2026-10-11")
