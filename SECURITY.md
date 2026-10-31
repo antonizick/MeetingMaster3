@@ -1,16 +1,14 @@
 # Security Policy
 
 ## Supported versions
-No version has been released yet (pre-alpha). Once releases exist, the latest minor release will be
-supported with security fixes.
+The latest minor release (0.1.x) is supported with security fixes. This is a single-maintainer project, so
+please allow a few days for a first reply.
 
 ## Reporting a vulnerability
 Please report vulnerabilities **privately**; do not open a public issue.
 
-- Preferred: GitHub private vulnerability reporting (Security tab → "Report a vulnerability") once the
-  repository is published.
-- Email fallback: _maintainer contact to be confirmed by the project owner before first publication
-  (tracked for Phase 16)._
+- Preferred: GitHub private vulnerability reporting (Security tab → "Report a vulnerability").
+- Email: **Nick@Antonizick.com** (put "MeetingMaster3 security" in the subject).
 
 Please include what you found, steps to reproduce, and the version or commit. Do not attach private
 audio or personal data.

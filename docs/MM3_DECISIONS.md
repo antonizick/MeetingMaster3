@@ -58,6 +58,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0052 | 2026-10-24 11:42 CDT | Import transcripts and AI conversations as meetings (`import` job type; AI chat Markdown, labelled or not, and timestamped transcripts; untimed transcripts invent no times); Grok share links only, from a fixed host; Create Project Plan, the 24th built-in, writes a pre-plan for `/phased-project`; the example conversation stays private; split into 15k, 15l, 15m | Accepted; implemented in 15k, 15l and 15m | 15k, 15l, 15m |
 | ADR-0053 | 2026-10-26 17:11 CDT | Adopt the PhaseHypervisor hands-off phase contract and ADR-0004 git rules | Accepted | n/a (PHX Phase 09) |
 | ADR-0054 | 2026-10-31 11:28 CDT | Adopt the generated visual timeline (`scripts/phase_timeline.py`) | Accepted | n/a (PHX Phase 12c) |
+| ADR-0055 | 2026-10-31 14:46 CDT | Personal paths in `CLAUDE.md` move to untracked `CLAUDE.local.md`; process files keep them | Accepted (recommended default; owner may override) | n/a |
 
 ---
 
@@ -1762,3 +1763,15 @@ include conversations; filtering them apart is a possible follow-up. The templat
 | Do not adopt | Nothing to maintain | This project's history stays invisible |
 **Decision.** Adopted 2026-10-31 11:28 CDT: `scripts/phase_timeline.py` (byte-identical to the skill's copy); `## Timeline` markers in the plan and the vault note; the generated `docs/MM3_TIMELINE.svg`; and the maintenance lines in the shared instructions (block, resume, close-out checklist, new §4a), `.claude/commands/phase.md` (drift check) and `.claude/commands/phase-add.md` (refresh before the commit). The timeline is refreshed only on `main`. Legacy entries are not rewritten; the chart marks them approximate.
 **Consequences.** `phx plan` output is unchanged. `python3 scripts/phase_timeline.py --check` exits 1 when the outputs are stale (expected right after a claim). Undo: revert the adoption commit and remove the `## Timeline` section from the vault note.
+
+## ADR-0055: Keep personal paths out of the committed `CLAUDE.md`
+**Recorded.** 2026-10-31 14:46 CDT (Phase 16, task 4)
+**Context.** `CLAUDE.md` is read by every AI agent working on the repository and is published with it. Four lines named the owner's home directory (the Obsidian project note and the OS-modification log). A survey of tracked files showed the shipped product (`src/`, user docs, `docker/`) holds no personal paths: only placeholders such as `/home/you/...`; the author's name appears only in the licence, `NOTICE` and `pyproject.toml`, which is intended. Personal paths remain in process history: `MM3_IMPLEMENTATION_PLAN.md` (74 references to the owner's name or paths), this log, the phase prompts and `.claude/commands/`.
+**Options considered.**
+| Option | Pros | Cons |
+|---|---|---|
+| A. Leave `CLAUDE.md` as it is | No work; agents keep exact paths | Publishes the owner's home layout in the file contributors read first |
+| B. Make `CLAUDE.md` generic, put the exact paths in untracked `CLAUDE.local.md` and the owner's global instructions (chosen) | The published rules read correctly for anyone; the owner's agents still get the paths (Claude Code loads `CLAUDE.local.md` automatically; `.gitignore` already lists it) | `CLAUDE.local.md` exists only in the main checkout, so a fresh clone or another machine needs its own; the rest of the history still names the owner |
+| C. Scrub every file and rewrite git history | No personal path anywhere | Breaks the phase workflow, which depends on those paths (`/phase`, shared instructions, PhaseHypervisor); a history rewrite is a force-push |
+**Decision.** Option B. The process files (plan, ADRs, prompts, `.claude/commands/`) keep their paths: they are the project's build history, the paths reveal a username and a folder layout but no secret, and the repository starts **private**.
+**Consequences.** If the owner later makes the repository public, git history still contains the paths. Publishing a fresh single-commit history, or rewriting history, would remove them, but each is a force-push or a new repository and needs the owner's explicit confirmation. Undo: restore the four lines from git history and delete `CLAUDE.local.md`.
