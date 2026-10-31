@@ -124,7 +124,7 @@ person): threshold 0.6 and margin 0.1 were measured on two recordings in Phase 0
 | Risk | Why accepted | Revisit |
 |---|---|---|
 | No authentication | Single-user local app; loopback bind and Host/CSRF checks; remote use only through an SSH tunnel | If multi-user or LAN use is ever supported |
-| torch 2.8.0, transformers 4.57.6 and nltk 3.10.3 advisories (`ml` extra) | Blocked by WhisperX 3.8.6 (`torch~=2.8.0`, `huggingface-hub<1.0`). The advisories concern loading untrusted checkpoints or using APIs the app does not call (`save_pretrained`, NLTK downloader); the app loads only fixed models. Ignored by id in CI | Every WhisperX release (ADR-0014) |
+| torch 2.8.0 and transformers 4.57.6 advisories (`ml` extra) | Blocked by WhisperX 3.8.6 (`torch~=2.8.0`, `huggingface-hub<1.0`). The advisories concern loading untrusted checkpoints or using APIs the app does not call (`save_pretrained`, NLTK downloader); the app loads only fixed models. Ignored by id in CI | Every WhisperX release (ADR-0014) |
 | ffmpeg memory-safety bugs | Parsing arbitrary media is the product. Mitigated by the protocol whitelist, demuxer refusal, timeouts and container hardening; Debian 12 had no fixed packages at the time of the scan | Debian security updates; rebuild the image regularly |
 | Unfixed Debian 12 OS package CVEs in the image | No fixed versions exist; most affect binaries the app never runs (util-linux mount, curl was removed) | Rebuild on Debian point releases; consider a Debian 13 base (roadmap) |
 | Model files from Hugging Face are trusted | The model ids are fixed and well known; weights are cached after first download | If users can add arbitrary models in the UI |

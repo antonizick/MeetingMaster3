@@ -180,7 +180,7 @@ notes; with Ollama's default settings notes take about twice as long
   access). See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) for the residual risks.
 - **English-first.** Other languages are transcribed (with a warning), but the templates and the
   task-owner cues are English; note quality in other languages is not evaluated.
-- **The ML stack carries known advisories** (torch 2.8, transformers 4.57, nltk) that WhisperX's pins
+- **The ML stack carries known advisories** (torch 2.8, transformers 4.57) that WhisperX's pins
   block; they concern loading untrusted model files, which the app does not do (ADR-0014).
 - **Local notes on long meetings are slower than transcription**: about 4-5 minutes per hour of audio
   with an 8B model on 8 GB (map-reduce); regenerating one section of a long meeting repeats that work.

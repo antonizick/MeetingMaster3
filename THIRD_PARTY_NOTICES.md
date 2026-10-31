@@ -125,7 +125,7 @@ Every package the `ml` and `bedrock` extras add to the core runtime. Generated; 
 | multidict | 7.1.0 | Apache-2.0 |
 | narwhals | 2.27.1 | MIT |
 | networkx | 3.7 | BSD-3-Clause |
-| nltk | 3.10.3 | Apache Software License |
+| nltk | 3.10.4 | Apache Software License |
 | numpy | 2.5.4 | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 |
 | nvidia-cublas-cu12 | 12.8.4.1 | Other/Proprietary License |
 | nvidia-cuda-cupti-cu12 | 12.8.90 | Other/Proprietary License |
