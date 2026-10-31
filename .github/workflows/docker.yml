@@ -35,7 +35,7 @@ jobs:
       - name: Verify no model weights or secrets are baked in
         run: |
           ! docker run --rm --entrypoint sh meetingmaster3:cpu -c 'find / -xdev \( -name "*.safetensors" -o -name "*.ckpt" -o -name ".env" \) -print | grep .'
-      - name: Build the GPU image (not run: CI has no GPU)
+      - name: "Build the GPU image (not run, CI has no GPU)"
         run: docker build -f docker/Dockerfile --target runtime-gpu -t meetingmaster3:gpu .
       - name: Validate compose files
         run: |

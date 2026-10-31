@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Check Markdown links (offline)
-        uses: lycheeverse/lychee-action@f25a3a9f25bd5f4c5d77189cab02ff357b5aedeb # v2.4.1
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
           args: --offline --no-progress --include-fragments '**/*.md'
           fail: true
