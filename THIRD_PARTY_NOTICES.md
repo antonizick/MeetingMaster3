@@ -23,7 +23,7 @@ Generated; do not edit by hand. Core runtime only (no dev tools, no optional `ml
 | annotated-doc | 0.0.5 | MIT |
 | annotated-types | 0.8.0 | MIT |
 | anyio | 4.15.1 | MIT |
-| certifi | 2026.7.22 | Mozilla Public License 2.0 (MPL 2.0) |
+| certifi | 2026.10.23 | Mozilla Public License 2.0 (MPL 2.0) |
 | click | 8.5.0 | BSD-3-Clause |
 | colorama | 0.4.6 | BSD-3-Clause (Windows only) |
 | fastapi | 0.143.0 | MIT |
@@ -104,7 +104,7 @@ Every package the `ml` and `bedrock` extras add to the core runtime. Generated; 
 | defusedxml | 0.7.1 | Python Software Foundation License |
 | einops | 0.8.2 | MIT License |
 | faster-whisper | 1.2.1 | MIT License |
-| filelock | 4.1.1 | MIT |
+| filelock | 4.2.6 | MIT |
 | flatbuffers | 25.12.19 | Apache Software License |
 | fonttools | 4.66.1 | MIT |
 | frozenlist | 1.8.0 | Apache-2.0 |
@@ -155,7 +155,7 @@ Every package the `ml` and `bedrock` extras add to the core runtime. Generated; 
 | optuna | 5.0.0 | MIT License |
 | packaging | 26.3 | Apache-2.0 OR BSD-2-Clause |
 | pandas | 3.0.6 | BSD License |
-| pillow | 12.3.0 | MIT-CMU |
+| pillow | 13.0.0 | MIT-CMU |
 | primepy | 1.3 | MIT License |
 | propcache | 0.5.4 | Apache-2.0 |
 | protobuf | 7.36.2 | 3-Clause BSD License |
@@ -175,7 +175,7 @@ Every package the `ml` and `bedrock` extras add to the core runtime. Generated; 
 | safetensors | 0.8.0 | Apache Software License |
 | scikit-learn | 1.9.1 | BSD-3-Clause |
 | scipy | 1.18.1 | BSD License |
-| setuptools | 84.0.0 | MIT |
+| setuptools | 84.2.1 | MIT |
 | six | 1.17.0 | MIT License |
 | sortedcontainers | 2.4.0 | Apache Software License |
 | sqlalchemy | 2.1.4 | MIT |
