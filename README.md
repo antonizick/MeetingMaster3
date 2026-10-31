@@ -1,6 +1,8 @@
-# MeetingMaster3
+<p align="center">
+  <img src="src/meetingmaster3/web/static/brand/hero@2x.png" alt="MeetingMaster3: a wizard with a crystal ball at a boardroom table" width="480">
+</p>
 
-![MeetingMaster3 review workspace: audio, synced transcript and the note](docs/assets/06-review-workspace.png)
+# MeetingMaster3
 
 **Turn meeting audio into speaker-attributed transcripts and secretary-grade, Obsidian-native Markdown notes, entirely on your own machine.**
 
@@ -13,6 +15,8 @@ speakers once, and writes a structured note into your Obsidian vault with a lang
 locally (Ollama) unless you choose a cloud one. Then you can review the note beside the audio, regenerate any
 section, search every meeting by meaning, and ask questions across all of them. It is free, open source
 (Apache-2.0), runs on `localhost` for a single user, and has no telemetry.
+
+![MeetingMaster3 review workspace: audio, synced transcript and the note](docs/assets/06-review-workspace.png)
 
 ## Contents
 [Features](#features) · [Privacy](#privacy-stance) · [Quickstart (Docker)](#quickstart-docker) ·
