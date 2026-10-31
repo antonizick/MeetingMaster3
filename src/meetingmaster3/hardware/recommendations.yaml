@@ -54,7 +54,7 @@ profiles:
       notes_rtf: [10, 20]
       summary: 7-8B models at Q4_K_M fit in 8 GB with a modest context window.
       models:
-        - {family: "Llama 3.1 8B / Qwen 2.5 7B", size_b: 8, quant: Q4_K_M, context: "8k-16k", quality: good, speed: fast}
+        - {family: "Qwen3 8B (measured) / Llama 3.1 8B", size_b: 8, quant: Q4_K_M, context: "8k-16k", quality: good, speed: fast}
         - {family: "Gemma 2 9B", size_b: 9, quant: Q4_K_M, context: "8k", quality: good, speed: moderate}
       context_note: About 8k-16k tokens of context fits; long meetings are summarised in chunks.
       vram_handoff: Transcription and the LLM never share the GPU at the same time on 8 GB; models are unloaded between stages (spec R5).

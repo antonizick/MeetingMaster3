@@ -49,7 +49,7 @@ a warning, because out-of-memory failures are likely.
 | Profile | Suggested models | Context that fits |
 |---|---|---|
 | `cpu` | 3-4B at Q4_K_M, or use a cloud backend | short prompts only |
-| `vram8` | 7-9B at Q4_K_M (Llama 3.1 8B, Qwen 2.5 7B, Gemma 2 9B) | about 8k-16k tokens |
+| `vram8` | 7-9B at Q4_K_M (Qwen3 8B, the measured default; Llama 3.1 8B, Gemma 2 9B) | about 8k-16k tokens |
 | `vram16` | 12-14B at Q4_K_M, or 8B at Q8_0 | about 16k-32k tokens |
 | `vram24plus` | about 30B at Q4_K_M, or 14B at Q8_0 | 32k+ tokens |
 
