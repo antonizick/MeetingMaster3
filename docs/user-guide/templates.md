@@ -70,7 +70,7 @@ templates are listed with their errors instead of being hidden. The format is in
 
 ## Choosing a template and a model
 * **Command line:** `uv run mm3 process recording.m4a --template decision-log --backend ollama --model qwen3:8b`
-  (see "Process a recording headlessly" in the [README](../../README.md#quickstart)).
+  (see "Process a recording headlessly" in the [README](../../README.md#using-it)).
 * **API:** the upload's `options` take `template`, `backend` and `model`; `POST /api/jobs/{id}/generate`
   changes them before the notes are generated, or re-generates the notes of a failed job.
 * **Web UI:** the template picker on the upload page and the template library in Settings.
