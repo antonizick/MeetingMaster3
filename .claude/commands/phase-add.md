@@ -98,7 +98,8 @@ a planning Phase Log entry, ADRs for any decisions made now, the vault note, and
 - Every link in the new row and prompt resolves (`ls`); each table row has exactly one status icon; each
   prompt's "Depends on" matches the table; no `{{` remains; `/phase status` logic would list the new phase
   in the right order.
-- Commit only the planning files to `main`: `git commit -m "docs(plan): add phase <ID> (<title>)" -- <files>`.
+- Refresh the timeline: `python3 scripts/phase_timeline.py --write --vault-note "/home/nick/Documents/02 Projects/MM3 Implementation Plan.md"` (adds this planning session to the Planning lane).
+- Commit only the planning files, the timeline SVG included, to `main`: `git commit -m "docs(plan): add phase <ID> (<title>)" -- <files>`.
   This is **not** a claim. Push `main` afterwards if a remote exists (standing git authority, ADR-0004).
 
 ## Naming and timestamps

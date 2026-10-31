@@ -57,6 +57,7 @@ Lightweight ADRs. Append new decisions at the bottom, and never rewrite history:
 | ADR-0051 | 2026-10-22 15:44 CDT | Ask agent details: plan queries only (never the raw question) with dates used only when the question talks about time; Ask's own vector margin 0.12; quotes and people verified against the excerpts; model tables dropped and HTML defused; one question at a time holding the GPU per call; answers in `mm3.db` (migration 5) with the note as the answer; `keep_history` off keeps nothing; Obsidian links by path | Accepted | 15j |
 | ADR-0052 | 2026-10-24 11:42 CDT | Import transcripts and AI conversations as meetings (`import` job type; AI chat Markdown, labelled or not, and timestamped transcripts; untimed transcripts invent no times); Grok share links only, from a fixed host; Create Project Plan, the 24th built-in, writes a pre-plan for `/phased-project`; the example conversation stays private; split into 15k, 15l, 15m | Accepted; implemented in 15k, 15l and 15m | 15k, 15l, 15m |
 | ADR-0053 | 2026-10-26 17:11 CDT | Adopt the PhaseHypervisor hands-off phase contract and ADR-0004 git rules | Accepted | n/a (PHX Phase 09) |
+| ADR-0054 | 2026-10-31 11:28 CDT | Adopt the generated visual timeline (`scripts/phase_timeline.py`) | Accepted | n/a (PHX Phase 12c) |
 
 ---
 
@@ -1749,3 +1750,15 @@ include conversations; filtering them apart is a possible follow-up. The templat
 | Do not adopt | Nothing to maintain | The repo stays out of reach of `phx` |
 **Decision.** Adopted on 2026-10-26 17:11 CDT: `PHX-CONTRACT: 1`, step 0 (PHX check) and the "Hands-off mode" section in `.claude/commands/phase.md`; shared instructions §1b (block-with-question) with pointers in the owner-question and ambiguity steps, the ADR-0004 merge and push wording and the `PHX-RESULT` note in the close-out; the Risk rule and ADR-0004 git rule in `CLAUDE.md`; a Gate column in the plan (`auto` for every phase, `review` for the release or publication phase) with its legend.
 **Consequences.** Interactive `/phase` behaves as before; the only differences are the ADR-0004 git rules and an optional Gate column that manual runs ignore. The Gate column makes every row's Gate explicit, so a `phx preflight` recorded before this change is stale; run preflight after migrating. Undo: revert the `chore(phx): adopt hands-off phase contract` commit.
+
+## ADR-0054: Adopt the generated visual timeline (`scripts/phase_timeline.py`)
+**Recorded.** 2026-10-31 11:28 CDT (PhaseHypervisor Phase 12c, rollout)
+**Context.** PhaseHypervisor Phase 12b added a stdlib generator, `scripts/phase_timeline.py`, to the `phased-project` skill. It reads the plan's phase table, the Phase Log Timeline bullets and git, and draws when planning and each phase started and stopped. Nick asked (2026-10-31 10:00 CDT) for his existing projects to get it too (PHX ADR-0025, ADR-0027).
+**Options considered.**
+| Option | Pros | Cons |
+|---|---|---|
+| Adopt now, while the repo is idle, in one commit (chosen) | No phase is disturbed; the next block, resume or close-out refreshes it | Older Phase Log entries show as approximate or "not shown" |
+| Wait until the next phase | Nothing to change today | The retrofit would land in the middle of a running phase |
+| Do not adopt | Nothing to maintain | This project's history stays invisible |
+**Decision.** Adopted 2026-10-31 11:28 CDT: `scripts/phase_timeline.py` (byte-identical to the skill's copy); `## Timeline` markers in the plan and the vault note; the generated `docs/MM3_TIMELINE.svg`; and the maintenance lines in the shared instructions (block, resume, close-out checklist, new §4a), `.claude/commands/phase.md` (drift check) and `.claude/commands/phase-add.md` (refresh before the commit). The timeline is refreshed only on `main`. Legacy entries are not rewritten; the chart marks them approximate.
+**Consequences.** `phx plan` output is unchanged. `python3 scripts/phase_timeline.py --check` exits 1 when the outputs are stale (expected right after a claim). Undo: revert the adoption commit and remove the `## Timeline` section from the vault note.
