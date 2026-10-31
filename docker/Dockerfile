@@ -52,7 +52,7 @@ ARG REVISION=unknown
 LABEL org.opencontainers.image.title="MeetingMaster3" \
       org.opencontainers.image.description="Local-first meeting transcription and note generation" \
       org.opencontainers.image.licenses="Apache-2.0" \
-      org.opencontainers.image.source="https://example.invalid/OWNER/REPO" \
+      org.opencontainers.image.source="https://github.com/antonizick/MeetingMaster3" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}"
 # No curl (the healthcheck uses Python) and no system pip: neither is needed at run time, and both

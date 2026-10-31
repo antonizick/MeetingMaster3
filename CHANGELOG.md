@@ -71,5 +71,5 @@ See the README's "Known limitations" and [`docs/ROADMAP.md`](docs/ROADMAP.md). I
 login; English-first; measured on one 8 GB laptop GPU; tested in Chromium only; the `ml` extra carries known
 upstream advisories that WhisperX's pins block (ADR-0014).
 
-[Unreleased]: https://example.invalid/OWNER/REPO/compare/v0.1.0...HEAD
-[0.1.0]: https://example.invalid/OWNER/REPO/releases/tag/v0.1.0
+[Unreleased]: https://github.com/antonizick/MeetingMaster3/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/antonizick/MeetingMaster3/releases/tag/v0.1.0

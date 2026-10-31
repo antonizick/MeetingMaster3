@@ -36,8 +36,8 @@ bedrock = [
 ]  # boto3: added in Phase 08
 
 [project.urls]
-Homepage = "https://example.invalid/OWNER/REPO"
-Issues = "https://example.invalid/OWNER/REPO/issues"
+Homepage = "https://github.com/antonizick/MeetingMaster3"
+Issues = "https://github.com/antonizick/MeetingMaster3/issues"
 
 [project.scripts]
 mm3 = "meetingmaster3.cli:main"

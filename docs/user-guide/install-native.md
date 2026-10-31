@@ -16,7 +16,7 @@ simulates transcription and note generation.
 
 ## Install and run
 ```bash
-git clone <repo-url> MeetingMaster3
+git clone https://github.com/antonizick/MeetingMaster3.git MeetingMaster3
 cd MeetingMaster3
 uv sync                 # creates .venv with Python 3.12 and the locked dependencies
 uv run mm3 serve        # http://127.0.0.1:8765/

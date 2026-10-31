@@ -4,7 +4,7 @@
 
 **Turn meeting audio into speaker-attributed transcripts and secretary-grade, Obsidian-native Markdown notes, entirely on your own machine.**
 
-[![CI](https://img.shields.io/badge/CI-pending-lightgrey)](#project-status)
+[![CI](https://github.com/antonizick/MeetingMaster3/actions/workflows/ci.yml/badge.svg)](https://github.com/antonizick/MeetingMaster3/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Version](https://img.shields.io/badge/version-0.1.0-informational)](CHANGELOG.md)
 
@@ -92,7 +92,7 @@ Details: [`docs/MM3_ARCHITECTURE.md`](docs/MM3_ARCHITECTURE.md).
 You need Docker with the Compose plugin and, for the GPU image, an NVIDIA driver (570+) with the NVIDIA
 Container Toolkit ([setup](docs/user-guide/install-docker.md)). [Ollama](https://ollama.com) runs on the host.
 ```bash
-git clone <repo-url> MeetingMaster3 && cd MeetingMaster3
+git clone https://github.com/antonizick/MeetingMaster3.git MeetingMaster3 && cd MeetingMaster3
 export MM3_VAULT_PATH="$HOME/Documents/MyVault"        # your Obsidian vault folder
 docker compose -f docker/compose.yaml up -d --build    # NVIDIA GPU (add -f docker/compose.cpu.yaml for CPU only)
 ollama pull qwen3:8b && ollama pull nomic-embed-text   # a note-writing model and the search embedder
@@ -107,7 +107,7 @@ Walk-through with screenshots: [`docs/user-guide/getting-started.md`](docs/user-
 Needs [uv](https://docs.astral.sh/uv/) (it fetches Python 3.12) and **ffmpeg and ffprobe on `PATH`** (Arch:
 `sudo pacman -S ffmpeg`, Debian/Ubuntu: `sudo apt install ffmpeg`, macOS: `brew install ffmpeg`).
 ```bash
-git clone <repo-url> MeetingMaster3 && cd MeetingMaster3
+git clone https://github.com/antonizick/MeetingMaster3.git MeetingMaster3 && cd MeetingMaster3
 uv sync --extra ml                 # transcription engine: WhisperX, PyTorch, pyannote (about 6 GB)
 uv run mm3 models download         # about 2 GB of models; needs the Hugging Face token below
 uv run mm3 doctor                  # checks ffmpeg, GPU, models and Ollama
@@ -227,8 +227,7 @@ voiceprints live in the app data folder (`mm3 config path`). Audio is kept as Op
 ## Project status
 MeetingMaster3 0.1.0 is the first release. It was built in numbered phases with AI coding agents; the history is
 in [`MM3_IMPLEMENTATION_PLAN.md`](MM3_IMPLEMENTATION_PLAN.md), the decisions in
-[`docs/MM3_DECISIONS.md`](docs/MM3_DECISIONS.md) and what comes next in [`docs/ROADMAP.md`](docs/ROADMAP.md). The CI
-badge above is a placeholder until the repository is published.
+[`docs/MM3_DECISIONS.md`](docs/MM3_DECISIONS.md) and what comes next in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Contributing and security
 - [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md)
