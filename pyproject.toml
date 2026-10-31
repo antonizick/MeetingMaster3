@@ -1,6 +1,6 @@
 [project]
 name = "meetingmaster3"
-version = "0.0.0"
+version = "0.1.0"
 description = "Local-first meeting intelligence: audio to speaker-attributed transcripts and Obsidian-native notes."
 readme = "README.md"
 license = "Apache-2.0"
@@ -75,6 +75,8 @@ select = ["E", "F", "I", "B", "UP", "S", "SIM", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106"]
+# Vendored from PhaseHypervisor (a stdlib-only development script, not shipped); kept as written.
+"scripts/phase_timeline.py" = ["S101", "S603", "S607", "UP017", "UP035", "B905"]
 
 [tool.mypy]
 strict = true

@@ -91,6 +91,8 @@ Three files are written next to each other:
 ![Done](../assets/05-done.png)
 
 ## Other pages
+![The Meetings page](../assets/12-meetings.png)
+
 - **Meetings** (the top menu's second item) is the one place to find a meeting. **Jobs** lists every job (resume
   interrupted ones, delete old ones), **Notes in your vault** lists the notes you wrote, and **Browse the vault** at
   the bottom opens any note MeetingMaster3 wrote. Each section shows 10 rows at a time (25 in Browse the vault),

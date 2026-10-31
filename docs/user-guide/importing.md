@@ -10,6 +10,8 @@ A meeting doesn't have to start from a recording. MeetingMaster3 can start from 
 5. Pick the template, model and backend as for a recording. The same cloud consent applies: a cloud backend receives the imported text.
 6. Choose **Accept settings & start**. A few seconds later the job pauses at **Who said what?** Choose **Check the speakers**.
 
+![New meeting with the import choice selected](../assets/13-import.png)
+
 ### From a Grok share link
 Instead of a file, you can paste the **share link** Grok gives you. In Grok, open the conversation, choose **Share** and copy the link (it looks like `https://x.com/i/grok/share/…` or `https://grok.com/share/…`). On New meeting, choose **Import a transcript or AI conversation** and paste it into **Or paste a Grok share link** (leave the file empty). A share link is the better choice when you have one: every message says who sent it and when, so the speakers are exact (nothing to fix) and the notes' `[mm:ss]` references point at the real moments of the conversation. Long voice-mode messages that Grok stored as growing copies are merged, as for a Markdown export.
 
@@ -32,6 +34,8 @@ The check page lists every turn (the first 200, then **Show all**), with the spe
 - Turns marked **check** (highlighted) are the ones MeetingMaster3 guessed with low confidence. Look at those first.
 - Type the speakers' names at the top. Every turn's button follows.
 - Pick the template, then **Confirm & write notes**.
+
+![The check page: every turn with its speaker, doubtful ones highlighted](../assets/14-import-check.png)
 
 The server checks every change (an unknown speaker or turn is refused).
 

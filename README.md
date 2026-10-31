@@ -1,52 +1,65 @@
 # MeetingMaster3
 
+![MeetingMaster3 review workspace: audio, synced transcript and the note](docs/assets/06-review-workspace.png)
+
 **Turn meeting audio into speaker-attributed transcripts and secretary-grade, Obsidian-native Markdown notes, entirely on your own machine.**
 
-[![CI](https://img.shields.io/badge/CI-pending-lightgrey)](#status)
+[![CI](https://img.shields.io/badge/CI-pending-lightgrey)](#project-status)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.1.0-informational)](CHANGELOG.md)
 
-> ⚠️ **Pre-alpha.** The whole flow works in the browser, headlessly and in Docker (audio →
-> transcript → named speakers → structured note in your vault → review, edit and regenerate), and it
-> has had a security review (Phase 15). The first release is Phase 16 of the
-> [plan](MM3_IMPLEMENTATION_PLAN.md).
+Drop in a recording. MeetingMaster3 transcribes it (WhisperX), works out who said what, lets you name the
+speakers once, and writes a structured note into your Obsidian vault with a language model that runs
+locally (Ollama) unless you choose a cloud one. Then you can review the note beside the audio, regenerate any
+section, search every meeting by meaning, and ask questions across all of them. It is free, open source
+(Apache-2.0), runs on `localhost` for a single user, and has no telemetry.
 
-## Status
-Built in phases (see [`MM3_IMPLEMENTATION_PLAN.md`](MM3_IMPLEMENTATION_PLAN.md)). Done so far: Phases 01-13 (repository, Python scaffold, data model and Markdown round-trip, job orchestration and audio ingest, hardware detection, transcription and diarization, speaker naming and voiceprints, LLM backends, templates and note generation, the web UI's core flow, and the review workspace: synced audio and transcript, note editor, per-section regeneration with diffs and archives, template switching, renaming speakers and re-opening notes from the vault (see [reviewing and editing](docs/user-guide/reviewing-and-editing.md)), the Settings screen, template library management, local feedback ratings and export, and all 22 built-in templates), Docker images (Phase 14), and hardening: a [threat model](docs/THREAT_MODEL.md), a security review with fixes, fuzzing, end-to-end and accessibility tests, a licence audit and [measured performance](docs/PERFORMANCE.md) (Phase 15). Tuning round 15a added a readable transcript in the vault, two summaries per note (Summary Succinct and Summary Detailed) with an "Update older notes" action, dates from month-day file names, a "can I leave this page?" line and a logo.
-The CI badge above is a placeholder until the repository is published (Phase 16).
+## Contents
+[Features](#features) · [Privacy](#privacy-stance) · [Quickstart (Docker)](#quickstart-docker) ·
+[Native install](#native-install) · [Using it](#using-it) · [Configuration](#configuration) ·
+[Hardware](#hardware-guidance) · [Known limitations](#known-limitations) · [FAQ](#faq-and-troubleshooting) ·
+[Project status](#project-status) · [Contributing](#contributing-and-security) · [License](#license)
 
-## Planned features (MVP)
-- Upload audio, get a diarized transcript (WhisperX: faster-whisper + wav2vec2 alignment + pyannote).
-- Name speakers once; optional local voiceprints recognise them in later meetings.
-- Structured notes from 24 templates (Default Notes by topic, executive summary, decision log, action items, a project
-  plan from an AI conversation, and more), each
-  opening with a short and a detailed summary, written straight into your Obsidian vault with
-  frontmatter, wikilinks, a readable colour-coded transcript and a full-fidelity companion transcript.
-- Side-by-side review with audio, per-section regeneration with diffs, and re-opening existing notes.
-- **Search your meetings by meaning and by words**: "where did we spend more than planned?" finds the
-  meeting where someone said "the costs exceeded the forecast". Notes and transcripts are indexed locally
-  (Ollama `nomic-embed-text`), kept in step with the vault, on a **Search** page and `mm3 search`
-  ([search and ask](docs/user-guide/search-and-ask.md)).
+## Features
+- **Audio to note.** Upload audio, get a diarized transcript (WhisperX: faster-whisper, wav2vec2 alignment,
+  pyannote), name the speakers, and receive a note in your vault with frontmatter, wikilinks, a full-fidelity
+  companion transcript and a readable, colour-coded one. Jobs are queued, checkpointed and resumable, with live
+  progress and an ETA.
+- **Speakers.** Name each speaker once, with sample clips to listen to. Optional local voiceprints (off by
+  default) suggest names in later meetings.
+- **24 templates** (Default Notes by topic, Executive Summary, Decision Log, Action-Focused, Job Interview
+  Notes, Board Minutes, Stand-up, Retrospective, Create Project Plan and more), each opening with a short and a
+  detailed summary. They are plain files in your vault: edit, duplicate or write your own
+  ([catalogue](docs/user-guide/template-catalogue.md)). Action items are Obsidian checkboxes with an owner only
+  when someone took the task on; long meetings are summarised in parts so nothing is skipped.
+- **Review workspace.** Audio and transcript side by side, the note in Preview or an editor, per-section
+  regeneration with diffs and archives, template switching with a live progress bar, speaker renaming, a
+  Keep-forever control for the recording, and re-opening or re-linking notes from the vault
+  ([guide](docs/user-guide/reviewing-and-editing.md)).
+- **Fix a meeting afterwards.** *Title & date…* renames and re-dates a meeting everywhere (files, folder,
+  links in your other notes), previewed and backed up first.
+- **Search your meetings by meaning and by words**: "where did we spend more than planned?" finds the meeting
+  where someone said "the costs exceeded the forecast". Indexed locally with `nomic-embed-text`, on a **Search**
+  page and `mm3 search` ([guide](docs/user-guide/search-and-ask.md)).
+
+  ![The Search page](docs/assets/10-search.png)
 - **Ask your meetings broad questions**: "how many times did we discuss the vendor contract, who led those
-  discussions and in what role? Make a table of the meetings, dates and attendees." The **Ask-AI** page (and
-  `mm3 ask`) searches, reads each matching meeting with a local model (or Bedrock / OpenRouter, after you
-  consent), and answers with the meetings cited and a table whose meetings, dates and attendees come from the
-  files. Every answer is saved as a linked note in `MM3 Answers/`, listed on the Ask-AI page and on each cited
-  meeting's page, and shown in Obsidian's backlinks.
+  discussions, and in what role? Make a table." The **Ask-AI** page (and `mm3 ask`) reads each matching
+  meeting and answers with citations and a table whose meetings, dates and attendees come from the files. Every
+  answer is saved as a linked note in `MM3 Answers/`.
 
   ![The Ask-AI page: a cited answer with the table of meetings built from the files](docs/assets/11-ask.png)
-- **Start from text instead of audio**: import a conversation with an AI assistant exported as Markdown
-  (even a Grok voice-mode export with no speaker labels) or a transcript made elsewhere (`[hh:mm:ss] Name:`
-  lines, `.vtt`, `.srt`, a MeetingMaster3 `.transcript.md`). Check who said each turn with one click per turn,
-  and get an ordinary meeting note: review, regenerate, rename, Search and Ask-AI all work, and no
-  timestamps are invented ([importing](docs/user-guide/importing.md), `mm3 import`). Or paste a **Grok share link**:
-  speakers and times come straight from Grok, so there is nothing to fix (one download from grok.com).
-- Fix a meeting's title or date after the fact: every file is renamed and the links to it in your other
-  notes follow (backed up first).
-- Local-first LLMs through Ollama; optional BYOK cloud backends (AWS Bedrock, OpenAI-compatible
-  endpoints including OpenRouter), both verified live with Claude and other model families
+- **Start from text instead of audio.** Import an AI conversation exported as Markdown (even a Grok voice-mode
+  export with no speaker labels), a transcript (`[hh:mm:ss] Name:` lines, `.vtt`, `.srt`, an MM3 companion), or
+  paste a **Grok share link**. Check who said each turn with one click and get an ordinary meeting note
+  ([importing](docs/user-guide/importing.md), `mm3 import`). The *Create Project Plan* template turns a
+  planning conversation into a pre-plan for a coding agent.
+- **Local-first language models** through Ollama; optional bring-your-own-key cloud backends (AWS Bedrock,
+  OpenAI-compatible endpoints including OpenRouter), verified live, with a model picker that shows prices,
+  an estimated cost per meeting and Best value / Best quality picks
   ([setup guide](docs/user-guide/llm-backends.md), [measured cost and quality](docs/PERFORMANCE.md#cloud-backends)).
-- Hardware-aware: designed to work on an 8 GB VRAM GPU.
-- Docker Compose deployment (GPU and CPU).
+- **Hardware-aware**, designed to work on an 8 GB VRAM GPU; `mm3 doctor` checks your machine.
+- **Docker Compose** deployment for GPU and CPU.
 
 ## Privacy stance
 Your audio, transcripts and notes stay on your machine. Nothing leaves it unless you explicitly pick a
@@ -54,7 +67,8 @@ cloud LLM backend, and the app asks for consent before the first cloud use. The 
 the app's data folder and uses a local embedding model; a cloud embedder needs its own permission, because
 it would receive every meeting's text. The Ask-AI agent uses a local model by default; a cloud model needs a tick
 for each question (or its own "always allow Ask-AI" switch), because one question sends excerpts of many meetings.
-There is no telemetry.
+The one other outbound request is importing a Grok share link, which fetches that one conversation from
+`grok.com` when you paste the link. There is no telemetry.
 Voiceprints are treated as biometric data: opt-in, local only, stored only for the people you choose,
 physically erased when deleted. See [`docs/PRIVACY.md`](docs/PRIVACY.md).
 
@@ -74,90 +88,76 @@ physically erased when deleted. See [`docs/PRIVACY.md`](docs/PRIVACY.md).
 ```
 Details: [`docs/MM3_ARCHITECTURE.md`](docs/MM3_ARCHITECTURE.md).
 
-## Installation
-**Docker (recommended):**
+## Quickstart (Docker)
+You need Docker with the Compose plugin and, for the GPU image, an NVIDIA driver (570+) with the NVIDIA
+Container Toolkit ([setup](docs/user-guide/install-docker.md)). [Ollama](https://ollama.com) runs on the host.
 ```bash
-export MM3_VAULT_PATH="$HOME/Documents"   # your Obsidian vault
-docker compose -f docker/compose.yaml up -d --build                                # NVIDIA GPU
-docker compose -f docker/compose.yaml -f docker/compose.cpu.yaml up -d --build     # CPU only
+git clone <repo-url> MeetingMaster3 && cd MeetingMaster3
+export MM3_VAULT_PATH="$HOME/Documents/MyVault"        # your Obsidian vault folder
+docker compose -f docker/compose.yaml up -d --build    # NVIDIA GPU (add -f docker/compose.cpu.yaml for CPU only)
+ollama pull qwen3:8b && ollama pull nomic-embed-text   # a note-writing model and the search embedder
+xdg-open http://127.0.0.1:8765                         # then follow the setup page
 ```
-Then open <http://127.0.0.1:8765> (published on the loopback only). Models download into a volume, not
-the image. Full guide, Ollama options and sizes: [`docs/user-guide/install-docker.md`](docs/user-guide/install-docker.md).
-**Native (uv):** [`docs/user-guide/install-native.md`](docs/user-guide/install-native.md).
+The first build takes several minutes. Models download into a volume, not the image; speaker separation
+needs a free Hugging Face token (see the [FAQ](#faq-and-troubleshooting)). The app is published on the
+loopback only. Full guide, Ollama options and sizes: [`docs/user-guide/install-docker.md`](docs/user-guide/install-docker.md).
+Walk-through with screenshots: [`docs/user-guide/getting-started.md`](docs/user-guide/getting-started.md).
 
-## Quickstart
-Start the web UI and follow the on-screen steps (vault setup, upload, name speakers):
+## Native install
+Needs [uv](https://docs.astral.sh/uv/) (it fetches Python 3.12) and **ffmpeg and ffprobe on `PATH`** (Arch:
+`sudo pacman -S ffmpeg`, Debian/Ubuntu: `sudo apt install ffmpeg`, macOS: `brew install ffmpeg`).
 ```bash
-uv sync --extra ml && uv run mm3 serve   # then open http://127.0.0.1:8765
-MM3_FAKE_PIPELINE=1 uv run mm3 serve     # try the flow with simulated results, no models needed
+git clone <repo-url> MeetingMaster3 && cd MeetingMaster3
+uv sync --extra ml                 # transcription engine: WhisperX, PyTorch, pyannote (about 6 GB)
+uv run mm3 models download         # about 2 GB of models; needs the Hugging Face token below
+uv run mm3 doctor                  # checks ffmpeg, GPU, models and Ollama
+uv run mm3 serve                   # then open http://127.0.0.1:8765
 ```
-The walk-through with screenshots is in [`docs/user-guide/getting-started.md`](docs/user-guide/getting-started.md).
+Real transcription wants an NVIDIA GPU with a CUDA 12.8 capable driver (570+; no CUDA toolkit needed) or
+patience on the CPU. To try the whole flow with simulated results and no models, run
+`uv sync && MM3_FAKE_PIPELINE=1 uv run mm3 serve`. Details: [`docs/user-guide/install-native.md`](docs/user-guide/install-native.md);
+transcription: [`docs/user-guide/transcription.md`](docs/user-guide/transcription.md).
 
-Or process a recording headlessly, from audio to a note in your vault:
+## Using it
+In the browser: **New meeting** (upload or import), name the speakers when asked, then open the note in
+**Meetings**. From a terminal, process a recording headlessly, from audio to a note in your vault:
 ```bash
-uv sync --extra ml                      # transcription engine (see Installation)
 ollama pull qwen3:8b                    # a local LLM that fits an 8 GB GPU
 uv run mm3 process "2026-10-11 Product Sync.m4a" \
     --vault ~/Documents/MyVault --backend ollama --model qwen3:8b \
     --template executive-summary --speakers "SPEAKER_00=Alice,SPEAKER_01=Bob"
 ```
-It transcribes, separates and names the speakers, writes the notes with a local model and saves
-`Meetings/2026/2026-10-11 - Product Sync.md` plus its `.transcript.md` in the vault. Leave out
-`--speakers` to be asked on the terminal (the speakers are listed with their talk time). Without the
-`ml` extra or a model, `MM3_FAKE_PIPELINE=1` runs the same flow with simulated results.
-A transcript or an exported AI conversation works the same way, without audio:
+It saves `Meetings/2026/2026-10-11 - Product Sync.md` plus its `.transcript.md` in the vault. Leave out
+`--speakers` to be asked on the terminal. Other commands:
 ```bash
-uv run mm3 import "privacy chat.md" --speaker user=Alice --speaker assistant=Grok --yes
+uv run mm3 import "privacy chat.md" --speaker user=Alice --speaker assistant=Grok --yes   # text, no audio
+uv run mm3 search "where did we spend more than planned"
+uv run mm3 ask "which meetings discussed the vendor contract, and who led them?"
+uv run mm3 templates list
+uv run mm3 --help
 ```
-`uv run mm3 templates list` shows the templates; `uv run mm3 serve` starts the API server
-(<http://127.0.0.1:8765/>, health check `/healthz`).
 
-## Installation
-Native install for development (needs [uv](https://docs.astral.sh/uv/); it fetches Python 3.12 for you):
-```bash
-git clone <repo-url> MeetingMaster3 && cd MeetingMaster3
-uv sync
-uv run pre-commit install   # optional, recommended for contributors
-uv run pytest
-```
-**ffmpeg is required** (`ffmpeg` and `ffprobe` on `PATH`; Arch: `sudo pacman -S ffmpeg`, Debian/Ubuntu:
-`sudo apt install ffmpeg`, macOS: `brew install ffmpeg`); `uv run mm3 doctor` checks it. To try the job
-flow without ML models, run `MM3_FAKE_PIPELINE=1 uv run mm3 serve` (see
-[`docs/dev-guide/jobs-and-stages.md`](docs/dev-guide/jobs-and-stages.md)). Docker Compose is in place (Phase 14). Details:
-[`docs/user-guide/install-native.md`](docs/user-guide/installation.md) and
-[`docs/dev-guide/setup.md`](docs/dev-guide/setup.md).
+**Speaker names.** Each job pauses so you can name its speakers. Optional voice recognition
+(`privacy.voiceprints_enabled: true`, off by default) remembers the voices you choose; `mm3 voiceprints
+list|delete|wipe` manages what is stored ([guide](docs/user-guide/speakers.md)).
 
-**Transcription engine (optional extra).** Real transcription and speaker diarization need
-`uv sync --extra ml` (WhisperX, PyTorch, pyannote.audio; about 6 GB), an NVIDIA GPU with a CUDA 12.8
-capable driver (570+; no CUDA toolkit install needed) or patience on the CPU, and about 2 GB more
-for the default models. Speaker diarization uses a gated model: accept its terms at
-<https://huggingface.co/pyannote/speaker-diarization-community-1>, set a Hugging Face read token
-(`secrets.hf_token`), then run `uv run mm3 models download`. After that everything runs offline.
-Guide: [`docs/user-guide/transcription.md`](docs/user-guide/transcription.md).
+**Templates.** The built-in templates are copied into your vault's `MeetingMaster3/templates/` folder, where you
+can edit them or add your own ([guide](docs/user-guide/templates.md)).
 
-**Speaker names.** Each job pauses so you can name its speakers (with sample clips to listen to).
-Optional voice recognition (`privacy.voiceprints_enabled: true`, off by default) remembers the voices
-you choose and suggests their names in later meetings; `uv run mm3 voiceprints list|delete|wipe`
-manages what is stored. Guide: [`docs/user-guide/speakers.md`](docs/user-guide/speakers.md).
-
-**Notes and templates.** 24 built-in templates (Default Notes, Executive Summary, Decision Log, Action-Focused,
-Job Interview Notes, Board Minutes, Stand-up, Retrospective, Create Project Plan and more; see the
-[catalogue](docs/user-guide/template-catalogue.md)) are copied into your vault's `MeetingMaster3/templates/` folder,
-where you can edit them or add your own. Action items are Obsidian checkboxes with an owner only when
-someone actually took the task on; long meetings are summarised in parts so nothing is skipped. Cloud
-models are used only after you confirm. Guide: [`docs/user-guide/templates.md`](docs/user-guide/templates.md).
-
-**Settings, templates and your data.** The **Settings** screen edits everything in `config.yaml` (vault, transcription, language-model backends with write-only API keys and connection tests, audio retention, voiceprints, diagnostics). The **Templates** screen lets you star, preview, edit, duplicate, create and reset templates, which stay plain files in your vault. Rate notes and sections (stored only on your computer), download a note, transcript or zip, and export all your data. Guide: [`docs/user-guide/settings.md`](docs/user-guide/settings.md).
+**Settings and your data.** The **Settings** screen edits everything in `config.yaml` (vault, transcription,
+language-model backends with write-only API keys and connection tests, audio retention, voiceprints,
+diagnostics). Rate notes, download a note, transcript or zip, and export all your data
+([guide](docs/user-guide/settings.md)).
 
 ## Configuration
 Settings come from `config.yaml`, overridden by `MM3_*` environment variables. Run `uv run mm3 config path`
 to see where files live. Every setting is documented in
-[`docs/user-guide/configuration.md`](docs/user-guide/configuration.md).
+[`docs/user-guide/configuration.md`](docs/user-guide/configuration.md), which CI checks against the code.
 
 ## Hardware guidance
 MeetingMaster3 detects your GPU and recommends settings; run `uv run mm3 doctor` to see them for your
-machine. The 8 GB row is **measured** on the reference laptop (RTX 2070 Max-Q, Phase 15); the others
-are **estimates** from the specification (no such hardware was available to measure). Method and raw
+machine. The 8 GB row is **measured** on the reference laptop (RTX 2070 Max-Q); the others
+are **estimates** (no such hardware was available to measure). Method and raw
 numbers: [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md); settings: [`docs/user-guide/hardware.md`](docs/user-guide/hardware.md).
 
 | Profile | Whisper model | Diarization | Speed (x real time) | Local LLM (Ollama) |
@@ -189,19 +189,58 @@ notes; with Ollama's default settings notes take about twice as long
 - **Cloud models vary.** Claude, Llama 4, Qwen3, GLM, Mistral Large and GPT-5.5 write good notes; models
   that only reason (DeepSeek R1, gpt-oss) often return nothing within a section's allowance, Mistral 7B/Mixtral on
   Bedrock reject system prompts, and some models are only callable through an inference profile. The model
-  model pickers list only models that can write notes, with prices (live for OpenRouter, a dated table for
+  pickers list only models that can write notes, with prices (live for OpenRouter, a dated table for
   Bedrock), an estimated cost per meeting and Best value / Best quality picks; Bedrock prices exist only for the
   model families in the table, and the listing cannot tell whether your account has access to a model.
 - Only measured on one 8 GB laptop GPU; tested in Chromium (Firefox and Safari not tested).
 
-## FAQ
-_Coming in Phase 16._
+More in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-## Documentation and project files
-- [Specification](docs/MM3_SPECIFICATION.md) (section 15 amendments override sections 1-14)
-- [Implementation plan](MM3_IMPLEMENTATION_PLAN.md) and [decision log](docs/MM3_DECISIONS.md)
+## FAQ and troubleshooting
+**Speakers are not separated ("no speakers" warning).** Diarization uses a gated pyannote model. Accept its
+terms at <https://huggingface.co/pyannote/speaker-diarization-community-1>, create a read token, set it in
+Settings (or `MM3_SECRETS__HF_TOKEN`), then run `mm3 models download` (Docker: `make models-download`). After
+that everything runs offline. Without a token the transcript is written without speakers and says so.
+
+**"The GPU ran out of memory."** The job retries once with a smaller batch, then offers *Retry with a smaller
+model*. Close other GPU programs, and on 8 GB use the recommended Ollama settings (flash attention and the
+8-bit cache, see [hardware](docs/user-guide/hardware.md#ollama-settings-for-small-gpus-recommended-on-8-gb)).
+More: [transcription](docs/user-guide/transcription.md#when-the-gpu-runs-out-of-memory).
+
+**The app cannot reach Ollama.** Run `uv run mm3 doctor` (Docker: `make doctor`). Natively the default is
+`http://127.0.0.1:11434`. In Docker the app reaches the host through `host.docker.internal`; if Ollama listens
+only on loopback, use the host-network override or the bundled Ollama
+([options](docs/user-guide/install-docker.md)).
+
+**GPU not used in Docker (`could not select device driver "nvidia"`).** Install the NVIDIA Container Toolkit,
+run `sudo nvidia-ctk runtime configure --runtime=docker` and restart Docker, or use the CPU override.
+
+**"Host not allowed" (HTTP 400).** Add the name you browse to to `MM3_SERVER__ALLOWED_HOSTS`.
+
+**Where is my data?** Notes and transcripts are Markdown files in your vault. Jobs, the search index and
+voiceprints live in the app data folder (`mm3 config path`). Audio is kept as Opus for 90 days unless you press
+*Keep forever* on the meeting's page.
+
+**Is this affiliated with Obsidian, WhisperX or pyannote?** No. They are separate projects; thank you to them
+(see the acknowledgements below).
+
+## Project status
+MeetingMaster3 0.1.0 is the first release. It was built in numbered phases with AI coding agents; the history is
+in [`MM3_IMPLEMENTATION_PLAN.md`](MM3_IMPLEMENTATION_PLAN.md), the decisions in
+[`docs/MM3_DECISIONS.md`](docs/MM3_DECISIONS.md) and what comes next in [`docs/ROADMAP.md`](docs/ROADMAP.md). The CI
+badge above is a placeholder until the repository is published.
+
+## Contributing and security
 - [Contributing](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md)
+- [Specification](docs/MM3_SPECIFICATION.md) (section 15 amendments override sections 1-14)
 - [Changelog](CHANGELOG.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+
+## Acknowledgements
+MeetingMaster3 stands on [WhisperX](https://github.com/m-bain/whisperX),
+[faster-whisper](https://github.com/SYSTRAN/faster-whisper), [pyannote.audio](https://github.com/pyannote/pyannote-audio),
+[Ollama](https://ollama.com), FastAPI, HTMX and Alpine.js. It writes notes for [Obsidian](https://obsidian.md) but is not
+affiliated with or endorsed by Obsidian, OpenAI (Whisper), pyannote or any of the other projects named here.
+Test audio: AMI Meeting Corpus (CC BY 4.0). Full list: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 ## License
 Apache-2.0. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). The logo and hero picture

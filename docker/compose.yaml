@@ -66,7 +66,7 @@ services:
   # set MM3_OLLAMA_URL=http://host.docker.internal:11434 and publish the port, so prefer the host Ollama.
   ollama:
     profiles: [ollama]
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.40.7   # pinned: the version MeetingMaster3 was tested with on the host (bump deliberately)
     environment:
       # Flash attention + an 8-bit context cache: about 1 GB less VRAM for a 12-16k context, so
       # more of an 8B model stays on an 8 GB GPU (measured 1.5-1.8x faster; docs/user-guide/hardware.md).

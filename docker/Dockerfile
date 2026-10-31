@@ -47,7 +47,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM ${PYTHON_IMAGE} AS runtime-base
 ARG MM3_UID=1000
 ARG MM3_GID=1000
-ARG VERSION=0.0.0
+ARG VERSION=0.1.0
 ARG REVISION=unknown
 LABEL org.opencontainers.image.title="MeetingMaster3" \
       org.opencontainers.image.description="Local-first meeting transcription and note generation" \

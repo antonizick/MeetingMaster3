@@ -102,7 +102,10 @@ Ollama listens on `127.0.0.1:11434` by default, which a bridge-network container
 `host.docker.internal` is treated as local for consent and for the "unload Ollama before
 transcribing" step.
 
-**Search (Phase 15i)** embeds meetings with `nomic-embed-text` in the same Ollama: pull it once on the
+The bundled Ollama image is pinned (`ollama/ollama:0.40.7`, the version the app was tested with); change the tag
+in `docker/compose.yaml` deliberately when you want a newer one.
+
+**Search** embeds meetings with `nomic-embed-text` in the same Ollama: pull it once on the
 host (`ollama pull nomic-embed-text`) or, with the bundled Ollama,
 `docker compose exec ollama ollama pull nomic-embed-text`. The bundled Ollama counts as a cloud endpoint
 (see above), so search indexing with it also needs *Allow search indexing* on that backend (Settings →
